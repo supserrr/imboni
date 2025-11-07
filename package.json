@@ -1,0 +1,25 @@
+{
+  "name": "ai-vision-assistant-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@8.15.7",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "dev:web": "pnpm --filter web dev",
+    "build:web": "pnpm --filter web build",
+    "lint:web": "pnpm --filter web lint",
+    "dev:supabase": "supabase start"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "patch-package": "^8.0.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}

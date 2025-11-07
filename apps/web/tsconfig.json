@@ -1,0 +1,35 @@
+{
+  "extends": "../../packages/config/tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@imboni/shared": [
+        "../../packages/shared/src"
+      ],
+      "@imboni/api-client": [
+        "../../packages/api-client/src"
+      ]
+    },
+    "allowJs": true,
+    "noEmit": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
