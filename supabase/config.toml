@@ -1,7 +1,0 @@
-project_id = "imboni"
-api_port = 54321
-studio_port = 54323
-inbucket_port = 54324
-pgadmin_port = 54322
-storage_port = 54326
-edge_runtime_version = "v1.40.3"

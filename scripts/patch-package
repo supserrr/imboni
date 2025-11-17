@@ -1,3 +1,0 @@
-#!/bin/sh
-# Stub patch-package to satisfy rollup postinstall in environments without patches.
-exit 0
