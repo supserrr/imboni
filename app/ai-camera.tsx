@@ -4,14 +4,15 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  TextInput,
   ActivityIndicator,
   Alert,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, Camera } from 'expo-camera';
+import { getVoice, isSpeechRecognitionAvailable } from '@/lib/utils/speechRecognition';
 import { useAI } from '@/contexts/AIContext';
-import { useAudio } from '@/contexts/AudioContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { startSampling } from '@/lib/utils/cameraSampling';
 import { formatAIResponse } from '@/lib/utils/aiResponse';
@@ -25,12 +26,41 @@ export default function AICameraScreen() {
   const router = useRouter();
   const { profile, user } = useAuth();
   const { isActive, isSampling, lowConfidenceDetected, startSession, stopSession, analyzeImage, setQuery } = useAI();
-  const { isMuted, toggleMute } = useAudio();
   const cameraRef = useRef<CameraView>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [userQuery, setUserQuery] = useState('');
   const [samplingCleanup, setSamplingCleanup] = useState<(() => void) | null>(null);
   const [isRequestingVolunteer, setIsRequestingVolunteer] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [recognizedText, setRecognizedText] = useState('');
+  const voiceRef = useRef(getVoice());
+
+  /**
+   * Handles voice query submission.
+   */
+  const handleVoiceQuery = async (query: string) => {
+    if (!query.trim() || !cameraRef.current) return;
+
+    triggerHaptic('light');
+    setQuery(query);
+    setIsListening(false);
+
+    try {
+      // Capture current frame and analyze with query
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (photo?.base64) {
+        const analysis = await analyzeImage(photo.base64, query);
+        const response = formatAIResponse(analysis, profile?.verbosity_level || 'detailed');
+        // Response will be displayed in UI, OS accessibility will announce it
+      }
+    } catch (error) {
+      console.error('Query error:', error);
+      // Error will be displayed in UI, OS accessibility will announce it
+    }
+  };
 
   useEffect(() => {
     // Request camera permission
@@ -39,13 +69,39 @@ export default function AICameraScreen() {
       setHasPermission(status === 'granted');
     })();
 
-    // Screen announcement handled by OS accessibility via accessibilityLabel
+    // Set up voice recognition event listeners
+    const Voice = voiceRef.current;
+    
+    Voice.onSpeechStart = () => {
+      setIsListening(true);
+      triggerHaptic('light');
+    };
 
+    Voice.onSpeechEnd = () => {
+      setIsListening(false);
+    };
+
+    Voice.onSpeechResults = (event) => {
+      if (event.value && event.value.length > 0) {
+        const text = event.value[0];
+        setRecognizedText(text);
+        handleVoiceQuery(text);
+      }
+    };
+
+    Voice.onSpeechError = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      triggerHaptic('error');
+    };
+
+    // Cleanup
     return () => {
       if (samplingCleanup) {
         samplingCleanup();
       }
       stopSession();
+      Voice.destroy().then(() => Voice.removeAllListeners());
     };
   }, []);
 
@@ -75,31 +131,81 @@ export default function AICameraScreen() {
   };
 
   /**
-   * Handles user query submission.
+   * Requests microphone permission for Android.
    */
-  const handleQuerySubmit = async () => {
-    if (!userQuery.trim() || !cameraRef.current) return;
-
-    triggerHaptic('light');
-    setQuery(userQuery);
+  const requestMicrophonePermission = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') {
+      return true;
+    }
 
     try {
-      // Capture current frame and analyze with query
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.7,
-        base64: true,
-      });
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+        {
+          title: 'Microphone Permission',
+          message: 'Imboni needs access to your microphone for voice input.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.error('Error requesting microphone permission:', err);
+      return false;
+    }
+  };
 
-      if (photo?.base64) {
-        const analysis = await analyzeImage(photo.base64, userQuery);
-        const response = formatAIResponse(analysis, profile?.verbosity_level || 'detailed');
-        // Response will be displayed in UI, OS accessibility will announce it
-      }
+  /**
+   * Starts voice input for asking questions.
+   */
+  const handleStartVoiceInput = async () => {
+    // Request microphone permission if needed
+    const hasPermission = await requestMicrophonePermission();
+    if (!hasPermission) {
+      Alert.alert(
+        'Permission Required',
+        'Microphone permission is required for voice input. Please enable it in your device settings.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
 
-      setUserQuery('');
+    // Check if voice recognition is available
+    if (!isSpeechRecognitionAvailable()) {
+      Alert.alert(
+        'Development Build Required',
+        'Voice input requires a development build. In Expo Go, this feature is not available. Please create a development build to use voice input.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    try {
+      triggerHaptic('medium');
+      setRecognizedText('');
+      await voiceRef.current.start('en-US');
     } catch (error) {
-      console.error('Query error:', error);
-      // Error will be displayed in UI, OS accessibility will announce it
+      console.error('Error starting voice recognition:', error);
+      setIsListening(false);
+      Alert.alert(
+        'Error',
+        'Could not start voice recognition. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  /**
+   * Stops voice input.
+   */
+  const handleStopVoiceInput = async () => {
+    try {
+      await voiceRef.current.stop();
+      setIsListening(false);
+      triggerHaptic('light');
+    } catch (error) {
+      console.error('Error stopping voice recognition:', error);
     }
   };
 
@@ -192,24 +298,23 @@ export default function AICameraScreen() {
           </View>
         ) : (
           <View style={styles.activeContainer}>
-            <View style={styles.queryContainer}>
-              <TextInput
-                style={styles.queryInput}
-                placeholder="Ask me anything..."
-                placeholderTextColor="#999"
-                value={userQuery}
-                onChangeText={setUserQuery}
-                onSubmitEditing={handleQuerySubmit}
-                accessibilityLabel="Text input for questions"
-              />
-              <TouchableOpacity
-                style={styles.micButton}
-                onPress={handleQuerySubmit}
-                accessibilityLabel="Submit question"
-                accessibilityRole="button">
-                <Text style={styles.micIcon}>🎤</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={[styles.voiceButton, isListening && styles.voiceButtonActive]}
+              onPress={isListening ? handleStopVoiceInput : handleStartVoiceInput}
+              accessibilityLabel={isListening ? 'Stop listening. Tap to stop voice input.' : 'Tap to ask a question using voice'}
+              accessibilityRole="button"
+              accessibilityHint={isListening ? 'Double tap to stop listening' : 'Double tap to start voice input and ask a question about what you see'}>
+              <Text style={styles.voiceButtonText}>
+                {isListening ? 'Listening... Tap to Stop' : 'Tap to Ask Question'}
+              </Text>
+            </TouchableOpacity>
+
+            {recognizedText && !isListening && (
+              <View style={styles.recognizedTextContainer}>
+                <Text style={styles.recognizedTextLabel}>You said:</Text>
+                <Text style={styles.recognizedText}>{recognizedText}</Text>
+              </View>
+            )}
 
             {isSampling && (
               <View style={styles.statusContainer}>
@@ -231,23 +336,13 @@ export default function AICameraScreen() {
               </TouchableOpacity>
             )}
 
-            <View style={styles.controls}>
-              <TouchableOpacity
-                style={styles.controlButton}
-                onPress={toggleMute}
-                accessibilityLabel={isMuted ? 'Unmute AI' : 'Mute AI'}
-                accessibilityRole="button">
-                <Text style={styles.controlButtonText}>{isMuted ? '🔇' : '🔊'}</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.endButton}
-                onPress={handleEndSession}
-                accessibilityLabel="End session"
-                accessibilityRole="button">
-                <Text style={styles.endButtonText}>End</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.endButton}
+              onPress={handleEndSession}
+              accessibilityLabel="End session"
+              accessibilityRole="button">
+              <Text style={styles.endButtonText}>End Session</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -287,32 +382,40 @@ const styles = StyleSheet.create({
   },
   activeContainer: {
     gap: 16,
+    alignItems: 'stretch',
   },
-  queryContainer: {
-    flexDirection: 'row',
-    gap: 12,
+  voiceButton: {
+    backgroundColor: '#007AFF',
+    borderRadius: 16,
+    padding: 24,
     alignItems: 'center',
+    minHeight: 80,
+    justifyContent: 'center',
   },
-  queryInput: {
-    flex: 1,
+  voiceButtonActive: {
+    backgroundColor: '#FF3B30',
+  },
+  voiceButtonText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  recognizedTextContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 12,
     padding: 16,
+    marginTop: 8,
+  },
+  recognizedTextLabel: {
+    color: '#999',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  recognizedText: {
     color: '#fff',
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  micButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  micIcon: {
-    fontSize: 24,
+    lineHeight: 22,
   },
   statusContainer: {
     flexDirection: 'row',
@@ -335,24 +438,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  controls: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    gap: 16,
-  },
-  controlButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  controlButtonText: {
-    fontSize: 24,
-  },
   endButton: {
-    flex: 1,
     backgroundColor: '#FF3B30',
     borderRadius: 12,
     padding: 18,

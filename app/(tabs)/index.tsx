@@ -24,14 +24,6 @@ export default function HomeScreen() {
   };
 
   /**
-   * Handles photo mode navigation.
-   */
-  const handlePhotoMode = () => {
-    triggerHaptic('light');
-    router.push('/(tabs)/photo');
-  };
-
-  /**
    * Toggles volunteer availability.
    */
   const handleToggleAvailability = async () => {
@@ -52,25 +44,14 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <View style={styles.content}>
         {profile?.role === 'user' ? (
-          <>
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={handleCameraPress}
-              accessibilityLabel="Camera button. Double tap to start AI assistance."
-              accessibilityRole="button"
-              accessibilityHint="Opens the AI camera for real-time visual assistance">
-              <Text style={styles.cameraButtonIcon}>📷</Text>
-              <Text style={styles.cameraButtonText}>Camera</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.photoModeButton}
-              onPress={handlePhotoMode}
-              accessibilityLabel="Photo mode. Double tap to take a picture for analysis."
-              accessibilityRole="button">
-              <Text style={styles.photoModeText}>Photo Mode</Text>
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity
+            style={styles.cameraButton}
+            onPress={handleCameraPress}
+            accessibilityLabel="Start AI assistance. Double tap to begin live visual analysis."
+            accessibilityRole="button"
+            accessibilityHint="Opens the AI camera for real-time visual assistance">
+            <Text style={styles.cameraButtonText}>Start AI Assistance</Text>
+          </TouchableOpacity>
         ) : (
           <>
             <View style={styles.volunteerStatus}>
@@ -107,39 +88,27 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   cameraButton: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: '100%',
+    maxWidth: 320,
+    minHeight: 80,
+    borderRadius: 16,
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
+    paddingVertical: 24,
+    paddingHorizontal: 32,
     shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
     elevation: 8,
   },
-  cameraButtonIcon: {
-    fontSize: 64,
-    marginBottom: 8,
-  },
   cameraButtonText: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 22,
+    fontWeight: '700',
     color: '#fff',
-  },
-  photoModeButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  photoModeText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: '500',
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
   volunteerStatus: {
     marginBottom: 24,
