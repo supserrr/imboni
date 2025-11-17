@@ -21,6 +21,10 @@ export interface UserProfile {
   updated_at: string;
   is_available?: boolean;
   language?: string;
+  confidence_threshold?: number;
+  preferred_voice?: string;
+  speech_rate?: number;
+  verbosity_level?: 'detailed' | 'concise';
 }
 
 /**
@@ -38,6 +42,42 @@ export interface CallRequest {
 }
 
 /**
+ * AI session data structure.
+ */
+export interface AISession {
+  id: string;
+  user_id: string;
+  started_at: string;
+  ended_at?: string;
+  frames_analyzed: number;
+  average_confidence: number;
+}
+
+/**
+ * Audio playback state.
+ */
+export interface AudioState {
+  isPlaying: boolean;
+  isMuted: boolean;
+  currentText?: string;
+  queue: string[];
+}
+
+/**
+ * AI analysis state.
+ */
+export interface AIAnalysisState {
+  isActive: boolean;
+  lastAnalysis?: {
+    description: string;
+    confidence: number;
+    timestamp: number;
+  };
+  lowConfidenceDetected: boolean;
+  query?: string;
+}
+
+/**
  * Database table definitions for Supabase.
  */
 export interface Database {
@@ -52,6 +92,11 @@ export interface Database {
         Row: CallRequest;
         Insert: Omit<CallRequest, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<CallRequest, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      ai_sessions: {
+        Row: AISession;
+        Insert: Omit<AISession, 'id' | 'started_at'>;
+        Update: Partial<Omit<AISession, 'id' | 'started_at'>>;
       };
     };
   };

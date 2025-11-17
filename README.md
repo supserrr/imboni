@@ -40,9 +40,36 @@ Create a `.env` file in the root directory:
 ```env
 EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_publishable_key
+
+# Moondream API Key (get from https://moondream.ai/c/docs/quickstart)
+EXPO_PUBLIC_MOONDREAM_API_KEY=your_moondream_api_key
+
+# MeloTTS Self-Hosted URL (default: http://localhost:8888)
+EXPO_PUBLIC_MELOTTS_API_URL=http://localhost:8888
 ```
 
-### 4. Run the App
+### 4. Set Up MeloTTS Server
+
+MeloTTS needs to be running locally. See `melotts-server/README.md` for setup instructions.
+
+Quick start:
+```bash
+# Install MeloTTS (one-time setup)
+cd /tmp
+git clone https://github.com/myshell-ai/MeloTTS.git
+cd MeloTTS
+pip install -e .
+python -m unidic download
+
+# Install HTTP server dependencies
+cd /Users/password/imboni/melotts-server
+pip install -r requirements.txt
+
+# Start the server
+npm run melotts:start
+```
+
+### 5. Run the App
 
 ```bash
 # Start the development server

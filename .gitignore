@@ -42,3 +42,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# MeloTTS server
+melotts-server/__pycache__/
+melotts-server/*.pyc
+melotts-server/*.wav
+melotts-server/.venv/

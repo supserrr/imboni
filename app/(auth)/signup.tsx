@@ -11,17 +11,20 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Signup screen component for new user registration.
  */
 export default function SignupScreen() {
+  const params = useLocalSearchParams<{ role?: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'user' | 'volunteer'>('user');
+  const [role, setRole] = useState<'user' | 'volunteer'>(
+    (params.role as 'user' | 'volunteer') || 'user'
+  );
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const router = useRouter();
@@ -49,11 +52,8 @@ export default function SignupScreen() {
       Alert.alert('Signup Failed', errorMessage);
       console.error('Signup error details:', error);
     } else {
-      Alert.alert(
-        'Success',
-        'Account created! Please check your email to confirm your account, then sign in.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
-      );
+      // Navigate to language selection after signup
+      router.replace('/(onboarding)/language');
     }
   };
 
@@ -98,6 +98,7 @@ export default function SignupScreen() {
               autoComplete="password"
             />
 
+            {!params.role && (
             <View style={styles.roleContainer}>
               <Text style={styles.roleLabel}>I want to:</Text>
               <View style={styles.roleButtons}>
@@ -122,6 +123,7 @@ export default function SignupScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            )}
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}

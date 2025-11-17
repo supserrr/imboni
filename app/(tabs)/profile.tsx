@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAudio } from '@/contexts/AudioContext';
+import { triggerHaptic } from '@/lib/utils/accessibility';
+import { supabase } from '@/lib/supabase';
 
 /**
- * Profile screen component for viewing and editing user profile.
+ * Profile/Settings screen component for viewing and editing user profile.
  */
 export default function ProfileScreen() {
-  const { profile, signOut, user } = useAuth();
+  const { profile, signOut, user, updateProfile } = useAuth();
+  // Removed custom TTS - OS accessibility handles narration
   const router = useRouter();
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+  const [showSpeechRate, setShowSpeechRate] = useState(false);
+  const [showVerbosity, setShowVerbosity] = useState(false);
 
   /**
    * Handles user sign out.
@@ -30,7 +37,7 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <View style={styles.container}>
-        <Text>Loading...</Text>
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -38,37 +45,190 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{profile.full_name.charAt(0).toUpperCase()}</Text>
-        </View>
-        <Text style={styles.name}>{profile.full_name}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
+        <Text style={styles.title}>Settings</Text>
       </View>
 
       <View style={styles.section}>
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Role</Text>
-          <Text style={styles.value}>
-            {profile.role === 'user' ? 'User (Get Help)' : 'Volunteer (Help Others)'}
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => {
+            triggerHaptic('light');
+            setShowVoiceSettings(!showVoiceSettings);
+          }}>
+          <Text style={styles.settingText}>Voice Language & Voice</Text>
+          <Text style={styles.settingArrow}>{showVoiceSettings ? '▼' : '›'}</Text>
+        </TouchableOpacity>
+
+        {showVoiceSettings && (
+          <View style={styles.subSettings}>
+            <TouchableOpacity
+              style={styles.subSettingItem}
+              onPress={() => router.push('/(onboarding)/language')}>
+              <Text style={styles.subSettingText}>Change Language & Voice</Text>
+              <Text style={styles.settingArrow}>›</Text>
+            </TouchableOpacity>
+            {profile?.preferred_voice && (
+              <Text style={styles.currentSetting}>Current: {profile.preferred_voice}</Text>
+            )}
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => {
+            triggerHaptic('light');
+            setShowSpeechRate(!showSpeechRate);
+          }}>
+          <Text style={styles.settingText}>Speech Rate</Text>
+          <Text style={styles.settingArrow}>{showSpeechRate ? '▼' : '›'}</Text>
+        </TouchableOpacity>
+
+        {showSpeechRate && (
+          <View style={styles.subSettings}>
+            <Text style={styles.subSettingText}>
+              Current: {profile?.speech_rate || 1.0}x
+            </Text>
+            <View style={styles.rateButtons}>
+              {[0.75, 1.0, 1.25, 1.5].map((rate) => (
+                <TouchableOpacity
+                  key={rate}
+                  style={[
+                    styles.rateButton,
+                    profile?.speech_rate === rate && styles.rateButtonActive,
+                  ]}
+                  onPress={async () => {
+                    triggerHaptic('light');
+                    const { error } = await updateProfile({ speech_rate: rate });
+                    // Setting change will be announced by OS accessibility via accessibilityLabel
+                  }}>
+                  <Text
+                    style={[
+                      styles.rateButtonText,
+                      profile?.speech_rate === rate && styles.rateButtonTextActive,
+                    ]}>
+                    {rate}x
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => {
+            triggerHaptic('light');
+            setShowVerbosity(!showVerbosity);
+          }}>
+          <Text style={styles.settingText}>Verbosity Level</Text>
+          <Text style={styles.settingArrow}>{showVerbosity ? '▼' : '›'}</Text>
+        </TouchableOpacity>
+
+        {showVerbosity && (
+          <View style={styles.subSettings}>
+            <TouchableOpacity
+              style={[
+                styles.verbosityButton,
+                profile?.verbosity_level === 'detailed' && styles.verbosityButtonActive,
+              ]}
+              onPress={async () => {
+                triggerHaptic('light');
+                const { error } = await updateProfile({ verbosity_level: 'detailed' });
+                // Setting change will be announced by OS accessibility via accessibilityLabel
+              }}>
+              <Text
+                style={[
+                  styles.verbosityButtonText,
+                  profile?.verbosity_level === 'detailed' && styles.verbosityButtonTextActive,
+                ]}>
+                Detailed
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.verbosityButton,
+                profile?.verbosity_level === 'concise' && styles.verbosityButtonActive,
+              ]}
+              onPress={async () => {
+                triggerHaptic('light');
+                const { error } = await updateProfile({ verbosity_level: 'concise' });
+                // Setting change will be announced by OS accessibility via accessibilityLabel
+              }}>
+              <Text
+                style={[
+                  styles.verbosityButtonText,
+                  profile?.verbosity_level === 'concise' && styles.verbosityButtonTextActive,
+                ]}>
+                Concise
           </Text>
+            </TouchableOpacity>
+          </View>
+        )}
         </View>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Status</Text>
-          <Text style={styles.value}>
-            {profile.is_available ? 'Available' : 'Unavailable'}
-          </Text>
+      <View style={styles.section}>
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={async () => {
+            triggerHaptic('light');
+            Alert.alert(
+              'Delete Session History',
+              'This will delete all your AI session history. This action cannot be undone.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: async () => {
+                    // Delete AI sessions
+                    if (user) {
+                      const { error } = await supabase
+                        .from('ai_sessions')
+                        .delete()
+                        .eq('user_id', user.id);
+                      
+                      // Deletion will be announced by OS accessibility via accessibilityLabel
+                    }
+                  },
+                },
+              ]
+            );
+          }}>
+          <Text style={styles.settingText}>Privacy: Delete Session History</Text>
+          <Text style={styles.settingArrow}>›</Text>
+        </TouchableOpacity>
         </View>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.label}>Language</Text>
-          <Text style={styles.value}>{profile.language || 'English'}</Text>
+      {profile?.role === 'volunteer' && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Volunteer Preferences</Text>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => router.push('/(onboarding)/language')}>
+            <Text style={styles.settingText}>Preferred Languages</Text>
+            <Text style={styles.settingArrow}>›</Text>
+          </TouchableOpacity>
         </View>
+      )}
+
+      <View style={styles.section}>
+        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/support')}>
+          <Text style={styles.settingText}>Support</Text>
+          <Text style={styles.settingArrow}>›</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/(onboarding)/privacy')}>
+          <Text style={styles.settingText}>Privacy and terms</Text>
+          <Text style={styles.settingArrow}>›</Text>
+        </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sign Out</Text>
+      <View style={styles.section}>
+        <TouchableOpacity style={[styles.settingItem, styles.logoutItem]} onPress={handleSignOut}>
+          <Text style={[styles.settingText, styles.logoutText]}>Log out</Text>
+          <Text style={styles.settingArrow}>›</Text>
       </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
@@ -76,74 +236,126 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#000',
   },
   content: {
-    padding: 20,
+    paddingTop: 60,
   },
   header: {
-    alignItems: 'center',
-    marginBottom: 32,
-    paddingTop: 20,
+    padding: 24,
+    paddingBottom: 32,
   },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  avatarText: {
-    fontSize: 40,
+  title: {
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#fff',
   },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 16,
-    color: '#666',
+  loadingText: {
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 40,
   },
   section: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    padding: 16,
     marginBottom: 24,
   },
-  infoRow: {
+  settingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#1a1a1a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+  },
+  settingText: {
+    fontSize: 16,
+    color: '#fff',
+  },
+  settingArrow: {
+    fontSize: 20,
+    color: '#999',
+  },
+  logoutItem: {
+    backgroundColor: '#1a1a1a',
+  },
+  logoutText: {
+    color: '#FF3B30',
+  },
+  subSettings: {
+    backgroundColor: '#0a0a0a',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#000',
+  },
+  subSettingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
   },
-  label: {
-    fontSize: 16,
+  subSettingText: {
+    fontSize: 14,
+    color: '#999',
+  },
+  currentSetting: {
+    fontSize: 12,
     color: '#666',
+    marginTop: 8,
   },
-  value: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1a1a1a',
+  rateButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
   },
-  signOutButton: {
-    backgroundColor: '#FF3B30',
-    borderRadius: 12,
-    padding: 18,
+  rateButton: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    padding: 12,
     alignItems: 'center',
-    marginTop: 20,
+    borderWidth: 1,
+    borderColor: '#333',
   },
-  signOutText: {
-    color: '#fff',
+  rateButtonActive: {
+    borderColor: '#007AFF',
+    backgroundColor: '#1a3a5a',
+  },
+  rateButtonText: {
     fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
+  },
+  rateButtonTextActive: {
+    color: '#007AFF',
+  },
+  verbosityButton: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  verbosityButtonActive: {
+    borderColor: '#007AFF',
+    backgroundColor: '#1a3a5a',
+  },
+  verbosityButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  verbosityButtonTextActive: {
+    color: '#007AFF',
+  },
+  sectionTitle: {
+    fontSize: 14,
     fontWeight: '600',
+    color: '#999',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 8,
+    textTransform: 'uppercase',
   },
 });
-
