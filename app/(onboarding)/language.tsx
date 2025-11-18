@@ -10,7 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAudio } from '@/contexts/AudioContext';
-import { getAvailableSpeakers, synthesizeSpeech, TTSLanguage, EnglishSpeaker } from '@/lib/services/melotts';
+import { getAvailableVoices } from '@/lib/services/audio/elevenLabsTTS';
 
 /**
  * Common languages list.
@@ -38,9 +38,23 @@ export default function LanguageScreen() {
   const { profile, updateProfile } = useAuth();
   // Removed custom TTS - OS accessibility handles narration
   const [selectedLanguage, setSelectedLanguage] = useState(profile?.language || 'en');
-  const [selectedVoice, setSelectedVoice] = useState<string>(profile?.preferred_voice || 'EN-Default');
+  const [selectedVoice, setSelectedVoice] = useState<string>(profile?.preferred_voice || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [previewingVoice, setPreviewingVoice] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<Array<{ id: string; name: string }>>([]);
+
+  // Load available voices from ElevenLabs on mount
+  React.useEffect(() => {
+    getAvailableVoices().then((voices) => {
+      setAvailableVoices(voices);
+      // Set default voice if not set
+      if (!selectedVoice && voices.length > 0) {
+        setSelectedVoice(voices[0].id);
+      }
+    }).catch((err) => {
+      console.error('Failed to load ElevenLabs voices:', err);
+    });
+  }, []);
 
   /**
    * Filters languages based on search query.
@@ -50,13 +64,6 @@ export default function LanguageScreen() {
       lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lang.native.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  /**
-   * Gets available voices for selected language.
-   */
-  const availableVoices = selectedLanguage.toUpperCase() === 'EN' 
-    ? getAvailableSpeakers('EN')
-    : [selectedLanguage.toUpperCase()];
 
   /**
    * Previews a voice - removed, OS accessibility handles voice preview.

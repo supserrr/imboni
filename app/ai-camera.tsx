@@ -11,13 +11,27 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, Camera } from 'expo-camera';
-import { getVoice, isSpeechRecognitionAvailable } from '@/lib/utils/speechRecognition';
+import { Audio } from 'expo-av';
+// TODO: Update to use new interaction loop and services
+// The new architecture uses:
+// - lib/services/realtime/interactionLoop.ts for continuous loop
+// - lib/services/audio/whisperGroq.ts for STT (requires MediaStream)
+// - lib/services/audio/elevenLabsTTS.ts for TTS
+// - lib/services/camera/frameCapture.ts for camera
+// - lib/services/vision/moondreamReasoning.ts for vision
+// 
+// Note: Full integration requires MediaStream setup for audio capture.
+// For now, keeping basic structure with new imports.
+
 import { useAI } from '@/contexts/AIContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { startSampling } from '@/lib/utils/cameraSampling';
 import { formatAIResponse } from '@/lib/utils/aiResponse';
 import { triggerHaptic } from '@/lib/utils/accessibility';
+import { synthesizeSpeech } from '@/lib/services/audio/elevenLabsTTS';
 import { supabase } from '@/lib/supabase';
+import { MoondreamResponse } from '@/lib/services/vision/moondreamReasoning';
+import { startContinuousCapture, stopCapture } from '@/lib/services/camera/frameCapture';
+import { searchVolunteer } from '@/lib/services/realtime/volunteerMatching';
 
 /**
  * AI Camera screen component for real-time vision analysis.
@@ -31,11 +45,228 @@ export default function AICameraScreen() {
   const [samplingCleanup, setSamplingCleanup] = useState<(() => void) | null>(null);
   const [isRequestingVolunteer, setIsRequestingVolunteer] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [recognizedText, setRecognizedText] = useState('');
-  const voiceRef = useRef(getVoice());
+  // TODO: Voice recognition will be handled by interactionLoop with Groq Whisper (requires MediaStream setup)
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const isSpeakingRef = useRef(false); // Prevent race conditions
+  const isProcessingFrameRef = useRef(false); // Prevent multiple frames processing simultaneously
+  const lastSpeechTimeRef = useRef<number>(0); // Track last time we spoke to prevent rapid responses
+  const currentAnalysisAbortRef = useRef<AbortController | null>(null); // For canceling pending analysis
+  const samplingCleanupRef = useRef<(() => void) | null>(null); // Ref for immediate access to cleanup
+  const isRateLimitedRef = useRef(false); // Track if we're rate limited
+  const rateLimitRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Retry timeout for rate limits
+
+  /**
+   * Immediately interrupts any ongoing speech playback.
+   */
+  const interruptSpeech = async () => {
+    if (soundRef.current) {
+      try {
+        const sound = soundRef.current;
+        soundRef.current = null; // Clear ref first to prevent race conditions
+        await sound.stopAsync();
+        await sound.unloadAsync();
+      } catch (error) {
+        console.error('Error interrupting speech:', error);
+        // Ensure ref is cleared even on error
+        soundRef.current = null;
+      }
+    }
+    isSpeakingRef.current = false;
+  };
+
+  /**
+   * Speaks text using ElevenLabs TTS.
+   */
+  const speakResponse = async (text: string) => {
+    if (!text.trim()) return;
+
+    // If already speaking, don't interrupt - just skip this response
+    // This prevents cutting mid-response and restarting
+    if (isSpeakingRef.current) {
+      console.log('[speakResponse] Skipping - already speaking');
+      return;
+    }
+
+    // Prevent rapid successive responses - minimum 2 seconds between responses
+    const now = Date.now();
+    const timeSinceLastSpeech = now - lastSpeechTimeRef.current;
+    const minDelayBetweenResponses = 2000; // 2 seconds minimum
+    
+    if (timeSinceLastSpeech < minDelayBetweenResponses) {
+      console.log(`[speakResponse] Skipping - too soon after last response (${timeSinceLastSpeech}ms < ${minDelayBetweenResponses}ms)`);
+      return;
+    }
+
+    // Set flag immediately to prevent race conditions
+    isSpeakingRef.current = true;
+    lastSpeechTimeRef.current = now;
+
+    try {
+      // Get user's voice preferences
+      const voiceId = profile?.preferred_voice || undefined;
+      const speechRate = profile?.speech_rate || 1.0;
+
+      // Synthesize speech using ElevenLabs TTS
+      const audioSource = await synthesizeSpeech(text, voiceId, {
+        speechRate,
+      });
+
+      // Check if we should still speak (user might have interrupted)
+      if (!isSpeakingRef.current) {
+        return;
+      }
+
+      // Ensure no other audio is playing before creating new sound
+      if (soundRef.current) {
+        try {
+          await soundRef.current.unloadAsync();
+        } catch (error) {
+          // Ignore errors if already unloaded
+        }
+        soundRef.current = null;
+      }
+
+      // Load and play the audio
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioSource.uri },
+        { 
+          shouldPlay: true,
+          volume: 1.0,
+          isMuted: false,
+        }
+      );
+
+      soundRef.current = sound;
+
+      // Set up playback status listener
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded) {
+          if (status.didJustFinish || status.isStopped) {
+            isSpeakingRef.current = false;
+            sound.unloadAsync().catch(console.error);
+            soundRef.current = null;
+            
+            // Auto-resume frame sampling after response completes
+            if (isActive) {
+              restartFrameSampling();
+            }
+          }
+        } else if (status.error) {
+          console.error('Playback error:', status.error);
+          isSpeakingRef.current = false;
+          soundRef.current = null;
+          
+          // Auto-resume frame sampling even on error
+          if (isActive) {
+            restartFrameSampling();
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error speaking with ElevenLabs TTS:', error);
+      isSpeakingRef.current = false;
+      // Auto-resume frame sampling even on error
+      if (isActive) {
+        restartFrameSampling();
+      }
+    }
+  };
+
+  /**
+   * Restarts frame sampling after user question is processed.
+   */
+  const restartFrameSampling = () => {
+    if (!isActive || !cameraRef.current) return;
+
+    // Don't restart if rate limited - wait for retry timeout
+    if (isRateLimitedRef.current) {
+      return;
+    }
+
+    // Stop any existing sampling using ref for immediate access
+    if (samplingCleanupRef.current) {
+      samplingCleanupRef.current();
+      samplingCleanupRef.current = null;
+      setSamplingCleanup(null);
+    }
+
+    // Restart frame sampling using new frameCapture service
+    const fps = 2; // Default 2 FPS
+    const cleanup = startContinuousCapture(
+      cameraRef,
+      fps,
+      async (frame) => {
+        // Skip if rate limited, processing, speaking, or listening
+        if (isRateLimitedRef.current || isProcessingFrameRef.current || isListening || isSpeakingRef.current) {
+          return;
+        }
+
+        // Set processing flag to prevent concurrent frame processing
+        isProcessingFrameRef.current = true;
+
+        try {
+          // Double-check we're still not speaking/listening/rate limited
+          if (isSpeakingRef.current || isListening || isRateLimitedRef.current) {
+            return;
+          }
+
+          // Clear rate limit flag if we got a successful response
+          isRateLimitedRef.current = false;
+
+          // Analyze frame using new service
+          const analysis = await analyzeImage(frame.base64);
+
+          // Check confidence (using new threshold 0.55)
+          const confidenceThreshold = profile?.confidence_threshold || 0.55;
+          const isLow = analysis.confidence < confidenceThreshold;
+          const response = formatAIResponse(
+            analysis, 
+            profile?.verbosity_level || 'detailed',
+            isLow
+          );
+          
+          // Only speak if we're still not speaking (final check)
+          if (!isSpeakingRef.current && !isListening && !isRateLimitedRef.current) {
+            triggerHaptic('light'); // Light haptic to indicate analysis
+            await speakResponse(response);
+          }
+        } catch (error) {
+          console.error('Frame analysis error:', error);
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          const isRateLimitError = errorMsg.includes('429') || errorMsg.includes('Too many requests');
+          
+          if (isRateLimitError) {
+            isRateLimitedRef.current = true;
+            if (samplingCleanupRef.current) {
+              samplingCleanupRef.current();
+              samplingCleanupRef.current = null;
+            }
+            // Retry after 30 seconds
+            rateLimitRetryTimeoutRef.current = setTimeout(() => {
+              isRateLimitedRef.current = false;
+              rateLimitRetryTimeoutRef.current = null;
+              if (isActive && cameraRef.current) {
+                restartFrameSampling();
+              }
+            }, 30000);
+          }
+        } finally {
+          isProcessingFrameRef.current = false;
+        }
+      },
+      {
+        shouldSkip: () => {
+          return isRateLimitedRef.current || isSpeakingRef.current || isListening;
+        },
+      }
+    );
+    samplingCleanupRef.current = cleanup;
+    setSamplingCleanup(() => cleanup);
+  };
 
   /**
    * Handles voice query submission.
+   * TODO: Will be used when Groq Whisper STT is integrated via interactionLoop.
    */
   const handleVoiceQuery = async (query: string) => {
     if (!query.trim() || !cameraRef.current) return;
@@ -43,6 +274,12 @@ export default function AICameraScreen() {
     triggerHaptic('light');
     setQuery(query);
     setIsListening(false);
+
+    // Cancel any pending analysis
+    if (currentAnalysisAbortRef.current) {
+      currentAnalysisAbortRef.current.abort();
+      currentAnalysisAbortRef.current = null;
+    }
 
     try {
       // Capture current frame and analyze with query
@@ -52,86 +289,142 @@ export default function AICameraScreen() {
       });
 
       if (photo?.base64) {
-        const analysis = await analyzeImage(photo.base64, query);
-        const response = formatAIResponse(analysis, profile?.verbosity_level || 'detailed');
-        // Response will be displayed in UI, OS accessibility will announce it
+        // Create new AbortController for this analysis
+        const abortController = new AbortController();
+        currentAnalysisAbortRef.current = abortController;
+
+        // Add timeout to prevent hanging
+        const analysisPromise = analyzeImage(photo.base64, query);
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            abortController.abort();
+            reject(new Error('Analysis timeout - request took too long'));
+          }, 30000); // 30 second timeout
+        });
+
+        const analysis = await Promise.race([analysisPromise, timeoutPromise]);
+        
+        // Check if analysis was aborted
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        currentAnalysisAbortRef.current = null;
+        
+        // Check confidence for this specific analysis (using new threshold 0.55)
+        const confidenceThreshold = profile?.confidence_threshold || 0.55;
+        const isLow = analysis.confidence < confidenceThreshold;
+        const response = formatAIResponse(
+          analysis, 
+          profile?.verbosity_level || 'detailed',
+          isLow
+        );
+        
+        // Speak the response (no text display)
+        triggerHaptic('medium'); // Indicate response is starting
+        await speakResponse(response);
+      } else {
+        throw new Error('Failed to capture photo');
       }
     } catch (error) {
+      // Ignore aborted errors
+      if (error instanceof Error && error.name === 'AbortError') {
+        return;
+      }
+
       console.error('Query error:', error);
-      // Error will be displayed in UI, OS accessibility will announce it
+      const errorMessage = error instanceof Error && error.message.includes('timeout')
+        ? 'The analysis is taking too long. Please try again.'
+        : 'Sorry, I encountered an error analyzing the image. Please try again.';
+      await speakResponse(errorMessage);
     }
   };
 
   useEffect(() => {
+    // Redirect volunteers - this screen is only for users
+    if (profile?.role === 'volunteer') {
+      router.replace('/(tabs)');
+      return;
+    }
+  }, [profile?.role, router]);
+
+  useEffect(() => {
+    // Reset session state on mount to prevent stale state from previous sessions
+    stopSession();
+
+    // Configure audio mode for playback
+    // Note: allowsRecordingIOS must be true for voice input to work
+    (async () => {
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+        allowsRecordingIOS: true, // Required for voice input
+      });
+    })();
+
     // Request camera permission
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
     })();
 
-    // Set up voice recognition event listeners
-    const Voice = voiceRef.current;
-    
-    Voice.onSpeechStart = () => {
-      setIsListening(true);
-      triggerHaptic('light');
-    };
-
-    Voice.onSpeechEnd = () => {
-      setIsListening(false);
-    };
-
-    Voice.onSpeechResults = (event) => {
-      if (event.value && event.value.length > 0) {
-        const text = event.value[0];
-        setRecognizedText(text);
-        handleVoiceQuery(text);
-      }
-    };
-
-    Voice.onSpeechError = (event) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-      triggerHaptic('error');
-    };
+    // TODO: Voice recognition will be handled by interactionLoop with Groq Whisper
+    // This requires MediaStream setup which needs additional configuration
+    // For now, voice recognition is disabled
 
     // Cleanup
     return () => {
-      if (samplingCleanup) {
-        samplingCleanup();
+      // Stop any ongoing speech
+      interruptSpeech().catch(console.error);
+      
+      // Stop frame sampling (use ref for immediate access)
+      if (samplingCleanupRef.current) {
+        samplingCleanupRef.current();
+        samplingCleanupRef.current = null;
       }
+      
+      // Clear rate limit retry timeout if exists
+      if (rateLimitRetryTimeoutRef.current) {
+        clearTimeout(rateLimitRetryTimeoutRef.current);
+        rateLimitRetryTimeoutRef.current = null;
+      }
+      
+      // Reset rate limit flag
+      isRateLimitedRef.current = false;
+      
+      // Cancel any pending analysis
+      if (currentAnalysisAbortRef.current) {
+        currentAnalysisAbortRef.current.abort();
+        currentAnalysisAbortRef.current = null;
+      }
+      
       stopSession();
-      Voice.destroy().then(() => Voice.removeAllListeners());
+      stopCapture(); // Stop any frame capture
     };
   }, []);
 
   /**
-   * Starts the AI session and begins frame sampling.
+   * Starts the AI session, begins frame sampling, and automatically starts voice recognition.
    */
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
     if (!cameraRef.current) return;
 
     triggerHaptic('medium');
     startSession();
 
-    // Start sampling frames
-    const cleanup = startSampling(cameraRef.current, {
-      interval: 800, // 0.8 seconds
-      onFrameAnalyzed: async (analysis) => {
-        // Format response - OS accessibility will announce via accessibilityLabel
-        const response = formatAIResponse(analysis, profile?.verbosity_level || 'detailed');
-      },
-      onError: (error) => {
-        console.error('Frame sampling error:', error);
-        // Error will be displayed in UI, OS accessibility will announce it
-      },
-    });
+    // TODO: Voice recognition will be integrated via interactionLoop with Groq Whisper
+    // This requires MediaStream setup which needs additional configuration
+    // For now, only frame analysis is active
 
-    setSamplingCleanup(() => cleanup);
+    // Start continuous frame capture using new service
+    restartFrameSampling();
   };
 
   /**
    * Requests microphone permission for Android.
+   * TODO: Will be used when Groq Whisper STT is integrated via interactionLoop.
    */
   const requestMicrophonePermission = async (): Promise<boolean> => {
     if (Platform.OS !== 'android') {
@@ -156,58 +449,6 @@ export default function AICameraScreen() {
     }
   };
 
-  /**
-   * Starts voice input for asking questions.
-   */
-  const handleStartVoiceInput = async () => {
-    // Request microphone permission if needed
-    const hasPermission = await requestMicrophonePermission();
-    if (!hasPermission) {
-      Alert.alert(
-        'Permission Required',
-        'Microphone permission is required for voice input. Please enable it in your device settings.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    // Check if voice recognition is available
-    if (!isSpeechRecognitionAvailable()) {
-      Alert.alert(
-        'Development Build Required',
-        'Voice input requires a development build. In Expo Go, this feature is not available. Please create a development build to use voice input.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    try {
-      triggerHaptic('medium');
-      setRecognizedText('');
-      await voiceRef.current.start('en-US');
-    } catch (error) {
-      console.error('Error starting voice recognition:', error);
-      setIsListening(false);
-      Alert.alert(
-        'Error',
-        'Could not start voice recognition. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  /**
-   * Stops voice input.
-   */
-  const handleStopVoiceInput = async () => {
-    try {
-      await voiceRef.current.stop();
-      setIsListening(false);
-      triggerHaptic('light');
-    } catch (error) {
-      console.error('Error stopping voice recognition:', error);
-    }
-  };
 
   /**
    * Requests human volunteer help.
@@ -219,43 +460,86 @@ export default function AICameraScreen() {
     setIsRequestingVolunteer(true);
 
     try {
-      // Create call request
-      const { data, error } = await supabase
-        .from('call_requests')
-        .insert({
-          user_id: user.id,
-          status: 'pending',
-        })
-        .select()
-        .single();
+      // Use new volunteer matching service
+      // Note: Requires user location for proximity matching
+      // For now, using default location (0,0) - update with actual user location
+      const userLatitude = 0; // TODO: Get from user location
+      const userLongitude = 0; // TODO: Get from user location
+      
+      const result = await searchVolunteer(
+        user.id,
+        userLatitude,
+        userLongitude,
+        3, // max attempts
+        (match) => {
+          console.log('Found volunteer:', match);
+        },
+        () => {
+          Alert.alert('No Volunteers Available', 'No volunteers are currently available. Please try again later.');
+        }
+      );
 
-      if (error) throw error;
-
-      // Navigate to call screen
-      router.push({
-        pathname: '/call',
-        params: { callId: data.id, role: 'user' },
-      });
+      if (result?.callRequestId) {
+        // Navigate to call screen
+        router.push({
+          pathname: '/call',
+          params: { callId: result.callRequestId, role: 'user' },
+        });
+      }
     } catch (error) {
       console.error('Error requesting volunteer:', error);
-      // Error will be displayed in UI, OS accessibility will announce it
+      Alert.alert('Error', 'Failed to connect with volunteer. Please try again.');
     } finally {
       setIsRequestingVolunteer(false);
     }
   };
 
   /**
-   * Ends the AI session.
+   * Ends the AI session and stops all operations.
    */
-  const handleEndSession = () => {
+  const handleEndSession = async () => {
     triggerHaptic('light');
-    if (samplingCleanup) {
-      samplingCleanup();
+    
+    // Stop frame sampling (use ref for immediate access)
+    if (samplingCleanupRef.current) {
+      samplingCleanupRef.current();
+      samplingCleanupRef.current = null;
       setSamplingCleanup(null);
     }
+    
+    // Clear rate limit retry timeout if exists
+    if (rateLimitRetryTimeoutRef.current) {
+      clearTimeout(rateLimitRetryTimeoutRef.current);
+      rateLimitRetryTimeoutRef.current = null;
+    }
+    
+    // Reset rate limit flag
+    isRateLimitedRef.current = false;
+    
+    // Cancel any pending analysis
+    if (currentAnalysisAbortRef.current) {
+      currentAnalysisAbortRef.current.abort();
+      currentAnalysisAbortRef.current = null;
+    }
+    
+    // Stop any ongoing speech
+    await interruptSpeech();
+    
+    // Stop frame capture service
+    stopCapture();
+    
     stopSession();
     router.back();
   };
+
+  // Don't render anything if user is a volunteer (will be redirected)
+  if (profile?.role === 'volunteer') {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
 
   if (hasPermission === null) {
     return (
@@ -291,39 +575,14 @@ export default function AICameraScreen() {
             <TouchableOpacity
               style={styles.startButton}
               onPress={handleStartSession}
-              accessibilityLabel="Start AI analysis"
+              accessibilityLabel="Start AI analysis. Voice recognition will begin automatically."
               accessibilityRole="button">
               <Text style={styles.startButtonText}>Start Analysis</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.activeContainer}>
-            <TouchableOpacity
-              style={[styles.voiceButton, isListening && styles.voiceButtonActive]}
-              onPress={isListening ? handleStopVoiceInput : handleStartVoiceInput}
-              accessibilityLabel={isListening ? 'Stop listening. Tap to stop voice input.' : 'Tap to ask a question using voice'}
-              accessibilityRole="button"
-              accessibilityHint={isListening ? 'Double tap to stop listening' : 'Double tap to start voice input and ask a question about what you see'}>
-              <Text style={styles.voiceButtonText}>
-                {isListening ? 'Listening... Tap to Stop' : 'Tap to Ask Question'}
-              </Text>
-            </TouchableOpacity>
-
-            {recognizedText && !isListening && (
-              <View style={styles.recognizedTextContainer}>
-                <Text style={styles.recognizedTextLabel}>You said:</Text>
-                <Text style={styles.recognizedText}>{recognizedText}</Text>
-              </View>
-            )}
-
-            {isSampling && (
-              <View style={styles.statusContainer}>
-                <ActivityIndicator size="small" color="#007AFF" />
-                <Text style={styles.statusText}>Analyzing...</Text>
-              </View>
-            )}
-
-            {lowConfidenceDetected && (
+            {lowConfidenceDetected && isActive && profile?.role === 'user' && isSampling && (
               <TouchableOpacity
                 style={styles.volunteerButton}
                 onPress={handleRequestVolunteer}
@@ -339,7 +598,7 @@ export default function AICameraScreen() {
             <TouchableOpacity
               style={styles.endButton}
               onPress={handleEndSession}
-              accessibilityLabel="End session"
+              accessibilityLabel="End session and stop all operations"
               accessibilityRole="button">
               <Text style={styles.endButtonText}>End Session</Text>
             </TouchableOpacity>
@@ -383,49 +642,6 @@ const styles = StyleSheet.create({
   activeContainer: {
     gap: 16,
     alignItems: 'stretch',
-  },
-  voiceButton: {
-    backgroundColor: '#007AFF',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    minHeight: 80,
-    justifyContent: 'center',
-  },
-  voiceButtonActive: {
-    backgroundColor: '#FF3B30',
-  },
-  voiceButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  recognizedTextContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 8,
-  },
-  recognizedTextLabel: {
-    color: '#999',
-    fontSize: 14,
-    marginBottom: 8,
-  },
-  recognizedText: {
-    color: '#fff',
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  statusText: {
-    color: '#fff',
-    fontSize: 14,
   },
   volunteerButton: {
     backgroundColor: '#FF3B30',

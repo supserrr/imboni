@@ -15,7 +15,6 @@ import { setLogContext, clearLogContext } from '@/lib/utils/logger';
 interface AIContextType {
   isActive: boolean;
   isProcessing: boolean;
-  isSampling: boolean;
   lastAnalysis: MoondreamResponse | null;
   lowConfidenceDetected: boolean;
   currentTranscript: string;
@@ -188,7 +187,6 @@ export function AIProvider({ children }: { children: React.ReactNode }) {
   const value = {
     isActive,
     isProcessing,
-    isSampling: isActive && isProcessing, // Frame sampling is active when session is active and processing
     lastAnalysis,
     lowConfidenceDetected,
     currentTranscript,
@@ -217,4 +215,3 @@ export function useAI() {
   }
   return context;
 }
-
