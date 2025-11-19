@@ -1,7 +1,7 @@
 service: "service.py:svc"
 labels:
   owner: imboni-team
-  project: be-my-eyes-ai
+  project: imboni-ai
 include:
   - "*.py"
 python:

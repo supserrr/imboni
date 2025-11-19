@@ -37,7 +37,7 @@ class MeloTTSRunnable(bentoml.Runnable):
 moondream_runner = bentoml.Runner(MoondreamRunnable, name="moondream_runner")
 melotts_runner = bentoml.Runner(MeloTTSRunnable, name="melotts_runner")
 
-svc = bentoml.Service("be_my_eyes_ai", runners=[moondream_runner, melotts_runner])
+svc = bentoml.Service("imboni_ai", runners=[moondream_runner, melotts_runner])
 
 @svc.api(input=Image(), output=JSON())
 def vision_analyze(image: PILImage.Image):
