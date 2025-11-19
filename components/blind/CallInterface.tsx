@@ -6,10 +6,11 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 interface CallInterfaceProps {
   sessionId: string;
   onEndCall: () => void;
+  helpRequestId?: string;
 }
 
-export default function CallInterface({ sessionId, onEndCall }: CallInterfaceProps) {
-  const { localStream, remoteStream, isCallActive, endCall, startCall } = useCallSession(sessionId);
+export default function CallInterface({ sessionId, onEndCall, helpRequestId }: CallInterfaceProps) {
+  const { localStream, remoteStream, isCallActive, endCall, startCall } = useCallSession(sessionId, helpRequestId);
 
   const handleEnd = () => {
       endCall();

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
+import { useVolunteerRouting } from '@/hooks/use-volunteer-routing';
 
 export type HelpRequest = {
   id: string;
@@ -8,25 +9,30 @@ export type HelpRequest = {
   status: 'pending' | 'accepted' | 'declined' | 'in_progress' | 'completed' | 'cancelled';
   assigned_volunteer: string | null;
   created_at: string;
+  updated_at?: string;
 };
 
 export const useHelpRequest = () => {
   const { user } = useAppStore();
+  const { findBestVolunteer } = useVolunteerRouting();
   const [activeRequest, setActiveRequest] = useState<HelpRequest | null>(null);
   const [incomingRequest, setIncomingRequest] = useState<HelpRequest | null>(null);
 
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to help_requests changes
-    const subscription = supabase
-      .channel('help_requests')
+    // Subscribe to help_requests changes with better filtering
+    const channel = supabase
+      .channel(`help_requests:${user.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'help_requests',
+          filter: user.user_metadata?.type === 'blind' 
+            ? `user_id=eq.${user.id}`
+            : `assigned_volunteer=eq.${user.id}`,
         },
         (payload) => {
           const newRequest = payload.new as HelpRequest;
@@ -36,33 +42,46 @@ export const useHelpRequest = () => {
             setActiveRequest(newRequest);
           }
           
-          // If user is volunteer, check if they are assigned or if it's a broadcast
-          // For simplified routing, we might listen to all pending if we are online
-          // Here assuming the routing logic assigns it or we see pending ones
+          // If user is volunteer, check if they are assigned and request is pending
           if (user.user_metadata?.type === 'volunteer') {
-             if (newRequest.assigned_volunteer === user.id) {
+             if (newRequest.assigned_volunteer === user.id && newRequest.status === 'pending') {
                  setIncomingRequest(newRequest);
-             } else if (newRequest.status === 'pending' && !newRequest.assigned_volunteer) {
-                 // Potential match logic handled server-side or via routing hook
-                 // But if we want to show "pending" to all:
-                 // setIncomingRequest(newRequest);
+             } else if (newRequest.assigned_volunteer !== user.id || newRequest.status !== 'pending') {
+                 // Clear incoming request if it's no longer assigned to us or not pending
+                 setIncomingRequest(null);
              }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('Subscribed to help requests channel');
+        }
+      });
 
     return () => {
-      subscription.unsubscribe();
+      channel.unsubscribe();
     };
   }, [user]);
 
   const createRequest = async () => {
     if (!user) return;
     
+    // Find best available volunteer
+    const bestVolunteerId = await findBestVolunteer();
+    
+    if (!bestVolunteerId) {
+      throw new Error('No volunteers available at this time');
+    }
+    
+    // Create request with assigned volunteer
     const { data, error } = await supabase
       .from('help_requests')
-      .insert({ user_id: user.id, status: 'pending' })
+      .insert({ 
+        user_id: user.id, 
+        status: 'pending',
+        assigned_volunteer: bestVolunteerId
+      })
       .select()
       .single();
 
@@ -83,17 +102,92 @@ export const useHelpRequest = () => {
 
   const acceptRequest = async (requestId: string) => {
       if (!user) return;
+      
+      // Update request status to accepted
       const { error } = await supabase
           .from('help_requests')
-          .update({ status: 'accepted', assigned_volunteer: user.id })
-          .eq('id', requestId);
+          .update({ status: 'accepted' })
+          .eq('id', requestId)
+          .eq('assigned_volunteer', user.id);
       
       if (error) throw error;
+      
+      // Update volunteer behavior - increment accept count and update last active
+      const { data: behavior } = await supabase
+        .from('volunteer_behavior')
+        .select('accept_count')
+        .eq('volunteer_id', user.id)
+        .single();
+      
+      if (behavior) {
+        await supabase
+          .from('volunteer_behavior')
+          .update({
+            accept_count: (behavior.accept_count || 0) + 1,
+            last_active: new Date().toISOString(),
+          })
+          .eq('volunteer_id', user.id);
+      }
   };
 
   const declineRequest = async (requestId: string) => {
-      // Logic to re-route or mark as declined by this volunteer
-      // For now just update status if assigned, or ignore locally
+      if (!user) return;
+      
+      // Get the request to check if we're assigned
+      const { data: request } = await supabase
+        .from('help_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+      
+      if (!request || request.assigned_volunteer !== user.id) {
+        return; // Not assigned to this volunteer
+      }
+      
+      // Find next best volunteer (excluding current one)
+      const nextVolunteerId = await findBestVolunteer(user.id);
+      
+      if (nextVolunteerId) {
+        // Re-assign to next best volunteer
+        const { error } = await supabase
+          .from('help_requests')
+          .update({ assigned_volunteer: nextVolunteerId })
+          .eq('id', requestId);
+        
+        if (error) throw error;
+        
+        // Update volunteer behavior - increment decline count
+        const { error: declineError } = await supabase.rpc('increment_decline_count', { 
+          volunteer_id: user.id 
+        });
+        
+        if (declineError) {
+          console.error('Error incrementing decline count:', declineError);
+          // Fallback: update directly
+          const { data: behavior } = await supabase
+            .from('volunteer_behavior')
+            .select('decline_count')
+            .eq('volunteer_id', user.id)
+            .single();
+          
+          if (behavior) {
+            await supabase
+              .from('volunteer_behavior')
+              .update({ decline_count: (behavior.decline_count || 0) + 1 })
+              .eq('volunteer_id', user.id);
+          }
+        }
+      } else {
+        // No more volunteers available, mark as declined
+        const { error } = await supabase
+          .from('help_requests')
+          .update({ status: 'declined' })
+          .eq('id', requestId);
+        
+        if (error) throw error;
+      }
+      
+      setIncomingRequest(null);
   };
 
   return {

@@ -5,6 +5,7 @@ import Animated, {
   useAnimatedRef,
   useAnimatedStyle,
   useScrollOffset,
+  useDerivedValue,
 } from 'react-native-reanimated';
 
 import { ThemedView } from '@/components/themed-view';
@@ -27,18 +28,33 @@ export default function ParallaxScrollView({
   const colorScheme = useColorScheme() ?? 'light';
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollOffset(scrollRef);
+  
+  // Create derived values to ensure scrollOffset is always observed
+  // This prevents the "onAnimatedValueUpdate with no listeners" warning
+  const translateY = useDerivedValue(() => {
+    return interpolate(
+      scrollOffset.value,
+      [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
+      [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
+    );
+  });
+  
+  const scale = useDerivedValue(() => {
+    return interpolate(
+      scrollOffset.value,
+      [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
+      [2, 1, 1]
+    );
+  });
+  
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
         {
-          translateY: interpolate(
-            scrollOffset.value,
-            [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
-          ),
+          translateY: translateY.value,
         },
         {
-          scale: interpolate(scrollOffset.value, [-HEADER_HEIGHT, 0, HEADER_HEIGHT], [2, 1, 1]),
+          scale: scale.value,
         },
       ],
     };

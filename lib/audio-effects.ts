@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+// Audio effects can be implemented using expo-audio if needed
 
 // Map of sound effect keys to their require paths
 // In a real app, you would have these files in assets/sounds/
@@ -13,7 +13,8 @@ const SOUND_FILES = {
 type SoundKey = keyof typeof SOUND_FILES;
 
 class AudioEffects {
-  private sounds: Partial<Record<SoundKey, Audio.Sound>> = {};
+  // Audio effects can be implemented using expo-audio if needed
+  // private sounds: Partial<Record<SoundKey, AudioPlayer>> = {};
 
   async loadSounds() {
     // Preload sounds if needed

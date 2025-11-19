@@ -1,50 +1,64 @@
-import { Audio } from 'expo-av';
-import { useState, useCallback } from 'react';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { synthesizeSpeech } from '@/lib/bentoml-api';
 
 export const useTTS = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const [audioSource, setAudioSource] = useState<string | null>(null);
+  const player = useAudioPlayer(audioSource);
+  const status = useAudioPlayerStatus(player);
+  const pendingPlayRef = useRef(false);
+
+  // Handle playback status changes
+  useEffect(() => {
+    if (status.isLoaded && status.isPlaying) {
+      setIsSpeaking(true);
+      pendingPlayRef.current = false;
+    }
+    if (status.isLoaded && !status.isPlaying && isSpeaking) {
+      // Playback finished
+      setIsSpeaking(false);
+      setAudioSource(null);
+    }
+  }, [status.isLoaded, status.isPlaying, isSpeaking]);
+
+  // Auto-play when source is loaded and ready
+  useEffect(() => {
+    if (audioSource && player.isLoaded && !player.playing && pendingPlayRef.current) {
+      player.play();
+      pendingPlayRef.current = false;
+    }
+  }, [audioSource, player.isLoaded, player.playing, player]);
 
   const speak = useCallback(async (text: string) => {
     try {
-      setIsSpeaking(true);
-      
       // Stop any current playback
-      if (sound) {
-        await sound.unloadAsync();
+      if (player.playing) {
+        player.pause();
       }
 
       const base64Audio = await synthesizeSpeech(text);
       
-      // Create a sound object from base64
-      // Expo AV doesn't support base64 directly in some versions, need to write to file or use uri with data scheme if supported
-      // For cross-platform, writing to cache is safer, but data URI works on many new versions.
-      // Let's try data URI first.
+      // Create audio source from base64
       const uri = `data:audio/wav;base64,${base64Audio}`;
-      
-      const { sound: newSound } = await Audio.Sound.createAsync({ uri });
-      setSound(newSound);
-      
-      await newSound.playAsync();
-      
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          setIsSpeaking(false);
-        }
-      });
+      pendingPlayRef.current = true;
+      setAudioSource(uri);
     } catch (error) {
       console.error('TTS Error:', error);
       setIsSpeaking(false);
+      setAudioSource(null);
+      pendingPlayRef.current = false;
     }
-  }, [sound]);
+  }, [player]);
 
-  const stop = useCallback(async () => {
-    if (sound) {
-      await sound.stopAsync();
-      setIsSpeaking(false);
+  const stop = useCallback(() => {
+    if (player.playing) {
+      player.pause();
     }
-  }, [sound]);
+    setIsSpeaking(false);
+    setAudioSource(null);
+    pendingPlayRef.current = false;
+  }, [player]);
 
   return {
     speak,

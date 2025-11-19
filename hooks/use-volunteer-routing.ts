@@ -15,9 +15,9 @@ export const useVolunteerRouting = () => {
     DECLINE_PENALTY: 15,
   };
 
-  const findBestVolunteer = async () => {
+  const findBestVolunteer = async (excludeVolunteerId?: string) => {
     // Fetch available volunteers
-    const { data: volunteers, error } = await supabase
+    let query = supabase
       .from('users')
       .select(`
         id,
@@ -32,6 +32,13 @@ export const useVolunteerRouting = () => {
       `)
       .eq('type', 'volunteer')
       .eq('availability', true);
+    
+    // Exclude specific volunteer if provided (for re-routing)
+    if (excludeVolunteerId) {
+      query = query.neq('id', excludeVolunteerId);
+    }
+    
+    const { data: volunteers, error } = await query;
 
     if (error || !volunteers) {
       console.error('Error fetching volunteers:', error);

@@ -1,6 +1,5 @@
 import { Alert } from 'react-native';
 import { synthesizeSpeech } from './bentoml-api'; // Avoid circular dep with hooks if possible, direct api call okay
-import { Audio } from 'expo-av';
 
 export const handleError = async (error: any, userFriendlyMessage: string) => {
   console.error(error);

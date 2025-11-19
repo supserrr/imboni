@@ -5,7 +5,7 @@ const BENTOML_API_URL = process.env.EXPO_PUBLIC_BENTOML_API_URL || 'http://local
 
 export const bentomlApi = axios.create({
   baseURL: BENTOML_API_URL,
-  timeout: 10000,
+  timeout: 60000, // Increased timeout for GPU inference (can take up to 10s)
 });
 
 export interface AnalysisResult {
@@ -36,17 +36,36 @@ export const analyzeImage = async (base64Image: string): Promise<AnalysisResult>
   }
 };
 
-export const synthesizeSpeech = async (text: string): Promise<string> => {
+export interface TTSPayload {
+  text: string;
+  language?: string;
+  speaker?: string;
+  speed?: number;
+}
+
+export const synthesizeSpeech = async (
+  text: string, 
+  language: string = 'EN', 
+  speaker: string = 'EN-Default',
+  speed: number = 1.0
+): Promise<string> => {
   try {
-    const response = await bentomlApi.post('/audio/tts', text, {
+    const payload: TTSPayload = {
+      text,
+      language,
+      speaker,
+      speed,
+    };
+    
+    // BentoML v1.4 expects the parameter name as a field in the JSON body
+    const response = await bentomlApi.post('/audio_tts', { payload }, {
         headers: {
-            'Content-Type': 'text/plain'
+            'Content-Type': 'application/json'
         },
-        responseType: 'arraybuffer' // or blob
+        responseType: 'arraybuffer'
     });
     
-    // Convert arraybuffer to base64 for playback in React Native if needed
-    // Or save to file. Returning base64 is common for small clips.
+    // Convert arraybuffer to base64 for playback in React Native
     const base64Audio = Buffer.from(response.data, 'binary').toString('base64');
     return base64Audio;
   } catch (error) {
@@ -57,7 +76,7 @@ export const synthesizeSpeech = async (text: string): Promise<string> => {
 
 export const checkHealth = async (): Promise<boolean> => {
   try {
-    const response = await bentomlApi.post('/ai/status', {});
+    const response = await bentomlApi.post('/status', {});
     return response.status === 200;
   } catch (error) {
     return false;

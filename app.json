@@ -4,7 +4,7 @@
     "slug": "imboni",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "imboni",
+    "scheme": "com.giticye.imboni",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -44,7 +44,7 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
         }

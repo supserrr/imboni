@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, router, Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { LogBox } from 'react-native';
 import 'react-native-reanimated';
 import { useEffect } from 'react';
 
@@ -9,6 +10,11 @@ import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/store/app-store';
 import { getUserProfile } from '@/lib/auth';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Suppress known harmless reanimated warnings
+LogBox.ignoreLogs([
+  'Sending `onAnimatedValueUpdate` with no listeners registered.',
+]);
 
 const queryClient = new QueryClient();
 

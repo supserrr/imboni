@@ -150,6 +150,17 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
+-- Function to increment decline count
+CREATE OR REPLACE FUNCTION public.increment_decline_count(volunteer_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE public.volunteer_behavior
+  SET decline_count = COALESCE(decline_count, 0) + 1,
+      updated_at = NOW()
+  WHERE volunteer_behavior.volunteer_id = increment_decline_count.volunteer_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Realtime publication setup
 ALTER PUBLICATION supabase_realtime ADD TABLE public.help_requests;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.sessions;
