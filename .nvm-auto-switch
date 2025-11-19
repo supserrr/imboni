@@ -1,4 +1,0 @@
-# This file enables automatic Node.js version switching with fnm
-# Add to your ~/.zshrc:
-# eval "$(fnm env --use-on-cd)"
-

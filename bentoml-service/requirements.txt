@@ -1,0 +1,7 @@
+bentoml
+torch
+torchvision
+transformers
+pillow
+numpy
+

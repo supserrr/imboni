@@ -1,206 +1,156 @@
--- Users table
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL UNIQUE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'volunteer')),
+-- Create user types enum
+CREATE TYPE user_type AS ENUM ('blind', 'volunteer');
+
+-- Create help request status enum
+CREATE TYPE request_status AS ENUM ('pending', 'accepted', 'declined', 'in_progress', 'completed', 'cancelled');
+
+-- Users table (extends auth.users)
+CREATE TABLE public.users (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  type user_type NOT NULL,
+  availability BOOLEAN DEFAULT false,
+  rating FLOAT DEFAULT 5.0,
+  reliability_score FLOAT DEFAULT 100.0,
+  last_active TIMESTAMPTZ DEFAULT NOW(),
+  history_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Volunteers table
-CREATE TABLE IF NOT EXISTS volunteers (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  is_online BOOLEAN DEFAULT false,
-  tags TEXT[] DEFAULT '{}',
-  rating NUMERIC(3, 2) DEFAULT 5.0 CHECK (rating >= 0 AND rating <= 5),
-  current_load INTEGER DEFAULT 0,
-  last_response_time TIMESTAMPTZ,
+-- Enable RLS for users
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- Policies for users
+CREATE POLICY "Public profiles are viewable by everyone" ON public.users
+  FOR SELECT USING (true);
+
+CREATE POLICY "Users can update their own profile" ON public.users
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert their own profile" ON public.users
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Help Requests table
+CREATE TABLE public.help_requests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES public.users(id) NOT NULL,
+  status request_status DEFAULT 'pending',
+  assigned_volunteer UUID REFERENCES public.users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Enable RLS for help_requests
+ALTER TABLE public.help_requests ENABLE ROW LEVEL SECURITY;
+
+-- Policies for help_requests
+CREATE POLICY "Users can view their own requests" ON public.help_requests
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Volunteers can view pending requests" ON public.help_requests
+  FOR SELECT USING (
+    (SELECT type FROM public.users WHERE id = auth.uid()) = 'volunteer' 
+    AND status = 'pending'
+  );
+
+CREATE POLICY "Assigned volunteers can view their requests" ON public.help_requests
+  FOR SELECT USING (assigned_volunteer = auth.uid());
+
+CREATE POLICY "Users can create requests" ON public.help_requests
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users and assigned volunteers can update requests" ON public.help_requests
+  FOR UPDATE USING (
+    auth.uid() = user_id OR 
+    auth.uid() = assigned_volunteer OR
+    (
+        (SELECT type FROM public.users WHERE id = auth.uid()) = 'volunteer' 
+        AND status = 'pending'
+    )
+  );
+
+-- Volunteer Behavior table
+CREATE TABLE public.volunteer_behavior (
+  volunteer_id UUID REFERENCES public.users(id) ON DELETE CASCADE PRIMARY KEY,
+  accept_count INTEGER DEFAULT 0,
+  decline_count INTEGER DEFAULT 0,
+  response_time_avg FLOAT DEFAULT 0.0, -- in seconds
+  last_active TIMESTAMPTZ DEFAULT NOW(),
+  success_sessions INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for volunteer_behavior
+ALTER TABLE public.volunteer_behavior ENABLE ROW LEVEL SECURITY;
+
+-- Policies for volunteer_behavior
+CREATE POLICY "Volunteers can view their own behavior stats" ON public.volunteer_behavior
+  FOR SELECT USING (auth.uid() = volunteer_id);
+
+CREATE POLICY "System update behavior stats" ON public.volunteer_behavior
+  FOR ALL USING (true); -- In production, this should be more restrictive or handled via functions
 
 -- Sessions table
-CREATE TABLE IF NOT EXISTS sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  volunteer_id UUID REFERENCES volunteers(id) ON DELETE SET NULL,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'ended')),
-  ai_confidence NUMERIC(3, 2),
-  started_at TIMESTAMPTZ,
+CREATE TABLE public.sessions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  help_request_id UUID REFERENCES public.help_requests(id),
+  user_id UUID REFERENCES public.users(id) NOT NULL,
+  volunteer_id UUID REFERENCES public.users(id) NOT NULL,
+  started_at TIMESTAMPTZ DEFAULT NOW(),
   ended_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Help requests table
-CREATE TABLE IF NOT EXISTS help_requests (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  volunteer_id UUID NOT NULL REFERENCES volunteers(id) ON DELETE CASCADE,
-  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
-  accepted_at TIMESTAMPTZ,
-  declined_at TIMESTAMPTZ,
+  duration INTEGER, -- in seconds
+  rating FLOAT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- AI logs table
-CREATE TABLE IF NOT EXISTS ai_logs (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  query TEXT NOT NULL,
-  response TEXT NOT NULL,
-  confidence NUMERIC(3, 2) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- Enable RLS for sessions
+ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 
--- Volunteer activity table
-CREATE TABLE IF NOT EXISTS volunteer_activity (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  volunteer_id UUID NOT NULL REFERENCES volunteers(id) ON DELETE CASCADE,
-  action TEXT NOT NULL,
-  metadata JSONB DEFAULT '{}',
-  timestamp TIMESTAMPTZ DEFAULT NOW()
-);
+-- Policies for sessions
+CREATE POLICY "Participants can view their sessions" ON public.sessions
+  FOR SELECT USING (auth.uid() = user_id OR auth.uid() = volunteer_id);
 
--- WebRTC signals table (for WebRTC connection signaling)
-CREATE TABLE IF NOT EXISTS webrtc_signals (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  from_initiator BOOLEAN NOT NULL,
-  offer JSONB,
-  answer JSONB,
-  candidate JSONB,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
+CREATE POLICY "Participants can insert sessions" ON public.sessions
+  FOR INSERT WITH CHECK (auth.uid() = user_id OR auth.uid() = volunteer_id);
 
--- Indexes for performance
-CREATE INDEX IF NOT EXISTS idx_volunteers_online ON volunteers(is_online) WHERE is_online = true;
-CREATE INDEX IF NOT EXISTS idx_volunteers_rating ON volunteers(rating DESC);
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_volunteer ON sessions(volunteer_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
-CREATE INDEX IF NOT EXISTS idx_help_requests_volunteer ON help_requests(volunteer_id);
-CREATE INDEX IF NOT EXISTS idx_help_requests_status ON help_requests(status);
-CREATE INDEX IF NOT EXISTS idx_volunteer_activity_volunteer ON volunteer_activity(volunteer_id);
-CREATE INDEX IF NOT EXISTS idx_volunteer_activity_timestamp ON volunteer_activity(timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_webrtc_signals_session ON webrtc_signals(session_id);
+CREATE POLICY "Participants can update sessions" ON public.sessions
+  FOR UPDATE USING (auth.uid() = user_id OR auth.uid() = volunteer_id);
 
--- Updated_at trigger function
+-- Functions to update timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
+    NEW.updated_at = NOW();
+    RETURN NEW;
 END;
 $$ language 'plpgsql';
 
--- Triggers for updated_at
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_help_requests_updated_at BEFORE UPDATE ON public.help_requests FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+CREATE TRIGGER update_volunteer_behavior_updated_at BEFORE UPDATE ON public.volunteer_behavior FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 
-CREATE TRIGGER update_volunteers_updated_at BEFORE UPDATE ON volunteers
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- Function to handle new user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user() 
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, type)
+  VALUES (new.id, (new.raw_user_meta_data->>'type')::user_type);
+  
+  IF (new.raw_user_meta_data->>'type') = 'volunteer' THEN
+    INSERT INTO public.volunteer_behavior (volunteer_id)
+    VALUES (new.id);
+  END IF;
+  
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON sessions
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
 
--- RLS Policies
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE volunteers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE help_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE ai_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE volunteer_activity ENABLE ROW LEVEL SECURITY;
-ALTER TABLE webrtc_signals ENABLE ROW LEVEL SECURITY;
-
--- Users can read their own data
-CREATE POLICY "Users can read own data" ON users
-  FOR SELECT USING (auth.uid() = id);
-
--- Users can update their own data
-CREATE POLICY "Users can update own data" ON users
-  FOR UPDATE USING (auth.uid() = id);
-
--- Volunteers can read their own data
-CREATE POLICY "Volunteers can read own data" ON volunteers
-  FOR SELECT USING (auth.uid() = id);
-
--- Volunteers can update their own data
-CREATE POLICY "Volunteers can update own data" ON volunteers
-  FOR UPDATE USING (auth.uid() = id);
-
--- Users can read their own sessions
-CREATE POLICY "Users can read own sessions" ON sessions
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Volunteers can read their own sessions
-CREATE POLICY "Volunteers can read own sessions" ON sessions
-  FOR SELECT USING (auth.uid() = volunteer_id);
-
--- Users can create their own sessions
-CREATE POLICY "Users can create own sessions" ON sessions
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Volunteers can read help requests assigned to them
-CREATE POLICY "Volunteers can read own help requests" ON help_requests
-  FOR SELECT USING (auth.uid() = volunteer_id);
-
--- Volunteers can update help requests assigned to them
-CREATE POLICY "Volunteers can update own help requests" ON help_requests
-  FOR UPDATE USING (auth.uid() = volunteer_id);
-
--- Users can read their own AI logs
-CREATE POLICY "Users can read own AI logs" ON ai_logs
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Users can insert their own AI logs
-CREATE POLICY "Users can insert own AI logs" ON ai_logs
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Volunteers can read their own activity
-CREATE POLICY "Volunteers can read own activity" ON volunteer_activity
-  FOR SELECT USING (auth.uid() = volunteer_id);
-
--- Volunteers can insert their own activity
-CREATE POLICY "Volunteers can insert own activity" ON volunteer_activity
-  FOR INSERT WITH CHECK (auth.uid() = volunteer_id);
-
--- Users and volunteers can read webrtc signals for their sessions
-CREATE POLICY "Users can read webrtc signals for own sessions" ON webrtc_signals
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.id = webrtc_signals.session_id
-      AND sessions.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Volunteers can read webrtc signals for own sessions" ON webrtc_signals
-  FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.id = webrtc_signals.session_id
-      AND sessions.volunteer_id = auth.uid()
-    )
-  );
-
--- Users and volunteers can insert webrtc signals for their sessions
-CREATE POLICY "Users can insert webrtc signals for own sessions" ON webrtc_signals
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.id = webrtc_signals.session_id
-      AND sessions.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Volunteers can insert webrtc signals for own sessions" ON webrtc_signals
-  FOR INSERT WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM sessions
-      WHERE sessions.id = webrtc_signals.session_id
-      AND sessions.volunteer_id = auth.uid()
-    )
-  );
+-- Realtime publication setup
+ALTER PUBLICATION supabase_realtime ADD TABLE public.help_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.sessions;
 

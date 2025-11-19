@@ -1,0 +1,15 @@
+service: "service.py:svc"
+labels:
+  owner: imboni-team
+  project: be-my-eyes-ai
+include:
+  - "*.py"
+python:
+  packages:
+    - bentoml
+    - torch
+    - torchvision
+    - transformers
+    - pillow
+    - numpy
+
