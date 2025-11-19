@@ -61,23 +61,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Loads the user profile from the database.
+   * Creates a profile if it doesn't exist.
    *
    * @param userId - The ID of the user.
    */
   async function loadUserProfile(userId: string) {
     try {
+      const { data: authUser } = await supabase.auth.getUser();
+      if (!authUser.user) return;
+
       const { data, error } = await supabase
         .from('users')
         .select('id, email, role')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error loading user profile:', error);
         return;
       }
 
-      setUser(data as User);
+      // If profile doesn't exist, create it
+      if (!data) {
+        const { data: newProfile, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: userId,
+            email: authUser.user.email || '',
+            role: 'user', // Default role
+          })
+          .select('id, email, role')
+          .single();
+
+        if (insertError) {
+          console.error('Error creating user profile:', insertError);
+          return;
+        }
+
+        setUser(newProfile as User);
+      } else {
+        setUser(data as User);
+      }
     } catch (error) {
       console.error('Error loading user profile:', error);
     }

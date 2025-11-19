@@ -32,11 +32,35 @@ An Expo React Native application that provides AI-powered visual assistance for 
 
 ### Prerequisites
 
-- Node.js 20.19.4+
+- Node.js 20.19.4+ (required)
 - Expo CLI
 - Supabase account
 - Moondream API key
 - ElevenLabs API key
+
+### Node.js Version Setup
+
+This project requires Node.js 20.19.4 or higher. If you're using `fnm` (Fast Node Manager):
+
+```bash
+# Install and use the correct version
+eval "$(fnm env)"
+fnm install 20.19.4
+fnm use 20.19.4
+fnm default 20.19.4
+
+# Or run the setup script
+npm run setup:node
+
+# Verify version
+node --version  # Should output v20.19.4
+```
+
+The npm scripts automatically switch to Node.js 20.19.4 if `fnm` is available. To ensure `fnm` loads in your shell, add this to your `~/.zshrc`:
+
+```bash
+eval "$(fnm env --use-on-cd)"
+```
 
 ### Environment Variables
 
