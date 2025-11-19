@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { Buffer } from 'buffer';
 
 const BENTOML_API_URL = process.env.EXPO_PUBLIC_BENTOML_API_URL || 'http://localhost:3000';
 
