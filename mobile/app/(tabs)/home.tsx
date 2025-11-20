@@ -7,12 +7,14 @@ import { useRouter } from 'expo-router';
 import { BentoMLService } from '../../services/bentoml';
 import * as Speech from 'expo-speech';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Home() {
   const cameraRef = useRef<CameraComponentRef>(null);
   const { t, i18n } = useTranslation();
   const isFocused = useIsFocused();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string>('');
@@ -99,7 +101,7 @@ export default function Home() {
     <View style={styles.container}>
       <CameraComponent ref={cameraRef} onCapture={(uri) => console.log('Captured:', uri)} />
       
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { bottom: insets.bottom + 100 }]}>
         {analysisResult && (
           <BlurView intensity={80} tint="dark" style={styles.resultContainer}>
              <Text style={styles.resultText}>{analysisResult}</Text>
@@ -131,7 +133,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     position: 'absolute',
-    bottom: 50,
     left: 30,
     right: 30,
     alignItems: 'center',

@@ -1,26 +1,47 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { withLayoutContext } from 'expo-router';
+import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable';
 import { useTranslation } from 'react-i18next';
+import { Platform } from 'react-native';
+
+const { Navigator } = createNativeBottomTabNavigator();
+
+const NativeTabs = withLayoutContext(Navigator);
 
 export default function TabLayout() {
   const { t } = useTranslation();
 
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
-      <Tabs.Screen
+    <NativeTabs screenOptions={{ headerShown: false }}>
+      <NativeTabs.Screen
         name="home"
         options={{
           title: t('home'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="eye-outline" size={size} color={color} />,
+          tabBarIcon: ({ focused }) => 
+            Platform.OS === 'ios'
+              ? {
+                  type: 'sfSymbol',
+                  name: focused ? 'eye.fill' : 'eye',
+                  // @ts-ignore: internal incompatibility between bottom-tabs and react-native-screens
+                  sfSymbolName: focused ? 'eye.fill' : 'eye',
+                }
+              : undefined,
         }}
       />
-      <Tabs.Screen
+      <NativeTabs.Screen
         name="settings"
         options={{
           title: t('settings'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
+          tabBarIcon: ({ focused }) =>
+            Platform.OS === 'ios'
+              ? {
+                  type: 'sfSymbol',
+                  name: focused ? 'gearshape.fill' : 'gearshape',
+                  // @ts-ignore: internal incompatibility between bottom-tabs and react-native-screens
+                  sfSymbolName: focused ? 'gearshape.fill' : 'gearshape',
+                }
+              : undefined,
         }}
       />
-    </Tabs>
+    </NativeTabs>
   );
 }
