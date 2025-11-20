@@ -8,6 +8,7 @@ import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/botto
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
 import { AuthService } from '../../services/auth';
+import { BrandColors } from '../../constants/theme';
 
 export default function Signup() {
   const params = useLocalSearchParams();
@@ -32,9 +33,8 @@ export default function Signup() {
     try {
       setLoading(true);
       await AuthService.signUpWithEmail(email, password, fullName, userType);
-      Alert.alert('Success', 'Please check your email for verification.');
       emailBottomSheetRef.current?.close();
-      router.replace('/(auth)/login');
+      // The AuthProvider will detect the session and redirect to verify-email if needed
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
@@ -88,7 +88,7 @@ export default function Signup() {
             accessibilityRole="button"
             accessibilityLabel="Back"
           >
-            <Ionicons name="chevron-back" size={24} color="#007AFF" />
+            <Ionicons name="chevron-back" size={24} color={BrandColors.darkBrown} />
             <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
         </View>
@@ -113,7 +113,7 @@ export default function Signup() {
             accessibilityRole="button"
             accessibilityLabel="Continue with Google"
           >
-            <Ionicons name="logo-google" size={24} color="#000" style={styles.buttonIcon} />
+            <Ionicons name="logo-google" size={24} color={BrandColors.darkBrown} style={styles.buttonIcon} />
             <Text style={styles.secondaryButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
@@ -199,7 +199,7 @@ export default function Signup() {
           handleIndicatorStyle={styles.bottomSheetIndicator}
         >
           <BottomSheetView style={styles.bottomSheetContent}>
-            <Ionicons name="logo-google" size={52} color="#007AFF" style={styles.googleIcon} />
+            <Ionicons name="logo-google" size={52} color={BrandColors.darkBrown} style={styles.googleIcon} />
             <Text style={styles.bottomSheetTitle}>Continue with Google</Text>
             <Text style={styles.bottomSheetSubtitle}>
               You'll be redirected to Google to complete sign in
@@ -228,7 +228,7 @@ export default function Signup() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: BrandColors.lavender,
   },
   header: {
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   backText: {
-    color: '#007AFF',
+    color: BrandColors.darkBrown,
     fontSize: 17,
     marginLeft: 5,
   },
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: BrandColors.darkBrown,
     marginBottom: 40,
     textAlign: 'center',
   },
@@ -265,18 +265,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   emailButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: BrandColors.darkBrown,
   },
   emailButtonText: {
-    color: '#fff',
+    color: BrandColors.lavender,
     fontSize: 17,
     fontWeight: '600',
   },
   secondaryButton: {
-    backgroundColor: '#E8E8E8',
+    backgroundColor: BrandColors.white,
+    borderWidth: 2,
+    borderColor: BrandColors.darkBrown,
   },
   secondaryButtonText: {
-    color: '#000',
+    color: BrandColors.darkBrown,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -290,11 +292,11 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   loginPrompt: {
-    color: '#999',
+    color: BrandColors.lightBrown,
     fontSize: 15,
   },
   loginLink: {
-    color: '#007AFF',
+    color: BrandColors.darkBrown,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -356,20 +358,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: BrandColors.darkBrown,
     height: 56,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
-    shadowColor: '#007AFF',
+    shadowColor: BrandColors.darkBrown,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
     elevation: 8,
   },
   primaryButtonText: {
-    color: '#fff',
+    color: BrandColors.lavender,
     fontSize: 17,
     fontWeight: '700',
     letterSpacing: 0.5,

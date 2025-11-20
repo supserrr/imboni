@@ -213,10 +213,28 @@ export const AuthService = {
         version: Platform.Version.toString(),
       };
 
+      // Check if user already exists in database (login vs signup)
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, type')
+        .eq('id', userId)
+        .single();
+
+      // Only update user type if this is a new user (signup) and we have a stored type
+      const isNewUser = !existingUser;
+      const shouldUpdateType = isNewUser && userType;
+
+      console.log('[AuthService] User status:', { 
+        isNewUser, 
+        existingType: existingUser?.type, 
+        newType: userType,
+        shouldUpdateType 
+      });
+
       // Update user metadata in auth.users
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
-          type: userType || 'blind',
+          ...(shouldUpdateType && { type: userType }),
           preferred_language: deviceLanguage,
           device_info: deviceInfo,
         },
@@ -228,42 +246,55 @@ export const AuthService = {
         console.log('[AuthService] Auth metadata updated');
       }
 
-      // Also update the public.users table to ensure type is correct
-      console.log('[AuthService] Updating public.users table with type:', userType);
-      const { error: profileError } = await supabase
-        .from('users')
-        .update({
-          type: userType || 'blind',
-          preferred_language: deviceLanguage,
-          device_info: deviceInfo,
-        })
-        .eq('id', userId);
+      // Update the public.users table
+      if (shouldUpdateType) {
+        console.log('[AuthService] Updating public.users table with type:', userType);
+        const { error: profileError } = await supabase
+          .from('users')
+          .update({
+            type: userType,
+            preferred_language: deviceLanguage,
+            device_info: deviceInfo,
+          })
+          .eq('id', userId);
 
-      if (profileError) {
-        console.error('[AuthService] Failed to update user profile:', profileError);
-      } else {
-        console.log('[AuthService] User profile updated successfully');
-      }
-
-      // If volunteer, ensure volunteer_behavior record exists
-      if (userType === 'volunteer') {
-        console.log('[AuthService] Creating volunteer_behavior record');
-        const { error: volunteerError } = await supabase
-          .from('volunteer_behavior')
-          .upsert({
-            volunteer_id: userId,
-            accept_count: 0,
-            decline_count: 0,
-            response_time_avg: 0.0,
-          }, {
-            onConflict: 'volunteer_id'
-          });
-
-        if (volunteerError) {
-          console.error('[AuthService] Failed to create volunteer_behavior:', volunteerError);
+        if (profileError) {
+          console.error('[AuthService] Failed to update user profile:', profileError);
         } else {
-          console.log('[AuthService] Volunteer behavior record created');
+          console.log('[AuthService] User profile updated successfully');
         }
+
+        // If volunteer, ensure volunteer_behavior record exists
+        if (userType === 'volunteer') {
+          console.log('[AuthService] Creating volunteer_behavior record');
+          const { error: volunteerError } = await supabase
+            .from('volunteer_behavior')
+            .upsert({
+              volunteer_id: userId,
+              accept_count: 0,
+              decline_count: 0,
+              response_time_avg: 0.0,
+            }, {
+              onConflict: 'volunteer_id'
+            });
+
+          if (volunteerError) {
+            console.error('[AuthService] Failed to create volunteer_behavior:', volunteerError);
+          } else {
+            console.log('[AuthService] Volunteer behavior record created');
+          }
+        }
+      } else if (isNewUser) {
+        // New user but no stored type, set default
+        console.log('[AuthService] New user with no stored type, setting default to blind');
+        await supabase
+          .from('users')
+          .update({
+            type: 'blind',
+            preferred_language: deviceLanguage,
+            device_info: deviceInfo,
+          })
+          .eq('id', userId);
       }
 
       // Clear stored user type

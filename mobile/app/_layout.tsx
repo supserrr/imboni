@@ -35,8 +35,16 @@ const InitialLayout = () => {
       // Check if this is an OAuth callback
       if (url.includes('auth/callback')) {
         try {
-          await AuthService.handleOAuthCallback(url);
-          router.replace('/(tabs)/home');
+          const result = await AuthService.handleOAuthCallback(url);
+          
+          // Check if email is verified
+          const emailVerified = result?.user?.email_confirmed_at != null;
+          
+          if (emailVerified) {
+            router.replace('/(tabs)/home');
+          } else {
+            router.replace('/(auth)/verify-email');
+          }
         } catch (error) {
           console.error('Deep link auth error:', error);
           router.replace('/(auth)/login');
@@ -66,10 +74,21 @@ const InitialLayout = () => {
     const inTabsGroup = segments[0] === '(tabs)';
     const inSettingsGroup = segments[0] === '(settings)';
     const onIndex = !inAuthGroup && !inTabsGroup && !inSettingsGroup;
+    const onVerifyEmail = segments[1] === 'verify-email';
 
-    // If logged in and on welcome/auth screens, go to app
-    if (session && (onIndex || inAuthGroup)) {
-      router.replace('/(tabs)/home');
+    // If logged in
+    if (session) {
+      // Check if email is verified
+      const emailVerified = session.user?.email_confirmed_at != null;
+      
+      // If email not verified and not already on verify-email screen
+      if (!emailVerified && !onVerifyEmail) {
+        router.replace('/(auth)/verify-email');
+      }
+      // If email verified and on welcome/auth screens (except verify-email), go to app
+      else if (emailVerified && (onIndex || (inAuthGroup && !onVerifyEmail))) {
+        router.replace('/(tabs)/home');
+      }
     } 
     // If not logged in and trying to access protected routes, go to welcome
     else if (!session && (inTabsGroup || inSettingsGroup)) {

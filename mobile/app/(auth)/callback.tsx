@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuthService } from '../../services/auth';
+import { BrandColors } from '../../constants/theme';
 
 /**
  * OAuth callback handler
@@ -37,7 +38,7 @@ export default function AuthCallback() {
 
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color="#007AFF" />
+      <ActivityIndicator size="large" color={BrandColors.darkBrown} />
     </View>
   );
 }
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000',
+    backgroundColor: BrandColors.lavender,
   },
 });
 

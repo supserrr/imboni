@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BrandColors } from '../../constants/theme';
 
 export default function PrivacyTerms() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function PrivacyTerms() {
         accessibilityRole="button"
         accessibilityLabel="Back to Imboni"
       >
-        <Ionicons name="chevron-back" size={24} color="#007AFF" />
+        <Ionicons name="chevron-back" size={24} color={BrandColors.darkBrown} />
         <Text style={styles.backText}>Imboni</Text>
       </TouchableOpacity>
 
@@ -43,7 +44,7 @@ export default function PrivacyTerms() {
         {/* Point 1 */}
         <View style={styles.point}>
           <View style={styles.iconContainer}>
-            <Ionicons name="walk" size={28} color="#999" />
+            <Ionicons name="walk" size={28} color={BrandColors.lightBrown} />
           </View>
           <Text style={styles.pointText}>
             I will not use Imboni as a mobility device.
@@ -53,17 +54,7 @@ export default function PrivacyTerms() {
         {/* Point 2 */}
         <View style={styles.point}>
           <View style={styles.iconContainer}>
-            <Ionicons name="camera" size={28} color="#999" />
-          </View>
-          <Text style={styles.pointText}>
-            Imboni can record, review, and share videos and images for safety, quality, and as further described in the Privacy Policy.
-          </Text>
-        </View>
-
-        {/* Point 3 */}
-        <View style={styles.point}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="lock-closed" size={28} color="#999" />
+            <Ionicons name="lock-closed" size={28} color={BrandColors.lightBrown} />
           </View>
           <Text style={styles.pointText}>
             The data, videos, images, and personal information I submit to Imboni may be stored and processed in the U.S.A.
@@ -78,7 +69,7 @@ export default function PrivacyTerms() {
           accessibilityLabel="Terms of Service"
         >
           <Text style={styles.linkText}>Terms of Service</Text>
-          <Ionicons name="open-outline" size={20} color="#007AFF" />
+          <Ionicons name="open-outline" size={20} color={BrandColors.darkBrown} />
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -88,7 +79,7 @@ export default function PrivacyTerms() {
           accessibilityLabel="Privacy Policy"
         >
           <Text style={styles.linkText}>Privacy Policy</Text>
-          <Ionicons name="open-outline" size={20} color="#007AFF" />
+          <Ionicons name="open-outline" size={20} color={BrandColors.darkBrown} />
         </TouchableOpacity>
 
         <View style={styles.spacer} />
@@ -116,7 +107,7 @@ export default function PrivacyTerms() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: BrandColors.lavender,
   },
   backButton: {
     flexDirection: 'row',
@@ -126,7 +117,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   backText: {
-    color: '#007AFF',
+    color: BrandColors.darkBrown,
     fontSize: 17,
     marginLeft: 5,
   },
@@ -137,13 +128,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: BrandColors.darkBrown,
     marginBottom: 20,
     marginTop: 20,
   },
   subtitle: {
     fontSize: 17,
-    color: '#fff',
+    color: BrandColors.darkBrown,
     marginBottom: 30,
   },
   point: {
@@ -154,15 +145,22 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: BrandColors.white,
+    borderWidth: 2,
+    borderColor: BrandColors.darkBrown,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
+    shadowColor: BrandColors.darkBrown,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   pointText: {
     flex: 1,
     fontSize: 17,
-    color: '#fff',
+    color: BrandColors.darkBrown,
     lineHeight: 24,
     paddingTop: 8,
   },
@@ -170,14 +168,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1C1C1E',
+    backgroundColor: BrandColors.white,
+    borderWidth: 2,
+    borderColor: BrandColors.darkBrown,
     padding: 18,
     borderRadius: 12,
     marginBottom: 12,
+    shadowColor: BrandColors.darkBrown,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   linkText: {
     fontSize: 17,
-    color: '#007AFF',
+    color: BrandColors.darkBrown,
     fontWeight: '500',
   },
   spacer: {
@@ -187,26 +192,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
     paddingTop: 20,
-    backgroundColor: '#000',
+    backgroundColor: BrandColors.lavender,
     borderTopWidth: 1,
-    borderTopColor: '#1C1C1E',
+    borderTopColor: 'rgba(92, 58, 58, 0.1)',
   },
   disclaimer: {
     fontSize: 14,
-    color: '#999',
+    color: BrandColors.lightBrown,
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 20,
   },
   agreeButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: BrandColors.darkBrown,
     height: 56,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   agreeButtonText: {
-    color: '#fff',
+    color: BrandColors.lavender,
     fontSize: 17,
     fontWeight: '600',
   },

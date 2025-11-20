@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Camera } from 'expo-camera';
 import * as Notifications from 'expo-notifications';
 import { Audio } from 'expo-av';
+import { BrandColors } from '../../constants/theme';
 
 interface PermissionStatus {
   camera: boolean;
@@ -118,7 +119,7 @@ export default function Permissions() {
         accessibilityRole="button"
         accessibilityLabel="Back"
       >
-        <Ionicons name="chevron-back" size={24} color="#007AFF" />
+        <Ionicons name="chevron-back" size={24} color={BrandColors.darkBrown} />
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
@@ -135,7 +136,7 @@ export default function Permissions() {
               <Ionicons 
                 name={permissions.camera ? "checkmark" : "camera"} 
                 size={28} 
-                color={permissions.camera ? "#34C759" : "#999"} 
+                color={permissions.camera ? "#34C759" : BrandColors.lightBrown} 
               />
             </View>
             <View style={styles.permissionInfo}>
@@ -162,7 +163,7 @@ export default function Permissions() {
               <Ionicons 
                 name={permissions.microphone ? "checkmark" : "mic"} 
                 size={28} 
-                color={permissions.microphone ? "#34C759" : "#999"} 
+                color={permissions.microphone ? "#34C759" : BrandColors.lightBrown} 
               />
             </View>
             <View style={styles.permissionInfo}>
@@ -187,7 +188,7 @@ export default function Permissions() {
               <Ionicons 
                 name={permissions.notifications ? "checkmark" : "notifications"} 
                 size={28} 
-                color={permissions.notifications ? "#34C759" : "#999"} 
+                color={permissions.notifications ? "#34C759" : BrandColors.lightBrown} 
               />
             </View>
             <View style={styles.permissionInfo}>
@@ -240,7 +241,7 @@ export default function Permissions() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: BrandColors.lavender,
   },
   backButton: {
     flexDirection: 'row',
@@ -250,7 +251,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   backText: {
-    color: '#007AFF',
+    color: BrandColors.darkBrown,
     fontSize: 17,
     marginLeft: 5,
   },
@@ -261,21 +262,28 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: BrandColors.darkBrown,
     marginBottom: 15,
     marginTop: 20,
   },
   subtitle: {
     fontSize: 17,
-    color: '#999',
+    color: BrandColors.lightBrown,
     marginBottom: 30,
     lineHeight: 24,
   },
   permissionCard: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: BrandColors.white,
+    borderWidth: 2,
+    borderColor: BrandColors.darkBrown,
     borderRadius: 12,
     padding: 18,
     marginBottom: 12,
+    shadowColor: BrandColors.darkBrown,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   permissionHeader: {
     flexDirection: 'row',
@@ -284,7 +292,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2C2C2E',
+    backgroundColor: BrandColors.lavender,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
@@ -299,12 +307,12 @@ const styles = StyleSheet.create({
   permissionTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#fff',
+    color: BrandColors.darkBrown,
     marginBottom: 4,
   },
   permissionDescription: {
     fontSize: 14,
-    color: '#999',
+    color: BrandColors.lightBrown,
     lineHeight: 20,
   },
   grantedBadge: {
@@ -313,7 +321,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#2C2C2E',
+    borderTopColor: 'rgba(232, 212, 232, 0.3)',
   },
   grantedText: {
     color: '#34C759',
@@ -328,12 +336,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 40,
     paddingTop: 20,
-    backgroundColor: '#000',
+    backgroundColor: BrandColors.lavender,
     borderTopWidth: 1,
-    borderTopColor: '#1C1C1E',
+    borderTopColor: 'rgba(92, 58, 58, 0.1)',
   },
   continueButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: BrandColors.darkBrown,
     height: 56,
     borderRadius: 12,
     justifyContent: 'center',
@@ -341,7 +349,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   continueButtonText: {
-    color: '#fff',
+    color: BrandColors.lavender,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -351,7 +359,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   skipButtonText: {
-    color: '#007AFF',
+    color: BrandColors.darkBrown,
     fontSize: 17,
   },
 });

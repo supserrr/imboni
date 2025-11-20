@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthProvider';
+import { BrandColors } from '../constants/theme';
 
 export default function Welcome() {
   const router = useRouter();
@@ -29,7 +30,7 @@ export default function Welcome() {
       {/* Eye Icon */}
       <View style={styles.iconContainer}>
         <View style={styles.eyeBackground}>
-          <Ionicons name="eye" size={100} color="#007AFF" />
+          <Ionicons name="eye" size={100} color={BrandColors.darkBrown} />
         </View>
       </View>
 
@@ -50,7 +51,7 @@ export default function Welcome() {
           accessibilityRole="button"
           accessibilityLabel="I'd like to volunteer"
         >
-          <Text style={styles.buttonText}>I'd like to volunteer</Text>
+          <Text style={styles.buttonTextSecondary}>I'd like to volunteer</Text>
         </TouchableOpacity>
 
         {/* Login Link */}
@@ -70,7 +71,7 @@ export default function Welcome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: BrandColors.lavender,
     paddingHorizontal: 30,
     paddingTop: 80,
     paddingBottom: 50,
@@ -82,12 +83,12 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
+    color: BrandColors.darkBrown,
     marginBottom: 15,
   },
   tagline: {
     fontSize: 20,
-    color: '#999',
+    color: BrandColors.lightBrown,
     textAlign: 'center',
   },
   iconContainer: {
@@ -99,9 +100,16 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(0, 122, 255, 0.15)',
+    backgroundColor: BrandColors.white,
+    borderWidth: 2,
+    borderColor: BrandColors.darkBrown,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: BrandColors.darkBrown,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   buttonsContainer: {
     flex: 1,
@@ -114,13 +122,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   primaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: BrandColors.darkBrown,
   },
   secondaryButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: BrandColors.white,
+    borderWidth: 2,
+    borderColor: BrandColors.darkBrown,
   },
   buttonText: {
-    color: '#fff',
+    color: BrandColors.lavender,
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  buttonTextSecondary: {
+    color: BrandColors.darkBrown,
     fontSize: 17,
     fontWeight: '600',
   },
@@ -129,11 +144,11 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
   },
   loginLinkText: {
-    color: '#999',
+    color: BrandColors.lightBrown,
     fontSize: 15,
   },
   loginLinkBold: {
-    color: '#007AFF',
+    color: BrandColors.darkBrown,
     fontWeight: '600',
   },
 });
