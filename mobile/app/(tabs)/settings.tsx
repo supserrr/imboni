@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthProvider';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
+import { useTheme } from '@react-navigation/native';
 
 interface SettingsRowProps {
   title: string;
@@ -11,24 +12,34 @@ interface SettingsRowProps {
   icon?: keyof typeof Ionicons.glyphMap;
   showChevron?: boolean;
   isDestructive?: boolean;
+  colors: any;
+  dark: boolean;
 }
 
-const SettingsRow: React.FC<SettingsRowProps> = ({ title, onPress, icon, showChevron = true, isDestructive = false }) => (
+const SettingsRow: React.FC<SettingsRowProps> = ({ title, onPress, icon, showChevron = true, isDestructive = false, colors, dark }) => {
+  const rowBackgroundColor = dark ? colors.card : colors.text; // Dark brown (#5C3A3A) in light mode, matches title color
+  const textColor = dark ? colors.text : colors.background; // Lavender (#E8D4E8) in light mode, matches background
+  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
+  const chevronColor = dark ? '#8E8E93' : 'rgba(232, 212, 232, 0.6)';
+  
+  return (
   <TouchableOpacity
-    style={styles.row}
+      style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}
     onPress={onPress}
     accessibilityRole="button"
     accessibilityLabel={title}
   >
-    {icon && <Ionicons name={icon} size={20} color={isDestructive ? '#FF3B30' : '#666'} style={styles.rowIcon} />}
-    <Text style={[styles.rowText, isDestructive && styles.destructiveText]}>{title}</Text>
-    {showChevron && <Ionicons name="chevron-forward" size={20} color="#999" />}
+      {icon && <Ionicons name={icon} size={20} color={isDestructive ? '#FF3B30' : textColor} style={styles.rowIcon} />}
+      <Text style={[styles.rowText, { color: textColor }, isDestructive && styles.destructiveText]}>{title}</Text>
+      {showChevron && <Ionicons name="chevron-forward" size={20} color={chevronColor} />}
   </TouchableOpacity>
 );
+};
 
 export default function Settings() {
   const { signOut, user } = useAuth();
   const router = useRouter();
+  const { colors, dark } = useTheme();
 
   const handleAccount = () => {
     router.push('/(settings)/account');
@@ -73,29 +84,31 @@ export default function Settings() {
     );
   };
 
+  const dynamicStyles = createStyles(colors, dark);
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
       </View>
 
       <View style={styles.section}>
-        <SettingsRow title="Account" onPress={handleAccount} />
-        <SettingsRow title="Languages" onPress={handleLanguages} />
-        <SettingsRow title="Notifications" onPress={handleNotifications} />
-        <SettingsRow title="Shortcuts" onPress={handleShortcuts} />
+        <SettingsRow title="Account" onPress={handleAccount} colors={colors} dark={dark} />
+        <SettingsRow title="Languages" onPress={handleLanguages} colors={colors} dark={dark} />
+        <SettingsRow title="Notifications" onPress={handleNotifications} colors={colors} dark={dark} />
+        <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
       </View>
 
       <View style={styles.section}>
-        <SettingsRow title="AI Settings" onPress={handleAISettings} />
+        <SettingsRow title="AI Settings" onPress={handleAISettings} colors={colors} dark={dark} />
       </View>
 
       <View style={styles.section}>
-        <SettingsRow title="Support" onPress={handleSupport} />
+        <SettingsRow title="Support" onPress={handleSupport} colors={colors} dark={dark} />
       </View>
 
       <View style={styles.section}>
-        <SettingsRow title="Privacy and terms" onPress={handlePrivacyAndTerms} />
+        <SettingsRow title="Privacy and terms" onPress={handlePrivacyAndTerms} colors={colors} dark={dark} />
       </View>
 
       <View style={styles.section}>
@@ -104,21 +117,28 @@ export default function Settings() {
           onPress={handleLogout}
           showChevron={false}
           isDestructive={true}
+          colors={colors}
+          dark={dark}
         />
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Imboni v1.0.0</Text>
-        {user?.email && <Text style={styles.footerText}>{user.email}</Text>}
+        <Text style={[styles.footerText, { color: dark ? '#666' : '#999' }]}>Imboni v1.0.0</Text>
+        {user?.email && <Text style={[styles.footerText, { color: dark ? '#666' : '#999' }]}>{user.email}</Text>}
       </View>
     </ScrollView>
   );
 }
 
+function createStyles(colors: any, dark: boolean) {
+  return StyleSheet.create({
+    // Dynamic styles moved inline to component
+  });
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     paddingTop: 60,
@@ -128,10 +148,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 34,
     fontWeight: 'bold',
-    color: '#fff',
   },
   section: {
-    backgroundColor: '#1C1C1E',
     marginHorizontal: 16,
     marginVertical: 10,
     borderRadius: 12,
@@ -142,9 +160,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#1C1C1E',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#3A3A3C',
   },
   rowIcon: {
     marginRight: 12,
@@ -152,7 +168,6 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
     fontSize: 17,
-    color: '#fff',
   },
   destructiveText: {
     color: '#FF3B30',
@@ -165,7 +180,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#666',
     marginVertical: 2,
   },
 });

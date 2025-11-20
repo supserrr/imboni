@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Alert, Platform } from 'react-native';
 import CameraComponent, { CameraComponentRef } from '../../components/CameraView';
 import { useTranslation } from 'react-i18next';
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, useTheme } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { BentoMLService } from '../../services/bentoml';
 import * as Speech from 'expo-speech';
@@ -15,6 +15,7 @@ export default function Home() {
   const isFocused = useIsFocused();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { colors, dark } = useTheme();
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string>('');
@@ -97,13 +98,15 @@ export default function Home() {
     setIsAnalyzing(!isAnalyzing);
   };
 
+  const styles = createStyles(colors, dark);
+
   return (
     <View style={styles.container}>
       <CameraComponent ref={cameraRef} onCapture={(uri) => console.log('Captured:', uri)} />
       
       <View style={[styles.overlay, { bottom: insets.bottom + 100 }]}>
         {analysisResult && (
-          <BlurView intensity={80} tint="dark" style={styles.resultContainer}>
+          <BlurView intensity={80} tint={dark ? 'dark' : 'light'} style={styles.resultContainer}>
              <Text style={styles.resultText}>{analysisResult}</Text>
              <Text style={styles.confidenceText}>
                {confidence < 1 ? `Confidence: ${(confidence * 100).toFixed(0)}%` : ''}
@@ -126,7 +129,8 @@ export default function Home() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: any, dark: boolean) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
@@ -145,16 +149,16 @@ const styles = StyleSheet.create({
     minHeight: 80,
     justifyContent: 'center',
     overflow: 'hidden',
-    backgroundColor: Platform.OS === 'android' ? 'rgba(0,0,0,0.8)' : undefined,
+      backgroundColor: Platform.OS === 'android' ? (dark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)') : undefined,
   },
   resultText: {
-    color: 'white',
+      color: dark ? 'white' : colors.text,
     fontSize: 16,
     textAlign: 'center',
     fontWeight: '500',
   },
   confidenceText: {
-    color: '#ccc',
+      color: dark ? '#ccc' : '#666',
     fontSize: 12,
     textAlign: 'center',
     marginTop: 5,
@@ -163,7 +167,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   analyzeButton: {
-    backgroundColor: '#007AFF',
+      backgroundColor: colors.primary,
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
@@ -173,8 +177,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF3B30',
   },
   buttonText: {
-    color: '#fff',
+    color: '#E8D4E8',
     fontSize: 17,
     fontWeight: '600',
   },
 });
+}

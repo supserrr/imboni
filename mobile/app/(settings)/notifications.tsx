@@ -5,10 +5,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Notifications from 'expo-notifications';
 import { useAuth } from '../../context/AuthProvider';
 import { supabase } from '../../services/supabase';
+import { useTheme } from '@react-navigation/native';
 
 export default function NotificationSettings() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, dark } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [helpRequests, setHelpRequests] = useState(true);
   const [sessionUpdates, setSessionUpdates] = useState(true);
@@ -88,28 +90,37 @@ export default function NotificationSettings() {
     // Save to database or local storage
   };
 
+  const rowBackgroundColor = dark ? colors.card : colors.text;
+  const textColor = dark ? colors.text : colors.background;
+  const subtitleColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
+  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
+  const switchTrackColorFalse = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.5)';
+  const switchTrackColorTrue = dark ? colors.primary : colors.background;
+  const switchThumbColorOff = dark ? '#f4f3f4' : colors.background;
+  const switchThumbColorOn = dark ? '#fff' : colors.text;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={28} color="#007AFF" />
-          <Text style={styles.backText}>Settings</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Settings</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Notifications</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Notifications</Text>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <View style={styles.row}>
+          <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
             <View style={styles.rowContent}>
-              <Text style={styles.rowTitle}>Enable Notifications</Text>
-              <Text style={styles.rowSubtitle}>Allow Imboni to send notifications</Text>
+              <Text style={[styles.rowTitle, { color: textColor }]}>Enable Notifications</Text>
+              <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>Allow Imboni to send notifications</Text>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={handleToggleNotifications}
-              trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-              thumbColor="#fff"
+              trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+              thumbColor={notificationsEnabled ? switchThumbColorOn : switchThumbColorOff}
             />
           </View>
         </View>
@@ -117,29 +128,29 @@ export default function NotificationSettings() {
         {notificationsEnabled && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Notification Types</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Notification Types</Text>
             </View>
             <View style={styles.section}>
               {/* Help Requests - Only for volunteers */}
               {userType === 'volunteer' && (
-                <View style={styles.row}>
+                <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
                   <View style={styles.rowContent}>
-                    <Text style={styles.rowTitle}>Help Requests</Text>
-                    <Text style={styles.rowSubtitle}>Get notified when someone needs help</Text>
+                    <Text style={[styles.rowTitle, { color: textColor }]}>Help Requests</Text>
+                    <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>Get notified when someone needs help</Text>
                   </View>
                   <Switch
                     value={helpRequests}
                     onValueChange={handleToggleHelpRequests}
-                    trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-                    thumbColor="#fff"
+                    trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+                    thumbColor={helpRequests ? switchThumbColorOn : switchThumbColorOff}
                   />
                 </View>
               )}
 
-              <View style={styles.row}>
+              <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle}>Session Updates</Text>
-                  <Text style={styles.rowSubtitle}>
+                  <Text style={[styles.rowTitle, { color: textColor }]}>Session Updates</Text>
+                  <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>
                     {userType === 'volunteer' 
                       ? 'Updates about your active sessions'
                       : 'Updates when connected to helpers'}
@@ -148,55 +159,55 @@ export default function NotificationSettings() {
                 <Switch
                   value={sessionUpdates}
                   onValueChange={handleToggleSessionUpdates}
-                  trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-                  thumbColor="#fff"
+                  trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+                  thumbColor={sessionUpdates ? switchThumbColorOn : switchThumbColorOff}
                 />
               </View>
 
               {/* AI Alerts - Only for blind users */}
               {userType === 'blind' && (
-                <View style={styles.row}>
+                <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
                   <View style={styles.rowContent}>
-                    <Text style={styles.rowTitle}>AI Alerts</Text>
-                    <Text style={styles.rowSubtitle}>Low confidence warnings</Text>
+                    <Text style={[styles.rowTitle, { color: textColor }]}>AI Alerts</Text>
+                    <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>Low confidence warnings</Text>
                   </View>
                   <Switch
                     value={aiAlerts}
                     onValueChange={handleToggleAiAlerts}
-                    trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-                    thumbColor="#fff"
+                    trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+                    thumbColor={aiAlerts ? switchThumbColorOn : switchThumbColorOff}
                   />
                 </View>
               )}
             </View>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Alert Style</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Alert Style</Text>
             </View>
             <View style={styles.section}>
-              <View style={styles.row}>
+              <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle}>Sound</Text>
-                  <Text style={styles.rowSubtitle}>Play sound for notifications</Text>
+                  <Text style={[styles.rowTitle, { color: textColor }]}>Sound</Text>
+                  <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>Play sound for notifications</Text>
                 </View>
                 <Switch
                   value={soundEnabled}
                   onValueChange={handleToggleSound}
-                  trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-                  thumbColor="#fff"
+                  trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+                  thumbColor={soundEnabled ? switchThumbColorOn : switchThumbColorOff}
                 />
               </View>
 
-              <View style={styles.row}>
+              <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
                 <View style={styles.rowContent}>
-                  <Text style={styles.rowTitle}>Vibration</Text>
-                  <Text style={styles.rowSubtitle}>Vibrate for notifications</Text>
+                  <Text style={[styles.rowTitle, { color: textColor }]}>Vibration</Text>
+                  <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>Vibrate for notifications</Text>
                 </View>
                 <Switch
                   value={vibrationEnabled}
                   onValueChange={handleToggleVibration}
-                  trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-                  thumbColor="#fff"
+                  trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+                  thumbColor={vibrationEnabled ? switchThumbColorOn : switchThumbColorOff}
                 />
               </View>
             </View>
@@ -210,7 +221,6 @@ export default function NotificationSettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     paddingTop: 60,
@@ -224,13 +234,11 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 17,
-    color: '#007AFF',
     marginLeft: 5,
   },
   title: {
     fontSize: 34,
     fontWeight: 'bold',
-    color: '#fff',
   },
   content: {
     flex: 1,
@@ -243,10 +251,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff',
   },
   section: {
-    backgroundColor: '#1C1C1E',
     marginHorizontal: 16,
     marginVertical: 10,
     borderRadius: 12,
@@ -258,9 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#1C1C1E',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#3A3A3C',
   },
   rowContent: {
     flex: 1,
@@ -268,12 +272,10 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     fontSize: 17,
-    color: '#fff',
     marginBottom: 4,
   },
   rowSubtitle: {
     fontSize: 15,
-    color: '#999',
   },
 });
 

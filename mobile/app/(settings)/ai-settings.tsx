@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useAuth } from '../../context/AuthProvider';
 import { supabase } from '../../services/supabase';
+import { useTheme } from '@react-navigation/native';
 
 const VOICE_SPEEDS = [
   { value: 0.5, label: 'Very Slow' },
@@ -25,6 +26,7 @@ const ANALYSIS_INTERVALS = [
 export default function AISettings() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, dark } = useTheme();
   const [voiceSpeed, setVoiceSpeed] = useState(1.0);
   const [analysisInterval, setAnalysisInterval] = useState(5);
   const [autoSpeak, setAutoSpeak] = useState(true);
@@ -43,38 +45,50 @@ export default function AISettings() {
     // Save to preferences
   };
 
+  const rowBackgroundColor = dark ? colors.card : colors.text;
+  const textColor = dark ? colors.text : colors.background;
+  const subtitleColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
+  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
+  const switchTrackColorFalse = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.5)';
+  const switchTrackColorTrue = dark ? colors.primary : colors.background;
+  const switchThumbColorOff = dark ? '#f4f3f4' : colors.background;
+  const switchThumbColorOn = dark ? '#fff' : colors.text;
+  const sliderMinColor = dark ? colors.primary : colors.background;
+  const sliderMaxColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.3)';
+  const sliderThumbColor = dark ? colors.primary : colors.background;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={28} color="#007AFF" />
-          <Text style={styles.backText}>Settings</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Settings</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>AI Settings</Text>
+        <Text style={[styles.title, { color: colors.text }]}>AI Settings</Text>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Voice Settings</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Voice Settings</Text>
         </View>
         <View style={styles.section}>
-          <View style={styles.row}>
+          <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
             <View style={styles.rowContent}>
-              <Text style={styles.rowTitle}>Auto-speak Results</Text>
-              <Text style={styles.rowSubtitle}>Automatically read AI descriptions</Text>
+              <Text style={[styles.rowTitle, { color: textColor }]}>Auto-speak Results</Text>
+              <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>Automatically read AI descriptions</Text>
             </View>
             <Switch
               value={autoSpeak}
               onValueChange={setAutoSpeak}
-              trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-              thumbColor="#fff"
+              trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+              thumbColor={autoSpeak ? switchThumbColorOn : switchThumbColorOff}
             />
           </View>
         </View>
 
-        <View style={styles.sliderSection}>
-          <Text style={styles.sliderLabel}>Voice Speed</Text>
-          <Text style={styles.sliderValue}>
+        <View style={[styles.sliderSection, { backgroundColor: rowBackgroundColor }]}>
+          <Text style={[styles.sliderLabel, { color: textColor }]}>Voice Speed</Text>
+          <Text style={[styles.sliderValue, { color: dark ? colors.primary : colors.background }]}>
             {VOICE_SPEEDS.find((s) => s.value === voiceSpeed)?.label}
           </Text>
           <Slider
@@ -85,37 +99,37 @@ export default function AISettings() {
             value={voiceSpeed}
             onValueChange={setVoiceSpeed}
             onSlidingComplete={handleSaveVoiceSpeed}
-            minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#3A3A3C"
-            thumbTintColor="#007AFF"
+            minimumTrackTintColor={sliderMinColor}
+            maximumTrackTintColor={sliderMaxColor}
+            thumbTintColor={sliderThumbColor}
           />
           <View style={styles.sliderLabels}>
-            <Text style={styles.sliderLabelText}>Slower</Text>
-            <Text style={styles.sliderLabelText}>Faster</Text>
+            <Text style={[styles.sliderLabelText, { color: subtitleColor }]}>Slower</Text>
+            <Text style={[styles.sliderLabelText, { color: subtitleColor }]}>Faster</Text>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Analysis Settings</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Analysis Settings</Text>
         </View>
         <View style={styles.section}>
-          <View style={styles.row}>
+          <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
             <View style={styles.rowContent}>
-              <Text style={styles.rowTitle}>Detailed Descriptions</Text>
-              <Text style={styles.rowSubtitle}>More verbose AI responses</Text>
+              <Text style={[styles.rowTitle, { color: textColor }]}>Detailed Descriptions</Text>
+              <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>More verbose AI responses</Text>
             </View>
             <Switch
               value={detailedDescriptions}
               onValueChange={setDetailedDescriptions}
-              trackColor={{ false: '#3A3A3C', true: '#007AFF' }}
-              thumbColor="#fff"
+              trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+              thumbColor={detailedDescriptions ? switchThumbColorOn : switchThumbColorOff}
             />
           </View>
         </View>
 
-        <View style={styles.sliderSection}>
-          <Text style={styles.sliderLabel}>Analysis Interval</Text>
-          <Text style={styles.sliderValue}>{analysisInterval} seconds</Text>
+        <View style={[styles.sliderSection, { backgroundColor: rowBackgroundColor }]}>
+          <Text style={[styles.sliderLabel, { color: textColor }]}>Analysis Interval</Text>
+          <Text style={[styles.sliderValue, { color: dark ? colors.primary : colors.background }]}>{analysisInterval} seconds</Text>
           <Slider
             style={styles.slider}
             minimumValue={3}
@@ -124,20 +138,20 @@ export default function AISettings() {
             value={analysisInterval}
             onValueChange={setAnalysisInterval}
             onSlidingComplete={handleSaveInterval}
-            minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#3A3A3C"
-            thumbTintColor="#007AFF"
+            minimumTrackTintColor={sliderMinColor}
+            maximumTrackTintColor={sliderMaxColor}
+            thumbTintColor={sliderThumbColor}
           />
           <View style={styles.sliderLabels}>
-            <Text style={styles.sliderLabelText}>3s</Text>
-            <Text style={styles.sliderLabelText}>30s</Text>
+            <Text style={[styles.sliderLabelText, { color: subtitleColor }]}>3s</Text>
+            <Text style={[styles.sliderLabelText, { color: subtitleColor }]}>30s</Text>
           </View>
         </View>
 
-        <View style={styles.sliderSection}>
-          <Text style={styles.sliderLabel}>Confidence Threshold</Text>
-          <Text style={styles.sliderValue}>{Math.round(confidenceThreshold * 100)}%</Text>
-          <Text style={styles.sliderDescription}>
+        <View style={[styles.sliderSection, { backgroundColor: rowBackgroundColor }]}>
+          <Text style={[styles.sliderLabel, { color: textColor }]}>Confidence Threshold</Text>
+          <Text style={[styles.sliderValue, { color: dark ? colors.primary : colors.background }]}>{Math.round(confidenceThreshold * 100)}%</Text>
+          <Text style={[styles.sliderDescription, { color: subtitleColor }]}>
             Request human help when AI confidence is below this level
           </Text>
           <Slider
@@ -147,19 +161,22 @@ export default function AISettings() {
             step={0.1}
             value={confidenceThreshold}
             onValueChange={setConfidenceThreshold}
-            minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#3A3A3C"
-            thumbTintColor="#007AFF"
+            minimumTrackTintColor={sliderMinColor}
+            maximumTrackTintColor={sliderMaxColor}
+            thumbTintColor={sliderThumbColor}
           />
           <View style={styles.sliderLabels}>
-            <Text style={styles.sliderLabelText}>30%</Text>
-            <Text style={styles.sliderLabelText}>90%</Text>
+            <Text style={[styles.sliderLabelText, { color: subtitleColor }]}>30%</Text>
+            <Text style={[styles.sliderLabelText, { color: subtitleColor }]}>90%</Text>
           </View>
         </View>
 
-        <View style={styles.infoBox}>
-          <Ionicons name="bulb-outline" size={24} color="#007AFF" />
-          <Text style={styles.infoText}>
+        <View style={[styles.infoBox, {
+          backgroundColor: dark ? 'rgba(0, 122, 255, 0.15)' : 'rgba(92, 58, 58, 0.15)',
+          borderColor: dark ? 'rgba(0, 122, 255, 0.3)' : 'rgba(92, 58, 58, 0.3)'
+        }]}>
+          <Ionicons name="bulb-outline" size={24} color={colors.primary} />
+          <Text style={[styles.infoText, { color: colors.text }]}>
             Lower confidence thresholds may result in more frequent requests for human assistance,
             but will ensure more accurate information.
           </Text>
@@ -172,7 +189,6 @@ export default function AISettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     paddingTop: 60,
@@ -186,13 +202,11 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 17,
-    color: '#007AFF',
     marginLeft: 5,
   },
   title: {
     fontSize: 34,
     fontWeight: 'bold',
-    color: '#fff',
   },
   content: {
     flex: 1,
@@ -205,10 +219,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff',
   },
   section: {
-    backgroundColor: '#1C1C1E',
     marginHorizontal: 16,
     marginVertical: 10,
     borderRadius: 12,
@@ -220,9 +232,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#1C1C1E',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#3A3A3C',
   },
   rowContent: {
     flex: 1,
@@ -230,15 +240,12 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     fontSize: 17,
-    color: '#fff',
     marginBottom: 4,
   },
   rowSubtitle: {
     fontSize: 15,
-    color: '#999',
   },
   sliderSection: {
-    backgroundColor: '#1C1C1E',
     marginHorizontal: 16,
     marginVertical: 10,
     padding: 20,
@@ -246,18 +253,15 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 17,
-    color: '#fff',
     fontWeight: '600',
     marginBottom: 8,
   },
   sliderValue: {
     fontSize: 15,
-    color: '#007AFF',
     marginBottom: 4,
   },
   sliderDescription: {
     fontSize: 13,
-    color: '#999',
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -272,24 +276,20 @@ const styles = StyleSheet.create({
   },
   sliderLabelText: {
     fontSize: 13,
-    color: '#999',
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(0, 122, 255, 0.15)',
     marginHorizontal: 16,
     marginVertical: 10,
     padding: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0, 122, 255, 0.3)',
     marginBottom: 40,
   },
   infoText: {
     flex: 1,
     marginLeft: 12,
     fontSize: 15,
-    color: '#fff',
     lineHeight: 20,
   },
 });

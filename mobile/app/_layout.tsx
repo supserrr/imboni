@@ -3,13 +3,29 @@ import { AuthProvider, useAuth } from '../context/AuthProvider';
 import '../utils/i18n';
 import { useEffect } from 'react';
 import { useRouter, useSegments } from 'expo-router';
-import { View, ActivityIndicator, Linking } from 'react-native';
+import { View, ActivityIndicator, Linking, useColorScheme, Appearance, Platform } from 'react-native';
+import { ThemeProvider } from '@react-navigation/native';
+import { LightNavigationTheme, DarkNavigationTheme } from '../constants/navigation-theme';
 import { AuthService } from '../services/auth';
 
 const InitialLayout = () => {
   const { session, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const theme = colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme;
+
+  // Sync native theme with app theme
+  useEffect(() => {
+    const scheme = colorScheme ?? 'light';
+    if (Platform.OS === 'web') {
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.colorScheme = scheme;
+      }
+    } else {
+      Appearance.setColorScheme(scheme);
+    }
+  }, [colorScheme]);
 
   // Handle OAuth deep links
   useEffect(() => {
@@ -63,19 +79,21 @@ const InitialLayout = () => {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
+    <ThemeProvider value={theme}>
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="(settings)" />
     </Stack>
+    </ThemeProvider>
   );
 };
 

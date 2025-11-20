@@ -5,25 +5,49 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Brand colors matching auth screens
+export const BrandColors = {
+  lavender: '#E8D4E8',
+  darkBrown: '#5C3A3A',
+  lightBrown: '#8B6B6B',
+  white: '#FFFFFF',
+  black: '#000000',
+  darkGray: '#1C1C1E',
+  mediumGray: '#8E8E93',
+  lightGray: '#999999',
+  red: '#FF3B30',
+  blue: '#007AFF',
+};
+
+const tintColorLight = BrandColors.darkBrown;
+const tintColorDark = BrandColors.lavender;
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: BrandColors.darkBrown,
+    background: BrandColors.lavender,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: BrandColors.lightBrown,
+    tabIconDefault: BrandColors.lightBrown,
     tabIconSelected: tintColorLight,
+    card: BrandColors.white,
+    border: BrandColors.lightBrown,
+    notification: BrandColors.red,
+    primary: BrandColors.darkBrown,
+    secondary: BrandColors.lightBrown,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: BrandColors.white,
+    background: BrandColors.black,
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: BrandColors.mediumGray,
+    tabIconDefault: BrandColors.mediumGray,
     tabIconSelected: tintColorDark,
+    card: BrandColors.darkGray,
+    border: BrandColors.mediumGray,
+    notification: BrandColors.red,
+    primary: BrandColors.lavender,
+    secondary: BrandColors.lightBrown,
   },
 };
 

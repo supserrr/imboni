@@ -4,26 +4,43 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthProvider';
 import { supabase } from '../../services/supabase';
+import { useTheme } from '@react-navigation/native';
 
 interface SettingsRowProps {
   title: string;
   value?: string;
   onPress: () => void;
+  colors: any;
+  dark: boolean;
 }
 
-const SettingsRow: React.FC<SettingsRowProps> = ({ title, value, onPress }) => (
-  <TouchableOpacity style={styles.row} onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>
+const SettingsRow: React.FC<SettingsRowProps> = ({ title, value, onPress, colors, dark }) => {
+  const rowBackgroundColor = dark ? colors.card : colors.text;
+  const textColor = dark ? colors.text : colors.background;
+  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
+  const chevronColor = dark ? '#8E8E93' : 'rgba(232, 212, 232, 0.6)';
+  const valueColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
+  
+  return (
+    <TouchableOpacity 
+      style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]} 
+      onPress={onPress} 
+      accessibilityRole="button" 
+      accessibilityLabel={title}
+    >
     <View style={styles.rowContent}>
-      <Text style={styles.rowTitle}>{title}</Text>
-      {value && <Text style={styles.rowValue}>{value}</Text>}
+        <Text style={[styles.rowTitle, { color: textColor }]}>{title}</Text>
+        {value && <Text style={[styles.rowValue, { color: valueColor }]}>{value}</Text>}
     </View>
-    <Ionicons name="chevron-forward" size={20} color="#999" />
+      <Ionicons name="chevron-forward" size={20} color={chevronColor} />
   </TouchableOpacity>
 );
+};
 
 export default function AccountSettings() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, dark } = useTheme();
   const [userData, setUserData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -145,13 +162,13 @@ export default function AccountSettings() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={28} color="#007AFF" />
-          <Text style={styles.backText}>Settings</Text>
+          <Ionicons name="chevron-back" size={28} color={colors.primary} />
+          <Text style={[styles.backText, { color: colors.primary }]}>Settings</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Account</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Account</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -160,21 +177,38 @@ export default function AccountSettings() {
             title="Personal details"
             value={userData?.full_name || user?.email?.split('@')[0] || 'Edit'}
             onPress={handleEditPersonalDetails}
+            colors={colors}
+            dark={dark}
           />
-          <SettingsRow title="Change email" value={user?.email || ''} onPress={handleChangeEmail} />
-          <SettingsRow title="Password" value="••••••••" onPress={handleChangePassword} />
+          <SettingsRow 
+            title="Change email" 
+            value={user?.email || ''} 
+            onPress={handleChangeEmail}
+            colors={colors}
+            dark={dark}
+          />
+          <SettingsRow 
+            title="Password" 
+            value="••••••••" 
+            onPress={handleChangePassword}
+            colors={colors}
+            dark={dark}
+          />
         </View>
 
         <View style={styles.section}>
-          <TouchableOpacity style={styles.deleteButton} onPress={handleDeleteAccount}>
+          <TouchableOpacity 
+            style={[styles.deleteButton, { backgroundColor: dark ? colors.card : colors.text }]} 
+            onPress={handleDeleteAccount}
+          >
             <Text style={styles.deleteText}>Delete account</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.infoText}>User ID: {user?.id}</Text>
-          <Text style={styles.infoText}>Account Type: {userData?.type || 'blind'}</Text>
-          <Text style={styles.infoText}>
+          <Text style={[styles.infoText, { color: dark ? '#666' : '#8B6B6B' }]}>User ID: {user?.id}</Text>
+          <Text style={[styles.infoText, { color: dark ? '#666' : '#8B6B6B' }]}>Account Type: {userData?.type || 'blind'}</Text>
+          <Text style={[styles.infoText, { color: dark ? '#666' : '#8B6B6B' }]}>
             Created: {new Date(user?.created_at || '').toLocaleDateString()}
           </Text>
         </View>
@@ -186,7 +220,6 @@ export default function AccountSettings() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   header: {
     paddingTop: 60,
@@ -200,19 +233,16 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 17,
-    color: '#007AFF',
     marginLeft: 5,
   },
   title: {
     fontSize: 34,
     fontWeight: 'bold',
-    color: '#fff',
   },
   content: {
     flex: 1,
   },
   section: {
-    backgroundColor: '#1C1C1E',
     marginHorizontal: 16,
     marginVertical: 10,
     borderRadius: 12,
@@ -224,21 +254,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#1C1C1E',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#3A3A3C',
   },
   rowContent: {
     flex: 1,
   },
   rowTitle: {
     fontSize: 17,
-    color: '#fff',
     marginBottom: 4,
   },
   rowValue: {
     fontSize: 15,
-    color: '#999',
   },
   deleteButton: {
     paddingVertical: 16,
@@ -255,7 +281,6 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 13,
-    color: '#666',
     marginVertical: 4,
   },
 });

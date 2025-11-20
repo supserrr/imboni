@@ -2,6 +2,7 @@ import { withLayoutContext } from 'expo-router';
 import { createNativeBottomTabNavigator } from '@react-navigation/bottom-tabs/unstable';
 import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
+import { useTheme } from '@react-navigation/native';
 
 const { Navigator } = createNativeBottomTabNavigator();
 
@@ -9,9 +10,20 @@ const NativeTabs = withLayoutContext(Navigator);
 
 export default function TabLayout() {
   const { t } = useTranslation();
+  const { colors, dark } = useTheme();
 
   return (
-    <NativeTabs screenOptions={{ headerShown: false }}>
+    <NativeTabs 
+      screenOptions={{ 
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: dark ? '#8E8E93' : 'rgba(232, 212, 232, 0.6)',
+        tabBarBlurEffect: dark ? 'systemMaterialDark' : 'systemMaterial',
+        tabBarStyle: {
+          backgroundColor: colors.card,
+        },
+      }}
+    >
       <NativeTabs.Screen
         name="home"
         options={{
