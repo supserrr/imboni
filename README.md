@@ -123,7 +123,7 @@ bentoml cloud login
 bentoml deploy -n imboni-ai
 ```
 
-See `bentoml/DEPLOYMENT.md` for detailed deployment instructions.
+See `docs/backend/deployment/DEPLOYMENT.md` for detailed deployment instructions.
 
 ### Supabase
 
