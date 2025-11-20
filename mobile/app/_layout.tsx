@@ -2,20 +2,24 @@ import { Stack } from 'expo-router';
 import { AuthProvider, useAuth } from '../context/AuthProvider';
 import { ThemeProvider as AppThemeProvider } from '../context/ThemeContext';
 import '../utils/i18n';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSegments } from 'expo-router';
 import { View, ActivityIndicator, Linking, Platform } from 'react-native';
 import { ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { LightNavigationTheme, DarkNavigationTheme } from '../constants/navigation-theme';
 import { AuthService } from '../services/auth';
+import { UserService } from '../services/user';
+import { UserType } from '../types/user';
 import { useColorScheme } from '../hooks/use-color-scheme';
 
 const InitialLayout = () => {
-  const { session, isLoading } = useAuth();
+  const { session, isLoading, user } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? DarkNavigationTheme : LightNavigationTheme;
+  const [userType, setUserType] = useState<UserType | null>(null);
+  const [fetchingUserType, setFetchingUserType] = useState(false);
 
   // Sync native theme with app theme
   useEffect(() => {
@@ -26,6 +30,26 @@ const InitialLayout = () => {
       }
     }
   }, [colorScheme]);
+
+  // Fetch user type when logged in
+  useEffect(() => {
+    const fetchUserType = async () => {
+      if (user?.id && !fetchingUserType) {
+        setFetchingUserType(true);
+        try {
+          const profile = await UserService.getProfile(user.id);
+          setUserType(profile?.type || 'blind');
+        } catch (error) {
+          console.error('Error fetching user type:', error);
+          setUserType('blind'); // Default to blind if error
+        } finally {
+          setFetchingUserType(false);
+        }
+      }
+    };
+    
+    fetchUserType();
+  }, [user?.id]);
 
   // Handle OAuth deep links
   useEffect(() => {
@@ -41,7 +65,18 @@ const InitialLayout = () => {
           const emailVerified = result?.user?.email_confirmed_at != null;
           
           if (emailVerified) {
-          router.replace('/(tabs)/home');
+            // Wait for user type to be fetched
+            if (result?.user?.id) {
+              const profile = await UserService.getProfile(result.user.id);
+              const type = profile?.type || 'blind';
+              setUserType(type);
+              
+              if (type === 'blind') {
+                router.replace('/(blind-tabs)/home');
+              } else {
+                router.replace('/(volunteer-tabs)/home');
+              }
+            }
           } else {
             router.replace('/(auth)/verify-email');
           }
@@ -68,12 +103,14 @@ const InitialLayout = () => {
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || fetchingUserType) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const inTabsGroup = segments[0] === '(tabs)';
+    const inBlindTabsGroup = segments[0] === '(blind-tabs)';
+    const inVolunteerTabsGroup = segments[0] === '(volunteer-tabs)';
     const inSettingsGroup = segments[0] === '(settings)';
-    const onIndex = !inAuthGroup && !inTabsGroup && !inSettingsGroup;
+    const inProtectedRoute = inBlindTabsGroup || inVolunteerTabsGroup || inSettingsGroup;
+    const onIndex = !inAuthGroup && !inBlindTabsGroup && !inVolunteerTabsGroup && !inSettingsGroup;
     const onVerifyEmail = segments[1] === 'verify-email';
 
     // If logged in
@@ -85,16 +122,28 @@ const InitialLayout = () => {
       if (!emailVerified && !onVerifyEmail) {
         router.replace('/(auth)/verify-email');
       }
-      // If email verified and on welcome/auth screens (except verify-email), go to app
-      else if (emailVerified && (onIndex || (inAuthGroup && !onVerifyEmail))) {
-      router.replace('/(tabs)/home');
+      // If email verified and on welcome/auth screens (except verify-email), go to appropriate tab group
+      else if (emailVerified && (onIndex || (inAuthGroup && !onVerifyEmail)) && userType) {
+        if (userType === 'blind') {
+          router.replace('/(blind-tabs)/home');
+        } else {
+          router.replace('/(volunteer-tabs)/home');
+        }
+      }
+      // Guard: ensure user is in the correct tab group based on their type
+      else if (emailVerified && userType) {
+        if (userType === 'blind' && inVolunteerTabsGroup) {
+          router.replace('/(blind-tabs)/home');
+        } else if (userType === 'volunteer' && inBlindTabsGroup) {
+          router.replace('/(volunteer-tabs)/home');
+        }
       }
     } 
     // If not logged in and trying to access protected routes, go to welcome
-    else if (!session && (inTabsGroup || inSettingsGroup)) {
+    else if (!session && inProtectedRoute) {
       router.replace('/');
     }
-  }, [session, isLoading, segments]);
+  }, [session, isLoading, segments, userType, fetchingUserType]);
 
   if (isLoading) {
     return (
@@ -109,7 +158,8 @@ const InitialLayout = () => {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
-      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(blind-tabs)" />
+      <Stack.Screen name="(volunteer-tabs)" />
       <Stack.Screen name="(settings)" />
     </Stack>
     </NavThemeProvider>

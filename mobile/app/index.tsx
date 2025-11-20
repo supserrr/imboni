@@ -9,11 +9,8 @@ export default function Welcome() {
   const router = useRouter();
   const { session, isLoading } = useAuth();
 
-  React.useEffect(() => {
-    if (!isLoading && session) {
-      router.replace('/(tabs)/home');
-    }
-  }, [session, isLoading]);
+  // Note: Routing is handled by the root _layout.tsx based on user type
+  // No need to redirect here
 
   if (isLoading) {
     return null;

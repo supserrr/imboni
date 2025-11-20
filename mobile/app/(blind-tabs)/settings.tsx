@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthProvider';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useTheme } from '@react-navigation/native';
-import { UserService } from '../../services/user';
-import { UserType } from '../../types/user';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface SettingsRowProps {
   title: string;
@@ -19,44 +18,30 @@ interface SettingsRowProps {
 }
 
 const SettingsRow: React.FC<SettingsRowProps> = ({ title, onPress, icon, showChevron = true, isDestructive = false, colors, dark }) => {
-  // In light mode: dark brown buttons with lavender text
-  // In dark mode: lavender buttons with dark brown text (inverted)
   const rowBackgroundColor = colors.text;
   const textColor = colors.background;
   const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
   const chevronColor = dark ? 'rgba(92, 58, 58, 0.6)' : 'rgba(232, 212, 232, 0.6)';
   
   return (
-  <TouchableOpacity
+    <TouchableOpacity
       style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}
-    onPress={onPress}
-    accessibilityRole="button"
-    accessibilityLabel={title}
-  >
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
       {icon && <Ionicons name={icon} size={20} color={isDestructive ? '#FF3B30' : textColor} style={styles.rowIcon} />}
       <Text style={[styles.rowText, { color: textColor }, isDestructive && styles.destructiveText]}>{title}</Text>
       {showChevron && <Ionicons name="chevron-forward" size={20} color={chevronColor} />}
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
 };
 
-export default function Settings() {
+export default function BlindSettings() {
   const { signOut, user } = useAuth();
   const router = useRouter();
   const { colors, dark } = useTheme();
-  const [userType, setUserType] = useState<UserType>('blind');
-
-  useEffect(() => {
-    const fetchUserType = async () => {
-      if (user?.id) {
-        const profile = await UserService.getProfile(user.id);
-        if (profile?.type) {
-          setUserType(profile.type);
-        }
-      }
-    };
-    fetchUserType();
-  }, [user]);
+  const insets = useSafeAreaInsets();
 
   const handleAccount = () => {
     router.push('/(settings)/account');
@@ -105,10 +90,11 @@ export default function Settings() {
     );
   };
 
-  const dynamicStyles = createStyles(colors, dark);
-
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+    >
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: colors.text }]}>Settings</Text>
       </View>
@@ -118,16 +104,12 @@ export default function Settings() {
         <SettingsRow title="Appearance" onPress={handleAppearance} colors={colors} dark={dark} />
         <SettingsRow title="Languages" onPress={handleLanguages} colors={colors} dark={dark} />
         <SettingsRow title="Notifications" onPress={handleNotifications} colors={colors} dark={dark} />
-        {userType === 'blind' && (
         <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
-        )}
       </View>
 
-      {userType === 'blind' && (
       <View style={styles.section}>
         <SettingsRow title="AI Settings" onPress={handleAISettings} colors={colors} dark={dark} />
       </View>
-      )}
 
       <View style={styles.section}>
         <SettingsRow title="Support" onPress={handleSupport} colors={colors} dark={dark} />
@@ -154,12 +136,6 @@ export default function Settings() {
       </View>
     </ScrollView>
   );
-}
-
-function createStyles(colors: any, dark: boolean) {
-  return StyleSheet.create({
-    // Dynamic styles moved inline to component
-  });
 }
 
 const styles = StyleSheet.create({
@@ -209,3 +185,4 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
 });
+

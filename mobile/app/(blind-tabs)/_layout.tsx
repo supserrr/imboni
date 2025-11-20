@@ -8,7 +8,7 @@ const { Navigator } = createNativeBottomTabNavigator();
 
 const NativeTabs = withLayoutContext(Navigator);
 
-export default function TabLayout() {
+export default function BlindTabLayout() {
   const { t } = useTranslation();
   const { colors, dark } = useTheme();
 
@@ -20,7 +20,8 @@ export default function TabLayout() {
         tabBarInactiveTintColor: dark ? '#8E8E93' : 'rgba(232, 212, 232, 0.6)',
         tabBarBlurEffect: dark ? 'systemMaterialDark' : 'systemMaterial',
         tabBarStyle: {
-          backgroundColor: colors.card,
+          backgroundColor: 'transparent',
+          position: 'absolute',
         },
       }}
     >
@@ -57,3 +58,4 @@ export default function TabLayout() {
     </NativeTabs>
   );
 }
+

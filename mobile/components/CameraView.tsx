@@ -9,13 +9,17 @@ export interface CameraComponentRef {
 
 interface Props {
   onCapture?: (uri: string) => void;
+  colors?: any;
+  dark?: boolean;
 }
 
-const CameraComponent = forwardRef<CameraComponentRef, Props>(({ onCapture }, ref) => {
+const CameraComponent = forwardRef<CameraComponentRef, Props>(({ onCapture, colors, dark }, ref) => {
   const facing: CameraType = 'back';
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const { t } = useTranslation();
+  
+  const styles = createStyles(colors, dark);
 
   useImperativeHandle(ref, () => ({
     takePicture: async () => {
@@ -62,32 +66,39 @@ const CameraComponent = forwardRef<CameraComponentRef, Props>(({ onCapture }, re
   );
 });
 
-const styles = StyleSheet.create({
+function createStyles(colors: any, dark: boolean) {
+  return StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 30,
   },
   message: {
     textAlign: 'center',
-    paddingBottom: 10,
+      paddingBottom: 20,
     color: '#fff',
+      fontSize: 16,
+      fontWeight: '500',
   },
   camera: {
     flex: 1,
   },
   button: {
+      backgroundColor: colors?.primary || '#5C3A3A',
+      paddingVertical: 18,
+      borderRadius: 12,
     alignItems: 'center',
-    backgroundColor: '#007AFF',
-    padding: 10,
-    borderRadius: 5,
-    margin: 20,
+      width: '100%',
+      maxWidth: 400,
   },
   text: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
+      color: colors?.background || '#E8D4E8',
+      fontSize: 17,
+      fontWeight: '600',
   },
 });
+}
 
 export default CameraComponent;
 
