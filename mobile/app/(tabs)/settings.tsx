@@ -119,14 +119,14 @@ export default function Settings() {
         <SettingsRow title="Languages" onPress={handleLanguages} colors={colors} dark={dark} />
         <SettingsRow title="Notifications" onPress={handleNotifications} colors={colors} dark={dark} />
         {userType === 'blind' && (
-          <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
+        <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
         )}
       </View>
 
       {userType === 'blind' && (
-        <View style={styles.section}>
-          <SettingsRow title="AI Settings" onPress={handleAISettings} colors={colors} dark={dark} />
-        </View>
+      <View style={styles.section}>
+        <SettingsRow title="AI Settings" onPress={handleAISettings} colors={colors} dark={dark} />
+      </View>
       )}
 
       <View style={styles.section}>

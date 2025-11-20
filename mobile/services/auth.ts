@@ -248,41 +248,41 @@ export const AuthService = {
 
       // Update the public.users table
       if (shouldUpdateType) {
-        console.log('[AuthService] Updating public.users table with type:', userType);
-        const { error: profileError } = await supabase
-          .from('users')
-          .update({
+      console.log('[AuthService] Updating public.users table with type:', userType);
+      const { error: profileError } = await supabase
+        .from('users')
+        .update({
             type: userType,
-            preferred_language: deviceLanguage,
-            device_info: deviceInfo,
-          })
-          .eq('id', userId);
+          preferred_language: deviceLanguage,
+          device_info: deviceInfo,
+        })
+        .eq('id', userId);
 
-        if (profileError) {
-          console.error('[AuthService] Failed to update user profile:', profileError);
+      if (profileError) {
+        console.error('[AuthService] Failed to update user profile:', profileError);
+      } else {
+        console.log('[AuthService] User profile updated successfully');
+      }
+
+      // If volunteer, ensure volunteer_behavior record exists
+      if (userType === 'volunteer') {
+        console.log('[AuthService] Creating volunteer_behavior record');
+        const { error: volunteerError } = await supabase
+          .from('volunteer_behavior')
+          .upsert({
+            volunteer_id: userId,
+            accept_count: 0,
+            decline_count: 0,
+            response_time_avg: 0.0,
+          }, {
+            onConflict: 'volunteer_id'
+          });
+
+        if (volunteerError) {
+          console.error('[AuthService] Failed to create volunteer_behavior:', volunteerError);
         } else {
-          console.log('[AuthService] User profile updated successfully');
+          console.log('[AuthService] Volunteer behavior record created');
         }
-
-        // If volunteer, ensure volunteer_behavior record exists
-        if (userType === 'volunteer') {
-          console.log('[AuthService] Creating volunteer_behavior record');
-          const { error: volunteerError } = await supabase
-            .from('volunteer_behavior')
-            .upsert({
-              volunteer_id: userId,
-              accept_count: 0,
-              decline_count: 0,
-              response_time_avg: 0.0,
-            }, {
-              onConflict: 'volunteer_id'
-            });
-
-          if (volunteerError) {
-            console.error('[AuthService] Failed to create volunteer_behavior:', volunteerError);
-          } else {
-            console.log('[AuthService] Volunteer behavior record created');
-          }
         }
       } else if (isNewUser) {
         // New user but no stored type, set default

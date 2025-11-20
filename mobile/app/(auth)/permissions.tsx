@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera } from 'expo-camera';
 import * as Notifications from 'expo-notifications';
-import { Audio } from 'expo-av';
+import { requestPermissionsAsync } from 'expo-audio';
 import { BrandColors } from '../../constants/theme';
 
 interface PermissionStatus {
@@ -39,9 +39,9 @@ export default function Permissions() {
 
   const requestMicrophonePermission = async () => {
     try {
-      const { status } = await Audio.requestPermissionsAsync();
-      setPermissions(prev => ({ ...prev, microphone: status === 'granted' }));
-      return status === 'granted';
+      const { status, granted } = await requestPermissionsAsync();
+      setPermissions(prev => ({ ...prev, microphone: granted }));
+      return granted;
     } catch (error) {
       console.error('Microphone permission error:', error);
       return false;

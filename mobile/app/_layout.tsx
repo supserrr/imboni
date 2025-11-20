@@ -41,7 +41,7 @@ const InitialLayout = () => {
           const emailVerified = result?.user?.email_confirmed_at != null;
           
           if (emailVerified) {
-            router.replace('/(tabs)/home');
+          router.replace('/(tabs)/home');
           } else {
             router.replace('/(auth)/verify-email');
           }
@@ -87,7 +87,7 @@ const InitialLayout = () => {
       }
       // If email verified and on welcome/auth screens (except verify-email), go to app
       else if (emailVerified && (onIndex || (inAuthGroup && !onVerifyEmail))) {
-        router.replace('/(tabs)/home');
+      router.replace('/(tabs)/home');
       }
     } 
     // If not logged in and trying to access protected routes, go to welcome

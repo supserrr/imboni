@@ -11,7 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.imboni.app",
-      "associatedDomains": ["applinks:pwggbckrgrlmmwyjfanm.supabase.co"],
+      "associatedDomains": [
+        "applinks:pwggbckrgrlmmwyjfanm.supabase.co"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Imboni needs access to your camera to help you identify objects and surroundings.",
         "NSMicrophoneUsageDescription": "Imboni needs access to your microphone for voice commands and video calls with helpers.",
@@ -66,7 +68,8 @@
       ],
       "expo-secure-store",
       "expo-localization",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true
