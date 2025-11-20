@@ -10,10 +10,10 @@
 .env*.local
 
 # Python virtual environments
-bentoml-service/venv/
-bentoml-service/__pycache__/
-bentoml-service/*.pyc
-bentoml-service/.bento/
+bentoml/venv/
+bentoml/__pycache__/
+bentoml/*.pyc
+bentoml/.bento/
 
 # BentoML build artifacts
-bentoml-service/bentos/
+bentoml/bentos/

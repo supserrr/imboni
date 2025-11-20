@@ -18,7 +18,7 @@ Provides AI-powered vision analysis and text-to-speech capabilities:
   - `POST /audio_tts` - Synthesize speech from text
   - `POST /status` - Health check endpoint
 
-See `bentoml-service/README.md` for detailed documentation.
+See `bentoml/README.md` for detailed documentation.
 
 ### Supabase
 
@@ -65,7 +65,7 @@ MELOTTS_DEVICE=auto
 ### BentoML Service Setup
 
 ```bash
-cd bentoml-service
+cd bentoml
 
 # Linux/macOS:
 ./setup.sh
@@ -80,7 +80,7 @@ pip install -U bentoml
 bentoml build service.py:svc
 ```
 
-See `bentoml-service/README.md` for detailed setup and deployment instructions.
+See `bentoml/README.md` for detailed setup and deployment instructions.
 
 ### Supabase Setup
 
@@ -99,7 +99,7 @@ supabase db push
 
 ```
 imboni/
-├── bentoml-service/          # BentoML AI service
+├── bentoml/                 # BentoML AI service
 │   ├── service.py           # Main service implementation
 │   ├── requirements.txt     # Python dependencies
 │   ├── bentofile.yaml       # BentoML configuration
@@ -118,12 +118,12 @@ imboni/
 Deploy to BentoML Cloud:
 
 ```bash
-cd bentoml-service
+cd bentoml
 bentoml cloud login
 bentoml deploy -n imboni-ai
 ```
 
-See `bentoml-service/DEPLOYMENT.md` for detailed deployment instructions.
+See `bentoml/DEPLOYMENT.md` for detailed deployment instructions.
 
 ### Supabase
 
@@ -191,7 +191,7 @@ See `supabase/migrations/001_initial_schema.sql` for complete schema documentati
 ### Local BentoML Service
 
 ```bash
-cd bentoml-service
+cd bentoml
 source venv/bin/activate
 bentoml serve service.py:svc
 ```
