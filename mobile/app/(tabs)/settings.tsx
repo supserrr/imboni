@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthProvider';
 import { useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { useTheme } from '@react-navigation/native';
+import { UserService } from '../../services/user';
+import { UserType } from '../../types/user';
 
 interface SettingsRowProps {
   title: string;
@@ -42,6 +44,19 @@ export default function Settings() {
   const { signOut, user } = useAuth();
   const router = useRouter();
   const { colors, dark } = useTheme();
+  const [userType, setUserType] = useState<UserType>('blind');
+
+  useEffect(() => {
+    const fetchUserType = async () => {
+      if (user?.id) {
+        const profile = await UserService.getProfile(user.id);
+        if (profile?.type) {
+          setUserType(profile.type);
+        }
+      }
+    };
+    fetchUserType();
+  }, [user]);
 
   const handleAccount = () => {
     router.push('/(settings)/account');
@@ -103,12 +118,16 @@ export default function Settings() {
         <SettingsRow title="Appearance" onPress={handleAppearance} colors={colors} dark={dark} />
         <SettingsRow title="Languages" onPress={handleLanguages} colors={colors} dark={dark} />
         <SettingsRow title="Notifications" onPress={handleNotifications} colors={colors} dark={dark} />
-        <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
+        {userType === 'blind' && (
+          <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
+        )}
       </View>
 
-      <View style={styles.section}>
-        <SettingsRow title="AI Settings" onPress={handleAISettings} colors={colors} dark={dark} />
-      </View>
+      {userType === 'blind' && (
+        <View style={styles.section}>
+          <SettingsRow title="AI Settings" onPress={handleAISettings} colors={colors} dark={dark} />
+        </View>
+      )}
 
       <View style={styles.section}>
         <SettingsRow title="Support" onPress={handleSupport} colors={colors} dark={dark} />

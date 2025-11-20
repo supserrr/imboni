@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Alert, Platform, ScrollView, ActivityIndicator, Switch } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Alert, Platform, ActivityIndicator, Switch } from 'react-native';
 import CameraComponent, { CameraComponentRef } from '../../components/CameraView';
 import { useTranslation } from 'react-i18next';
 import { useIsFocused, useTheme } from '@react-navigation/native';
@@ -143,19 +143,32 @@ export default function Home() {
   // Volunteer Home Screen
   if (userProfile?.type === 'volunteer') {
     return (
-      <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={styles.volunteerContainer}>
-          {/* Header */}
-          <View style={styles.volunteerHeader}>
-            <Text style={[styles.volunteerTitle, { color: colors.text }]}>
-              {userProfile.availability ? 'You are available' : 'You are unavailable'}
-            </Text>
-            <Switch
-              value={userProfile.availability}
-              onValueChange={toggleAvailability}
-              trackColor={{ false: '#767577', true: colors.primary }}
-              thumbColor={userProfile.availability ? colors.background : '#f4f3f4'}
-            />
+          {/* Availability Toggle Row - styled like settings */}
+          <View style={styles.availabilitySection}>
+            <View style={[styles.availabilityRow, { 
+              backgroundColor: colors.text,
+              borderBottomColor: dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)'
+            }]}>
+              <View style={styles.availabilityContent}>
+                <Text style={[styles.availabilityTitle, { color: colors.background }]}>
+                  Availability
+                </Text>
+                <Text style={[styles.availabilitySubtitle, { 
+                  color: dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)' 
+                }]}>
+                  {userProfile.availability ? 'You are available' : 'You are unavailable'}
+                </Text>
+              </View>
+              <Switch
+                value={userProfile.availability}
+                onValueChange={toggleAvailability}
+                trackColor={{ false: '#000000', true: colors.background }}
+                thumbColor='#FFFFFF'
+                ios_backgroundColor='#000000'
+              />
+            </View>
           </View>
 
           {/* Stats Card */}
@@ -238,7 +251,7 @@ export default function Home() {
             </Text>
           </View>
         </View>
-      </ScrollView>
+      </View>
     );
   }
 
@@ -286,17 +299,32 @@ function createStyles(colors: any, dark: boolean) {
   volunteerContainer: {
     flex: 1,
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 85,
   },
-  volunteerHeader: {
+  availabilitySection: {
+    marginBottom: 20,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  availabilityRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0.5,
   },
-  volunteerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  availabilityContent: {
+    flex: 1,
+    marginRight: 16,
+  },
+  availabilityTitle: {
+    fontSize: 17,
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  availabilitySubtitle: {
+    fontSize: 15,
   },
   statsCard: {
     padding: 30,
