@@ -45,17 +45,18 @@ export default function AISettings() {
     // Save to preferences
   };
 
-  const rowBackgroundColor = dark ? colors.card : colors.text;
-  const textColor = dark ? colors.text : colors.background;
-  const subtitleColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
-  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
-  const switchTrackColorFalse = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.5)';
-  const switchTrackColorTrue = dark ? colors.primary : colors.background;
-  const switchThumbColorOff = dark ? '#f4f3f4' : colors.background;
-  const switchThumbColorOn = dark ? '#fff' : colors.text;
-  const sliderMinColor = dark ? colors.primary : colors.background;
-  const sliderMaxColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.3)';
-  const sliderThumbColor = dark ? colors.primary : colors.background;
+  const rowBackgroundColor = colors.text;
+  const textColor = colors.background;
+  const subtitleColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
+  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
+  // Toggle colors: OFF state uses black, ON state uses background color
+  const switchTrackColorFalse = '#000000'; // Black for OFF state
+  const switchTrackColorTrue = colors.background; // Background color for active state
+  const switchThumbColor = '#FFFFFF'; // Always white for maximum contrast
+  // Slider colors: Use iOS-style blue for active portion
+  const sliderMinColor = '#007AFF'; // iOS blue
+  const sliderMaxColor = dark ? 'rgba(60, 60, 67, 0.6)' : 'rgba(120, 120, 128, 0.32)';
+  const sliderThumbColor = '#FFFFFF'; // White thumb with shadow for visibility
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -81,14 +82,15 @@ export default function AISettings() {
               value={autoSpeak}
               onValueChange={setAutoSpeak}
               trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-              thumbColor={autoSpeak ? switchThumbColorOn : switchThumbColorOff}
+              thumbColor={switchThumbColor}
+              ios_backgroundColor={switchTrackColorFalse}
             />
           </View>
         </View>
 
         <View style={[styles.sliderSection, { backgroundColor: rowBackgroundColor }]}>
           <Text style={[styles.sliderLabel, { color: textColor }]}>Voice Speed</Text>
-          <Text style={[styles.sliderValue, { color: dark ? colors.primary : colors.background }]}>
+          <Text style={[styles.sliderValue, { color: textColor }]}>
             {VOICE_SPEEDS.find((s) => s.value === voiceSpeed)?.label}
           </Text>
           <Slider
@@ -122,14 +124,15 @@ export default function AISettings() {
               value={detailedDescriptions}
               onValueChange={setDetailedDescriptions}
               trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-              thumbColor={detailedDescriptions ? switchThumbColorOn : switchThumbColorOff}
+              thumbColor={switchThumbColor}
+              ios_backgroundColor={switchTrackColorFalse}
             />
           </View>
         </View>
 
         <View style={[styles.sliderSection, { backgroundColor: rowBackgroundColor }]}>
           <Text style={[styles.sliderLabel, { color: textColor }]}>Analysis Interval</Text>
-          <Text style={[styles.sliderValue, { color: dark ? colors.primary : colors.background }]}>{analysisInterval} seconds</Text>
+          <Text style={[styles.sliderValue, { color: textColor }]}>{analysisInterval} seconds</Text>
           <Slider
             style={styles.slider}
             minimumValue={3}
@@ -150,7 +153,7 @@ export default function AISettings() {
 
         <View style={[styles.sliderSection, { backgroundColor: rowBackgroundColor }]}>
           <Text style={[styles.sliderLabel, { color: textColor }]}>Confidence Threshold</Text>
-          <Text style={[styles.sliderValue, { color: dark ? colors.primary : colors.background }]}>{Math.round(confidenceThreshold * 100)}%</Text>
+          <Text style={[styles.sliderValue, { color: textColor }]}>{Math.round(confidenceThreshold * 100)}%</Text>
           <Text style={[styles.sliderDescription, { color: subtitleColor }]}>
             Request human help when AI confidence is below this level
           </Text>

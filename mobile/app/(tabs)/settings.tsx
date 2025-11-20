@@ -17,10 +17,12 @@ interface SettingsRowProps {
 }
 
 const SettingsRow: React.FC<SettingsRowProps> = ({ title, onPress, icon, showChevron = true, isDestructive = false, colors, dark }) => {
-  const rowBackgroundColor = dark ? colors.card : colors.text; // Dark brown (#5C3A3A) in light mode, matches title color
-  const textColor = dark ? colors.text : colors.background; // Lavender (#E8D4E8) in light mode, matches background
-  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
-  const chevronColor = dark ? '#8E8E93' : 'rgba(232, 212, 232, 0.6)';
+  // In light mode: dark brown buttons with lavender text
+  // In dark mode: lavender buttons with dark brown text (inverted)
+  const rowBackgroundColor = colors.text;
+  const textColor = colors.background;
+  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
+  const chevronColor = dark ? 'rgba(92, 58, 58, 0.6)' : 'rgba(232, 212, 232, 0.6)';
   
   return (
   <TouchableOpacity
@@ -43,6 +45,10 @@ export default function Settings() {
 
   const handleAccount = () => {
     router.push('/(settings)/account');
+  };
+
+  const handleAppearance = () => {
+    router.push('/(settings)/appearance');
   };
 
   const handleLanguages = () => {
@@ -94,6 +100,7 @@ export default function Settings() {
 
       <View style={styles.section}>
         <SettingsRow title="Account" onPress={handleAccount} colors={colors} dark={dark} />
+        <SettingsRow title="Appearance" onPress={handleAppearance} colors={colors} dark={dark} />
         <SettingsRow title="Languages" onPress={handleLanguages} colors={colors} dark={dark} />
         <SettingsRow title="Notifications" onPress={handleNotifications} colors={colors} dark={dark} />
         <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
@@ -123,8 +130,8 @@ export default function Settings() {
       </View>
 
       <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: dark ? '#666' : '#999' }]}>Imboni v1.0.0</Text>
-        {user?.email && <Text style={[styles.footerText, { color: dark ? '#666' : '#999' }]}>{user.email}</Text>}
+        <Text style={[styles.footerText, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>Imboni v1.0.0</Text>
+        {user?.email && <Text style={[styles.footerText, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>{user.email}</Text>}
       </View>
     </ScrollView>
   );

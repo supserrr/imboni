@@ -177,7 +177,7 @@ function createStyles(colors: any, dark: boolean) {
     backgroundColor: '#FF3B30',
   },
   buttonText: {
-    color: '#E8D4E8',
+    color: colors.background,
     fontSize: 17,
     fontWeight: '600',
   },

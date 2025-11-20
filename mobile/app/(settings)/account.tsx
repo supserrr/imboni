@@ -15,11 +15,11 @@ interface SettingsRowProps {
 }
 
 const SettingsRow: React.FC<SettingsRowProps> = ({ title, value, onPress, colors, dark }) => {
-  const rowBackgroundColor = dark ? colors.card : colors.text;
-  const textColor = dark ? colors.text : colors.background;
-  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
-  const chevronColor = dark ? '#8E8E93' : 'rgba(232, 212, 232, 0.6)';
-  const valueColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
+  const rowBackgroundColor = colors.text;
+  const textColor = colors.background;
+  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
+  const chevronColor = dark ? 'rgba(92, 58, 58, 0.6)' : 'rgba(232, 212, 232, 0.6)';
+  const valueColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
   
   return (
     <TouchableOpacity 
@@ -198,7 +198,7 @@ export default function AccountSettings() {
 
         <View style={styles.section}>
           <TouchableOpacity 
-            style={[styles.deleteButton, { backgroundColor: dark ? colors.card : colors.text }]} 
+            style={[styles.deleteButton, { backgroundColor: colors.text }]} 
             onPress={handleDeleteAccount}
           >
             <Text style={styles.deleteText}>Delete account</Text>
@@ -206,9 +206,9 @@ export default function AccountSettings() {
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={[styles.infoText, { color: dark ? '#666' : '#8B6B6B' }]}>User ID: {user?.id}</Text>
-          <Text style={[styles.infoText, { color: dark ? '#666' : '#8B6B6B' }]}>Account Type: {userData?.type || 'blind'}</Text>
-          <Text style={[styles.infoText, { color: dark ? '#666' : '#8B6B6B' }]}>
+          <Text style={[styles.infoText, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>User ID: {user?.id}</Text>
+          <Text style={[styles.infoText, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>Account Type: {userData?.type || 'blind'}</Text>
+          <Text style={[styles.infoText, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>
             Created: {new Date(user?.created_at || '').toLocaleDateString()}
           </Text>
         </View>

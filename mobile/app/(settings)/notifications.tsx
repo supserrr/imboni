@@ -90,14 +90,14 @@ export default function NotificationSettings() {
     // Save to database or local storage
   };
 
-  const rowBackgroundColor = dark ? colors.card : colors.text;
-  const textColor = dark ? colors.text : colors.background;
-  const subtitleColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
-  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
-  const switchTrackColorFalse = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.5)';
-  const switchTrackColorTrue = dark ? colors.primary : colors.background;
-  const switchThumbColorOff = dark ? '#f4f3f4' : colors.background;
-  const switchThumbColorOn = dark ? '#fff' : colors.text;
+  const rowBackgroundColor = colors.text;
+  const textColor = colors.background;
+  const subtitleColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
+  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
+  // Toggle colors: OFF state uses black, ON state uses background color
+  const switchTrackColorFalse = '#000000'; // Black for OFF state
+  const switchTrackColorTrue = colors.background; // Background color for active state
+  const switchThumbColor = '#FFFFFF'; // Always white for maximum contrast
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -120,7 +120,8 @@ export default function NotificationSettings() {
               value={notificationsEnabled}
               onValueChange={handleToggleNotifications}
               trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-              thumbColor={notificationsEnabled ? switchThumbColorOn : switchThumbColorOff}
+              thumbColor={switchThumbColor}
+              ios_backgroundColor={switchTrackColorFalse}
             />
           </View>
         </View>
@@ -142,7 +143,8 @@ export default function NotificationSettings() {
                     value={helpRequests}
                     onValueChange={handleToggleHelpRequests}
                     trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-                    thumbColor={helpRequests ? switchThumbColorOn : switchThumbColorOff}
+                    thumbColor={switchThumbColor}
+                    ios_backgroundColor={switchTrackColorFalse}
                   />
                 </View>
               )}
@@ -160,7 +162,8 @@ export default function NotificationSettings() {
                   value={sessionUpdates}
                   onValueChange={handleToggleSessionUpdates}
                   trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-                  thumbColor={sessionUpdates ? switchThumbColorOn : switchThumbColorOff}
+                  thumbColor={switchThumbColor}
+                  ios_backgroundColor={switchTrackColorFalse}
                 />
               </View>
 
@@ -175,7 +178,8 @@ export default function NotificationSettings() {
                     value={aiAlerts}
                     onValueChange={handleToggleAiAlerts}
                     trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-                    thumbColor={aiAlerts ? switchThumbColorOn : switchThumbColorOff}
+                    thumbColor={switchThumbColor}
+                    ios_backgroundColor={switchTrackColorFalse}
                   />
                 </View>
               )}
@@ -194,7 +198,8 @@ export default function NotificationSettings() {
                   value={soundEnabled}
                   onValueChange={handleToggleSound}
                   trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-                  thumbColor={soundEnabled ? switchThumbColorOn : switchThumbColorOff}
+                  thumbColor={switchThumbColor}
+                  ios_backgroundColor={switchTrackColorFalse}
                 />
               </View>
 
@@ -207,7 +212,8 @@ export default function NotificationSettings() {
                   value={vibrationEnabled}
                   onValueChange={handleToggleVibration}
                   trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-                  thumbColor={vibrationEnabled ? switchThumbColorOn : switchThumbColorOff}
+                  thumbColor={switchThumbColor}
+                  ios_backgroundColor={switchTrackColorFalse}
                 />
               </View>
             </View>

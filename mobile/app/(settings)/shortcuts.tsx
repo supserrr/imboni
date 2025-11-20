@@ -12,14 +12,14 @@ export default function ShortcutsSettings() {
   const [shakeToActivate, setShakeToActivate] = useState(false);
   const [voiceCommands, setVoiceCommands] = useState(true);
 
-  const rowBackgroundColor = dark ? colors.card : colors.text;
-  const textColor = dark ? colors.text : colors.background;
-  const subtitleColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
-  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
-  const switchTrackColorFalse = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.5)';
-  const switchTrackColorTrue = dark ? colors.primary : colors.background;
-  const switchThumbColorOff = dark ? '#f4f3f4' : colors.background;
-  const switchThumbColorOn = dark ? '#fff' : colors.text;
+  const rowBackgroundColor = colors.text;
+  const textColor = colors.background;
+  const subtitleColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
+  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
+  // Toggle colors: OFF state uses black, ON state uses background color
+  const switchTrackColorFalse = '#000000'; // Black for OFF state
+  const switchTrackColorTrue = colors.background; // Background color for active state
+  const switchThumbColor = '#FFFFFF'; // Always white for maximum contrast
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -55,7 +55,8 @@ export default function ShortcutsSettings() {
               value={tripleClickHome}
               onValueChange={setTripleClickHome}
               trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-              thumbColor={tripleClickHome ? switchThumbColorOn : switchThumbColorOff}
+              thumbColor={switchThumbColor}
+              ios_backgroundColor={switchTrackColorFalse}
             />
           </View>
 
@@ -68,7 +69,8 @@ export default function ShortcutsSettings() {
               value={volumeButtonsControl}
               onValueChange={setVolumeButtonsControl}
               trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-              thumbColor={volumeButtonsControl ? switchThumbColorOn : switchThumbColorOff}
+              thumbColor={switchThumbColor}
+              ios_backgroundColor={switchTrackColorFalse}
             />
           </View>
 
@@ -81,7 +83,8 @@ export default function ShortcutsSettings() {
               value={shakeToActivate}
               onValueChange={setShakeToActivate}
               trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-              thumbColor={shakeToActivate ? switchThumbColorOn : switchThumbColorOff}
+              thumbColor={switchThumbColor}
+              ios_backgroundColor={switchTrackColorFalse}
             />
           </View>
 
@@ -94,7 +97,8 @@ export default function ShortcutsSettings() {
               value={voiceCommands}
               onValueChange={setVoiceCommands}
               trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-              thumbColor={voiceCommands ? switchThumbColorOn : switchThumbColorOff}
+              thumbColor={switchThumbColor}
+              ios_backgroundColor={switchTrackColorFalse}
             />
           </View>
         </View>
@@ -104,19 +108,19 @@ export default function ShortcutsSettings() {
         </View>
         <View style={styles.commandsSection}>
           <View style={[styles.commandRow, { backgroundColor: rowBackgroundColor }]}>
-            <Text style={[styles.commandText, { color: dark ? colors.primary : colors.background }]}>"Hey Imboni, start"</Text>
+            <Text style={[styles.commandText, { color: textColor }]}>"Hey Imboni, start"</Text>
             <Text style={[styles.commandDescription, { color: subtitleColor }]}>Start AI vision</Text>
           </View>
           <View style={[styles.commandRow, { backgroundColor: rowBackgroundColor }]}>
-            <Text style={[styles.commandText, { color: dark ? colors.primary : colors.background }]}>"Hey Imboni, stop"</Text>
+            <Text style={[styles.commandText, { color: textColor }]}>"Hey Imboni, stop"</Text>
             <Text style={[styles.commandDescription, { color: subtitleColor }]}>Stop AI vision</Text>
           </View>
           <View style={[styles.commandRow, { backgroundColor: rowBackgroundColor }]}>
-            <Text style={[styles.commandText, { color: dark ? colors.primary : colors.background }]}>"Hey Imboni, help"</Text>
+            <Text style={[styles.commandText, { color: textColor }]}>"Hey Imboni, help"</Text>
             <Text style={[styles.commandDescription, { color: subtitleColor }]}>Request human helper</Text>
           </View>
           <View style={[styles.commandRow, { backgroundColor: rowBackgroundColor }]}>
-            <Text style={[styles.commandText, { color: dark ? colors.primary : colors.background }]}>"What do you see?"</Text>
+            <Text style={[styles.commandText, { color: textColor }]}>"What do you see?"</Text>
             <Text style={[styles.commandDescription, { color: subtitleColor }]}>Describe surroundings</Text>
           </View>
         </View>

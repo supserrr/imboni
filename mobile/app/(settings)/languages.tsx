@@ -32,11 +32,11 @@ interface LanguageRowProps {
 }
 
 const LanguageRow: React.FC<LanguageRowProps> = ({ language, isSelected, onPress, colors, dark }) => {
-  const rowBackgroundColor = dark ? colors.card : colors.text;
-  const textColor = dark ? colors.text : colors.background;
-  const subtitleColor = dark ? '#999' : 'rgba(232, 212, 232, 0.7)';
-  const borderColor = dark ? '#3A3A3C' : 'rgba(232, 212, 232, 0.2)';
-  const checkmarkColor = dark ? colors.primary : colors.background;
+  const rowBackgroundColor = colors.text;
+  const textColor = colors.background;
+  const subtitleColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
+  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
+  const checkmarkColor = colors.background;
   
   return (
   <TouchableOpacity
@@ -97,7 +97,7 @@ export default function LanguageSettings() {
       <ScrollView style={styles.content}>
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>App Language</Text>
-          <Text style={[styles.sectionDescription, { color: dark ? '#999' : '#8B6B6B' }]}>Choose the language for the app interface</Text>
+          <Text style={[styles.sectionDescription, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>Choose the language for the app interface</Text>
         </View>
         <View style={styles.section}>
           {LANGUAGES.map((lang) => (
@@ -114,7 +114,7 @@ export default function LanguageSettings() {
 
         <View style={styles.sectionHeader}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Voice Language</Text>
-          <Text style={[styles.sectionDescription, { color: dark ? '#999' : '#8B6B6B' }]}>
+          <Text style={[styles.sectionDescription, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>
             Choose the language for AI voice responses
           </Text>
         </View>
