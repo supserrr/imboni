@@ -2,6 +2,8 @@ import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { RTCView } from 'react-native-webrtc';
 import { useCallSession } from '@/hooks/use-call-session';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface CallInterfaceProps {
   sessionId: string;
@@ -11,6 +13,9 @@ interface CallInterfaceProps {
 
 export default function CallInterface({ sessionId, onEndCall, helpRequestId }: CallInterfaceProps) {
   const { localStream, remoteStream, isCallActive, endCall, startCall } = useCallSession(sessionId, helpRequestId);
+  const backgroundColor = useThemeColor({}, 'background');
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#141414' : '#bf6f4a';
 
   const handleEnd = () => {
       endCall();
@@ -43,8 +48,8 @@ export default function CallInterface({ sessionId, onEndCall, helpRequestId }: C
       {/* In a real app, blind user might not need to see volunteer, but audio is key */}
       
       <View style={styles.controls}>
-        <TouchableOpacity style={styles.endButton} onPress={handleEnd}>
-             <IconSymbol name="phone.down.fill" size={40} color="white" />
+        <TouchableOpacity style={[styles.endButton, { backgroundColor }]} onPress={handleEnd}>
+             <IconSymbol name="phone.down.fill" size={40} color={iconColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -54,7 +59,7 @@ export default function CallInterface({ sessionId, onEndCall, helpRequestId }: C
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: '#141414',
   },
   fullScreenVideo: {
       width: '100%',
@@ -67,7 +72,6 @@ const styles = StyleSheet.create({
       alignItems: 'center',
   },
   endButton: {
-      backgroundColor: '#FF3B30',
       width: 80,
       height: 80,
       borderRadius: 40,

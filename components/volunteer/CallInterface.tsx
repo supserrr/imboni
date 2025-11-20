@@ -4,6 +4,8 @@ import { useCallSession } from '@/hooks/use-call-session';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useEffect, useState } from 'react';
 import * as Haptics from 'expo-haptics';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface CallInterfaceProps {
   sessionId: string;
@@ -14,6 +16,10 @@ interface CallInterfaceProps {
 export default function CallInterface({ sessionId, onEndCall, helpRequestId }: CallInterfaceProps) {
   const { localStream, remoteStream, isCallActive, endCall, startCall } = useCallSession(sessionId, helpRequestId);
   const [flashlightEnabled, setFlashlightEnabled] = useState(false);
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#bf6f4a' : '#141414';
 
   // Volunteer starts the call flow (sends offer)
   useEffect(() => {
@@ -79,7 +85,7 @@ export default function CallInterface({ sessionId, onEndCall, helpRequestId }: C
           />
       ) : (
           <View style={styles.waiting}>
-              <Text style={styles.waitingText}>Connecting to user's camera...</Text>
+              <Text style={[styles.waitingText, { color: textColor }]}>Connecting to user's camera...</Text>
           </View>
       )}
       
@@ -89,7 +95,7 @@ export default function CallInterface({ sessionId, onEndCall, helpRequestId }: C
           onPress={handleSnapshot}
           accessibilityLabel="Take snapshot"
         >
-          <IconSymbol name="camera.fill" size={24} color="white" />
+          <IconSymbol name="camera.fill" size={24} color={iconColor} />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -100,7 +106,7 @@ export default function CallInterface({ sessionId, onEndCall, helpRequestId }: C
           <IconSymbol 
             name={flashlightEnabled ? "flashlight.on.fill" : "flashlight.off.fill"} 
             size={24} 
-            color="white" 
+            color={iconColor} 
           />
         </TouchableOpacity>
         
@@ -109,7 +115,7 @@ export default function CallInterface({ sessionId, onEndCall, helpRequestId }: C
           onPress={handleEnd}
           accessibilityLabel="End call"
         >
-          <IconSymbol name="phone.down.fill" size={24} color="white" />
+          <IconSymbol name="phone.down.fill" size={24} color={iconColor} />
         </TouchableOpacity>
       </View>
     </View>
@@ -119,7 +125,7 @@ export default function CallInterface({ sessionId, onEndCall, helpRequestId }: C
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'black',
+    backgroundColor: '#141414',
   },
   fullScreenVideo: {
       width: '100%',
@@ -131,7 +137,6 @@ const styles = StyleSheet.create({
       alignItems: 'center',
   },
   waitingText: {
-      color: 'white',
       fontSize: 18,
   },
   controls: {
@@ -157,16 +162,16 @@ const styles = StyleSheet.create({
       elevation: 5,
   },
   snapshotButton: {
-      backgroundColor: '#007AFF',
+      backgroundColor: '#bf6f4a',
   },
   flashlightButton: {
-      backgroundColor: '#8E8E93',
+      backgroundColor: '#141414',
   },
   flashlightActive: {
-      backgroundColor: '#FFD60A',
+      backgroundColor: '#bf6f4a',
   },
   endButton: {
-      backgroundColor: '#FF3B30',
+      backgroundColor: '#bf6f4a',
       width: 70,
       height: 70,
       borderRadius: 35,

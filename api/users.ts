@@ -12,3 +12,23 @@ export const updateUserStatus = async (userId: string, availability: boolean) =>
   return data;
 };
 
+export interface VoicePreferences {
+  preferred_language: string;
+  preferred_speaker: string;
+  preferred_speed: number;
+}
+
+export const updateVoicePreferences = async (
+  userId: string,
+  preferences: VoicePreferences
+) => {
+  const { data, error } = await supabase
+    .from('users')
+    .update(preferences)
+    .eq('id', userId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+

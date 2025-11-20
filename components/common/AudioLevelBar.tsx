@@ -52,7 +52,7 @@ export default function AudioLevelBar({
             styles.bar,
             {
               height: height * level,
-              backgroundColor: level > 0.5 ? '#34C759' : '#8E8E93',
+              backgroundColor: level > 0.5 ? '#bf6f4a' : '#141414',
             },
           ]}
         />

@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import { View, TextInput, StyleSheet, Alert, TouchableOpacity, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { signIn } from '@/lib/auth';
 import { Link, router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const colorScheme = useColorScheme();
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const borderColor = useThemeColor({}, 'border');
 
   const handleLogin = async () => {
     setLoading(true);
@@ -25,35 +32,36 @@ export default function Login() {
   };
 
   return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.title}>Welcome Back</ThemedText>
       
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor, color: textColor, borderColor }]}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
-        placeholderTextColor="#888"
+        placeholderTextColor={colorScheme === 'dark' ? '#bf6f4a' : '#141414'}
       />
       
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor, color: textColor, borderColor }]}
         placeholder="Password"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        placeholderTextColor="#888"
+        placeholderTextColor={colorScheme === 'dark' ? '#bf6f4a' : '#141414'}
       />
 
       <TouchableOpacity 
-        style={styles.button} 
+        style={[styles.button, { backgroundColor }]} 
         onPress={handleLogin} 
         disabled={loading}
         accessibilityRole="button"
         accessibilityLabel="Sign In"
       >
-        <Text style={styles.buttonText}>{loading ? 'Signing in...' : 'Sign In'}</Text>
+        <Text style={[styles.buttonText, { color: textColor }]}>{loading ? 'Signing in...' : 'Sign In'}</Text>
       </TouchableOpacity>
 
       <Link href="/register" asChild>
@@ -62,6 +70,7 @@ export default function Login() {
         </TouchableOpacity>
       </Link>
     </ThemedView>
+    </SafeAreaView>
   );
 }
 
@@ -78,16 +87,13 @@ const styles = StyleSheet.create({
   input: {
     height: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
     borderRadius: 8,
     paddingHorizontal: 15,
     marginBottom: 15,
     fontSize: 16,
-    backgroundColor: '#fff', // Ensure visibility in dark mode if not themed
-    color: '#000'
+    fontFamily: 'Ubuntu_400Regular',
   },
   button: {
-    backgroundColor: '#007AFF',
     height: 50,
     borderRadius: 8,
     justifyContent: 'center',
@@ -95,9 +101,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonText: {
-    color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Ubuntu_700Bold',
   },
   linkButton: {
     marginTop: 20,

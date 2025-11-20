@@ -2,6 +2,8 @@ import { TouchableOpacity, StyleSheet, View, ActivityIndicator } from 'react-nat
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import * as Haptics from 'expo-haptics';
 import { useEffect } from 'react';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface AIButtonProps {
   onPress: () => void;
@@ -20,6 +22,11 @@ export default function AIButton({
   disabled = false,
   size = 80 
 }: AIButtonProps) {
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#bf6f4a' : '#141414';
+  
   const handlePress = async () => {
     if (disabled || isProcessing) return;
 
@@ -34,7 +41,7 @@ export default function AIButton({
     <TouchableOpacity
       style={[
         styles.button,
-        { width: size, height: size, borderRadius: size / 2 },
+        { width: size, height: size, borderRadius: size / 2, backgroundColor },
         (disabled || isProcessing) && styles.disabled,
       ]}
       onPress={handlePress}
@@ -44,10 +51,10 @@ export default function AIButton({
       accessibilityState={{ disabled: disabled || isProcessing }}
     >
       {isProcessing ? (
-        <ActivityIndicator color="white" size="large" />
+        <ActivityIndicator color={iconColor} size="large" />
       ) : (
         <View style={styles.iconContainer}>
-          <IconSymbol name="sparkles" size={size * 0.4} color="white" />
+          <IconSymbol name="sparkles" size={size * 0.4} color={iconColor} />
         </View>
       )}
     </TouchableOpacity>
@@ -56,10 +63,9 @@ export default function AIButton({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#141414',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

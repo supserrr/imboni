@@ -296,7 +296,7 @@ class ImboniAI:
         
         if not MELOTTS_AVAILABLE or self.tts_model is None:
             # Return mock audio bytes if MeloTTS not available
-            return b"RIFF....WAVEfmt ...." 
+        return b"RIFF....WAVEfmt ...." 
 
         try:
             # Get speaker ID

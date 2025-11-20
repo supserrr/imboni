@@ -108,10 +108,11 @@ export function useVideoSession(options: VideoSessionOptions = {}) {
 
   /**
    * Start automatic frame capture at the specified interval.
+   * Returns cleanup function or undefined.
    */
-  const startAutoCapture = useCallback(() => {
+  const startAutoCapture = useCallback((): (() => void) | undefined => {
     if (!permission?.granted || !isActive) {
-      return;
+      return undefined;
     }
 
     const captureFrame = async () => {

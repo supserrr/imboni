@@ -2,6 +2,7 @@ import { View, StyleSheet, Text } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export type AIState = 'idle' | 'listening' | 'processing' | 'speaking' | 'low_confidence';
 
@@ -14,37 +15,40 @@ interface StateIndicatorProps {
  * Provides feedback for listening, processing, speaking, and low confidence states.
  */
 export default function StateIndicator({ state }: StateIndicatorProps) {
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#141414' : '#bf6f4a';
+  
   const getStateConfig = () => {
     switch (state) {
       case 'listening':
         return {
           icon: 'waveform',
           label: 'Listening',
-          color: '#007AFF',
+          color: '#bf6f4a',
         };
       case 'processing':
         return {
           icon: 'gearshape.fill',
           label: 'Processing',
-          color: '#FF9500',
+          color: '#bf6f4a',
         };
       case 'speaking':
         return {
           icon: 'speaker.wave.2.fill',
           label: 'Speaking',
-          color: '#34C759',
+          color: '#bf6f4a',
         };
       case 'low_confidence':
         return {
           icon: 'exclamationmark.triangle.fill',
           label: 'Low Confidence',
-          color: '#FF3B30',
+          color: '#bf6f4a',
         };
       default:
         return {
           icon: 'circle.fill',
           label: 'Ready',
-          color: '#8E8E93',
+          color: '#141414',
         };
     }
   };
@@ -54,7 +58,7 @@ export default function StateIndicator({ state }: StateIndicatorProps) {
   return (
     <ThemedView style={styles.container}>
       <View style={[styles.indicator, { backgroundColor: config.color }]}>
-        <IconSymbol name={config.icon as any} size={20} color="white" />
+        <IconSymbol name={config.icon as any} size={20} color={iconColor} />
       </View>
       <ThemedText style={styles.label}>{config.label}</ThemedText>
     </ThemedView>
@@ -68,7 +72,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(20, 20, 20, 0.3)',
   },
   indicator: {
     width: 32,
@@ -80,7 +84,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'Ubuntu_500Medium',
   },
 });
 

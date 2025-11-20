@@ -1,10 +1,15 @@
 import { StyleSheet, TouchableOpacity, View, Text } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { useThemeColor } from '@/hooks/use-theme-color';
 import { signOut } from '@/lib/auth';
 import { router } from 'expo-router';
 
 export default function Settings() {
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const cardBackground = useThemeColor({}, 'cardBackground');
+  
   const handleSignOut = async () => {
     await signOut();
   };
@@ -15,16 +20,16 @@ export default function Settings() {
       
       <View style={styles.section}>
         <ThemedText type="subtitle">Availability</ThemedText>
-        <View style={styles.availabilityRow}>
+        <View style={[styles.availabilityRow, { backgroundColor: cardBackground }]}>
             <ThemedText>Available for calls</ThemedText>
             {/* Toggle switch would go here */}
-            <ThemedText style={{color: 'green', fontWeight: 'bold'}}>ON</ThemedText>
+            <ThemedText style={{color: textColor, fontFamily: 'Ubuntu_700Bold'}}>ON</ThemedText>
         </View>
       </View>
 
       <View style={styles.section}>
-        <TouchableOpacity style={styles.button} onPress={handleSignOut}>
-          <Text style={styles.buttonText}>Sign Out</Text>
+        <TouchableOpacity style={[styles.button, { backgroundColor }]} onPress={handleSignOut}>
+          <Text style={[styles.buttonText, { color: textColor }]}>Sign Out</Text>
         </TouchableOpacity>
       </View>
     </ThemedView>
@@ -46,20 +51,17 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       marginTop: 15,
       padding: 15,
-      backgroundColor: 'rgba(0,0,0,0.05)',
       borderRadius: 8,
   },
   button: {
-    backgroundColor: '#FF3B30',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 20,
   },
   buttonText: {
-    color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontFamily: 'Ubuntu_700Bold',
   },
 });
 

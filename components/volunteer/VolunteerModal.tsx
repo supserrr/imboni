@@ -1,4 +1,5 @@
 import { Modal, View, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface VolunteerModalProps {
   visible: boolean;
@@ -7,6 +8,9 @@ interface VolunteerModalProps {
 }
 
 export default function VolunteerModal({ visible, onAccept, onDecline }: VolunteerModalProps) {
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  
   return (
     <Modal
       animationType="slide"
@@ -15,22 +19,22 @@ export default function VolunteerModal({ visible, onAccept, onDecline }: Volunte
       onRequestClose={onDecline}
     >
       <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.title}>Incoming Request!</Text>
-          <Text style={styles.message}>A user needs your visual assistance.</Text>
+        <View style={[styles.modalView, { backgroundColor }]}>
+          <Text style={[styles.title, { color: textColor }]}>Incoming Request!</Text>
+          <Text style={[styles.message, { color: textColor }]}>A user needs your visual assistance.</Text>
           
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, styles.buttonDecline]}
+              style={[styles.button, { backgroundColor }]}
               onPress={onDecline}
             >
-              <Text style={styles.textStyle}>Decline</Text>
+              <Text style={[styles.textStyle, { color: textColor }]}>Decline</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.buttonAccept]}
+              style={[styles.button, { backgroundColor }]}
               onPress={onAccept}
             >
-              <Text style={styles.textStyle}>Accept</Text>
+              <Text style={[styles.textStyle, { color: textColor }]}>Accept</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -45,11 +49,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 22,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(20, 20, 20, 0.5)',
   },
   modalView: {
     margin: 20,
-    backgroundColor: 'white',
     borderRadius: 20,
     padding: 35,
     alignItems: 'center',
@@ -65,13 +68,14 @@ const styles = StyleSheet.create({
   },
   title: {
       fontSize: 24,
-      fontWeight: 'bold',
+      fontFamily: 'Ubuntu_700Bold',
       marginBottom: 10,
   },
   message: {
       marginBottom: 20,
       textAlign: 'center',
       fontSize: 16,
+      fontFamily: 'Ubuntu_400Regular',
   },
   buttonContainer: {
       flexDirection: 'row',
@@ -86,15 +90,8 @@ const styles = StyleSheet.create({
     minWidth: 100,
     alignItems: 'center',
   },
-  buttonAccept: {
-    backgroundColor: '#34C759',
-  },
-  buttonDecline: {
-    backgroundColor: '#FF3B30',
-  },
   textStyle: {
-    color: 'white',
-    fontWeight: 'bold',
+    fontFamily: 'Ubuntu_700Bold',
     textAlign: 'center',
     fontSize: 16,
   },

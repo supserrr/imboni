@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, Switch, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useHelpRequest } from '@/hooks/use-help-request';
@@ -81,38 +82,39 @@ export default function VolunteerHome() {
   }
 
   return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
     <ThemedView style={styles.container}>
       <ThemedText type="title" style={styles.header}>Dashboard</ThemedText>
       
       <ScrollView contentContainerStyle={styles.content}>
           <ThemedView style={styles.card}>
-              <View style={styles.statusRow}>
-                  <View style={styles.statusInfo}>
-                      <IconSymbol 
-                          name={isOnline ? "circle.fill" : "circle"} 
-                          size={16} 
-                          color={isOnline ? "#34C759" : "#8E8E93"} 
-                      />
-                      <ThemedText type="subtitle" style={styles.statusText}>
-                          Status: {isOnline ? 'Online' : 'Offline'}
-                      </ThemedText>
-                  </View>
-                  <Switch
-                      value={isOnline}
-                      onValueChange={handleToggleAvailability}
-                      disabled={isUpdating}
-                      trackColor={{ false: '#8E8E93', true: '#34C759' }}
-                      thumbColor="#FFFFFF"
-                  />
-              </View>
-              
-              {isOnline ? (
-                  <ThemedText style={styles.waitingText}>Waiting for help requests...</ThemedText>
-              ) : (
-                  <ThemedText style={styles.offlineText}>
-                      Turn on availability to receive help requests
-                  </ThemedText>
-              )}
+                <View style={styles.statusRow}>
+                    <View style={styles.statusInfo}>
+                        <IconSymbol 
+                            name={isOnline ? "circle.fill" : "circle"} 
+                            size={16} 
+                            color={isOnline ? "#bf6f4a" : "#141414"} 
+                        />
+                        <ThemedText type="subtitle" style={styles.statusText}>
+                            Status: {isOnline ? 'Online' : 'Offline'}
+                        </ThemedText>
+                    </View>
+                    <Switch
+                        value={isOnline}
+                        onValueChange={handleToggleAvailability}
+                        disabled={isUpdating}
+                        trackColor={{ false: '#141414', true: '#bf6f4a' }}
+                        thumbColor="#FFFFFF"
+                    />
+                </View>
+                
+                {isOnline ? (
+                    <ThemedText style={styles.waitingText}>Waiting for help requests...</ThemedText>
+                ) : (
+                    <ThemedText style={styles.offlineText}>
+                        Turn on availability to receive help requests
+                    </ThemedText>
+                )}
           </ThemedView>
           
           {/* Additional statistics or history could go here */}
@@ -124,13 +126,13 @@ export default function VolunteerHome() {
         onDecline={handleDecline} 
       />
     </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
   },
   header: {
       paddingHorizontal: 20,

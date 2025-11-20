@@ -1,5 +1,7 @@
 import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useThemeColor } from '@/hooks/use-theme-color';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface AccessibleButtonProps extends TouchableOpacityProps {
   label: string;
@@ -8,21 +10,30 @@ interface AccessibleButtonProps extends TouchableOpacityProps {
 }
 
 export default function AccessibleButton({ label, onPress, variant = 'primary', style, ...props }: AccessibleButtonProps) {
+  const backgroundColor = useThemeColor({}, 'background');
+  const textColor = useThemeColor({}, 'text');
+  const borderColor = useThemeColor({}, 'border');
+  const colorScheme = useColorScheme();
+  
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onPress();
   };
 
+  const buttonStyle = variant === 'secondary' 
+    ? { backgroundColor: 'transparent', borderColor, borderWidth: 2 }
+    : { backgroundColor };
+
   return (
     <TouchableOpacity
-      style={[styles.button, styles[variant], style]}
+      style={[styles.button, buttonStyle, style]}
       onPress={handlePress}
       accessibilityRole="button"
       accessibilityLabel={label}
       activeOpacity={0.8}
       {...props}
     >
-      <Text style={[styles.text, variant === 'secondary' && styles.textSecondary]}>{label}</Text>
+      <Text style={[styles.text, { color: textColor }, variant === 'secondary' && { color: textColor }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -36,24 +47,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 56, // Accessible target size
   },
-  primary: {
-    backgroundColor: '#007AFF',
-  },
-  secondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
-  danger: {
-    backgroundColor: '#FF3B30',
-  },
   text: {
-    color: 'white',
     fontSize: 18,
-    fontWeight: 'bold',
-  },
-  textSecondary: {
-    color: '#007AFF',
+    fontFamily: 'Ubuntu_700Bold',
   },
 });
 

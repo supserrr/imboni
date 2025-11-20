@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import CameraView from '@/components/blind/CameraView';
 import HelpRequestModal from '@/components/blind/HelpRequestModal';
 import CallInterface from '@/components/blind/CallInterface';
@@ -21,6 +22,7 @@ import type { AIState } from '@/components/common/StateIndicator';
  * - Help request flow
  */
 export default function LiveScreen() {
+  const insets = useSafeAreaInsets();
   const { speak, stop, isSpeaking } = useTTS();
   const { createRequest, activeRequest } = useHelpRequest();
   
@@ -72,18 +74,18 @@ export default function LiveScreen() {
   useEffect(() => {
     if (videoSession.permission?.granted && !inCall) {
       const cleanup = videoSession.startAutoCapture();
-      return cleanup;
+      return cleanup || undefined;
     }
   }, [videoSession.permission?.granted, videoSession.startAutoCapture, inCall]);
 
   // Handle call transition
   useEffect(() => {
-    if (activeRequest && activeRequest.status === 'accepted' && activeRequest.assigned_volunteer) {
-      speak("A volunteer has accepted your request. Connecting now.");
-      setInCall(true);
+      if (activeRequest && activeRequest.status === 'accepted' && activeRequest.assigned_volunteer) {
+          speak("A volunteer has accepted your request. Connecting now.");
+          setInCall(true);
       setAIState('idle');
       videoSession.deactivate();
-    }
+      }
   }, [activeRequest, speak, videoSession]);
 
   // Update AI state based on processing/speaking
@@ -112,15 +114,15 @@ export default function LiveScreen() {
 
   // Help request handlers
   const handleRequestHelp = useCallback(async () => {
-    setShowHelpModal(false);
+      setShowHelpModal(false);
     setAIState('processing');
     await speak("Searching for a volunteer...");
-    try {
-      await createRequest();
-    } catch (e) {
+      try {
+          await createRequest();
+      } catch (e) {
       setAIState('listening');
       await speak("Error creating request.");
-    }
+      }
   }, [speak, createRequest]);
 
   const handleCancelHelp = useCallback(() => {
@@ -130,10 +132,10 @@ export default function LiveScreen() {
 
   // Call handlers
   const handleEndCall = useCallback(() => {
-    setInCall(false);
+      setInCall(false);
     setAIState('listening');
     videoSession.activate();
-    speak("Call ended.");
+      speak("Call ended.");
   }, [speak, videoSession]);
 
   // Render call interface if in call
@@ -149,7 +151,7 @@ export default function LiveScreen() {
 
   // Main UI
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={[]}>
       <CameraView
         cameraRef={videoSession.cameraRef}
         facing={videoSession.facing}
@@ -161,11 +163,11 @@ export default function LiveScreen() {
       />
       
       <View style={styles.overlay}>
-        <View style={styles.topBar}>
+        <View style={[styles.topBar, { top: insets.top + 20 }]}>
           <StateIndicator state={aiState} />
         </View>
         
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { bottom: insets.bottom + 20 }]}>
           <AIButton
             onPress={handleManualAnalysis}
             isProcessing={analysisSession.isProcessing}
@@ -174,12 +176,12 @@ export default function LiveScreen() {
         </View>
       </View>
       
-      <HelpRequestModal
-        visible={showHelpModal}
-        onYes={handleRequestHelp}
+      <HelpRequestModal 
+        visible={showHelpModal} 
+        onYes={handleRequestHelp} 
         onNo={handleCancelHelp}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -197,14 +199,12 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: 'absolute',
-    top: 60,
     left: 20,
     right: 20,
     alignItems: 'flex-start',
   },
   bottomBar: {
     position: 'absolute',
-    bottom: 50,
     left: 0,
     right: 0,
     alignItems: 'center',

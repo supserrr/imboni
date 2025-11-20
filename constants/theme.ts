@@ -5,25 +5,34 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// App color palette: #bf6f4a (warm orange) and #141414 (dark)
+// Light mode: #141414 text on #bf6f4a background
+// Dark mode: #bf6f4a text on #141414 background
+export const PRIMARY_COLOR = '#bf6f4a';
+export const DARK_COLOR = '#141414';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: DARK_COLOR,
+    background: PRIMARY_COLOR,
+    tint: DARK_COLOR,
+    icon: DARK_COLOR,
+    tabIconDefault: DARK_COLOR,
+    tabIconSelected: DARK_COLOR,
+    cardBackground: PRIMARY_COLOR,
+    border: DARK_COLOR,
+    secondaryText: DARK_COLOR,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: PRIMARY_COLOR,
+    background: DARK_COLOR,
+    tint: PRIMARY_COLOR,
+    icon: PRIMARY_COLOR,
+    tabIconDefault: PRIMARY_COLOR,
+    tabIconSelected: PRIMARY_COLOR,
+    cardBackground: DARK_COLOR,
+    border: PRIMARY_COLOR,
+    secondaryText: PRIMARY_COLOR,
   },
 };
 
