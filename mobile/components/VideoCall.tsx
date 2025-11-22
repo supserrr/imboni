@@ -22,9 +22,10 @@ interface Props {
   token: string | null;
   onEndCall: () => void;
   isVolunteer: boolean;
+  hideControls?: boolean; // Hide controls when embedded in ActiveCallScreen
 }
 
-export default function VideoCall({ channelName, uid, token, onEndCall, isVolunteer }: Props) {
+export default function VideoCall({ channelName, uid, token, onEndCall, isVolunteer, hideControls = false }: Props) {
   const engine = useRef<IRtcEngine>(null);
   const [joined, setJoined] = useState(false);
   const [remoteUid, setRemoteUid] = useState<number>(0);
@@ -127,39 +128,41 @@ export default function VideoCall({ channelName, uid, token, onEndCall, isVolunt
         />
       )}
 
-      <View style={styles.controls}>
-        <TouchableOpacity 
-          style={[styles.controlButton, !isVideoEnabled && styles.disabledButton]} 
-          onPress={toggleVideo}
-          accessibilityLabel={isVideoEnabled ? "Turn Camera Off" : "Turn Camera On"}
-        >
-          <Ionicons name={isVideoEnabled ? "videocam" : "videocam-off"} size={30} color="white" />
-        </TouchableOpacity>
+      {!hideControls && (
+        <View style={styles.controls}>
+          <TouchableOpacity 
+            style={[styles.controlButton, !isVideoEnabled && styles.disabledButton]} 
+            onPress={toggleVideo}
+            accessibilityLabel={isVideoEnabled ? "Turn Camera Off" : "Turn Camera On"}
+          >
+            <Ionicons name={isVideoEnabled ? "videocam" : "videocam-off"} size={30} color="white" />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.controlButton, isMuted && styles.disabledButton]} 
-          onPress={toggleMute}
-          accessibilityLabel={isMuted ? "Unmute" : "Mute"}
-        >
-          <Ionicons name={isMuted ? "mic-off" : "mic"} size={30} color="white" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.controlButton, styles.endButton]} 
-          onPress={onEndCall}
-          accessibilityLabel="End Call"
-        >
-          <Ionicons name="call" size={30} color="white" />
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.controlButton, isMuted && styles.disabledButton]} 
+            onPress={toggleMute}
+            accessibilityLabel={isMuted ? "Unmute" : "Mute"}
+          >
+            <Ionicons name={isMuted ? "mic-off" : "mic"} size={30} color="white" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.controlButton, styles.endButton]} 
+            onPress={onEndCall}
+            accessibilityLabel="End Call"
+          >
+            <Ionicons name="call" size={30} color="white" />
+          </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.controlButton} 
-          onPress={switchCamera}
-          accessibilityLabel="Switch Camera"
-        >
-          <Ionicons name="camera-reverse" size={30} color="white" />
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity 
+            style={styles.controlButton} 
+            onPress={switchCamera}
+            accessibilityLabel="Switch Camera"
+          >
+            <Ionicons name="camera-reverse" size={30} color="white" />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 }

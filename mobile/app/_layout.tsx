@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { AuthProvider, useAuth } from '../context/AuthProvider';
+import { CallProvider } from '../context/CallContext';
 import { ThemeProvider as AppThemeProvider } from '../context/ThemeContext';
 import '../utils/i18n';
 import { useEffect, useState } from 'react';
@@ -170,7 +171,9 @@ export default function RootLayout() {
   return (
     <AppThemeProvider>
     <AuthProvider>
+    <CallProvider>
       <InitialLayout />
+    </CallProvider>
     </AuthProvider>
     </AppThemeProvider>
   );

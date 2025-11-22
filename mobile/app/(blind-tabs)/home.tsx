@@ -3,11 +3,13 @@ import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Alert } fr
 import { useTheme } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthProvider';
+import { useCall } from '../../context/CallContext';
 import { MatchingService } from '../../services/matching';
 import { NotificationService } from '../../services/notifications';
 import { HistoryService, PastVolunteer } from '../../services/history';
 import { supabase } from '../../services/supabase';
 import VideoCall from '../../components/VideoCall';
+import ActiveCallScreen from '../../components/ActiveCallScreen';
 import RatingScreen from '../../components/RatingScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native';
@@ -26,6 +28,7 @@ export default function BlindHome() {
   const { user } = useAuth();
   const { colors, dark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { setCallState } = useCall();
   const [connectionState, setConnectionState] = useState<ConnectionState>('idle');
   const [helpRequest, setHelpRequest] = useState<HelpRequest | null>(null);
   const [volunteerId, setVolunteerId] = useState<string | null>(null);
@@ -36,8 +39,11 @@ export default function BlindHome() {
   const [showHistory, setShowHistory] = useState(false);
   const [pastVolunteers, setPastVolunteers] = useState<PastVolunteer[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [callStartTime, setCallStartTime] = useState<Date | null>(null);
+  const [callDuration, setCallDuration] = useState<number>(0);
   const subscriptionRef = useRef<any>(null);
   const historyBottomSheetRef = useRef<BottomSheet>(null);
+  const connectionStateRef = useRef<ConnectionState>(connectionState);
   const historySnapPoints = useMemo(() => ['75%', '90%'], []);
 
   useEffect(() => {
@@ -51,34 +57,89 @@ export default function BlindHome() {
     };
   }, [timeoutTimer]);
 
+  // Sync connection state with CallContext and ref
+  useEffect(() => {
+    connectionStateRef.current = connectionState;
+    setCallState(connectionState);
+  }, [connectionState, setCallState]);
+
+  // Update call duration when call is active
+  useEffect(() => {
+    if (callStartTime && connectionState === 'connected') {
+      const interval = setInterval(() => {
+        const now = new Date();
+        const duration = Math.floor((now.getTime() - callStartTime.getTime()) / 1000);
+        setCallDuration(duration);
+      }, 1000);
+
+      return () => clearInterval(interval);
+    } else {
+      setCallDuration(0);
+    }
+  }, [callStartTime, connectionState]);
+
   const cancelRequest = async () => {
+    // Clear timeout timer
     if (timeoutTimer) {
       clearTimeout(timeoutTimer);
       setTimeoutTimer(null);
     }
     
+    // Unsubscribe from real-time updates
     if (subscriptionRef.current) {
       subscriptionRef.current.unsubscribe();
       subscriptionRef.current = null;
     }
 
+    // Update database if there's an active request
     if (helpRequest?.id) {
       try {
+        // Mark request as cancelled
         await supabase
           .from('help_requests')
           .update({ status: 'cancelled' })
           .eq('id', helpRequest.id);
+
+        // If there's an active session (call was connected), update it
+        if (connectionState === 'connected' && volunteerId && user?.id) {
+          const { data: sessions } = await supabase
+            .from('sessions')
+            .select('id, started_at')
+            .eq('help_request_id', helpRequest.id)
+            .eq('user_id', user.id)
+            .eq('volunteer_id', volunteerId)
+            .order('started_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (sessions) {
+            const startTime = new Date(sessions.started_at);
+            const endTime = new Date();
+            const duration = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+
+            await supabase
+              .from('sessions')
+              .update({
+                ended_at: endTime.toISOString(),
+                duration: duration,
+              })
+              .eq('id', sessions.id);
+          }
+        }
       } catch (error) {
         console.error('Error cancelling request:', error);
       }
     }
 
+    // Reset all state - this will unmount VideoCall component which will clean up Agora engine
     setConnectionState('idle');
     setHelpRequest(null);
     setVolunteerId(null);
     setAgoraToken(null);
     setChannelName('');
     setExcludedVolunteers([]);
+    setCallStartTime(null);
+    setCallDuration(0);
   };
 
   const findAndAssignVolunteer = async (requestId: string, excludedIds?: string[]) => {
@@ -206,6 +267,7 @@ export default function BlindHome() {
       setAgoraToken(data.token);
       setChannelName(data.channelName);
       setConnectionState('connected');
+      setCallStartTime(new Date());
 
       // Update request status to in_progress
       await supabase
@@ -460,6 +522,25 @@ export default function BlindHome() {
     setConnectionState('rating');
   };
 
+  /**
+   * Unified handler for ending a call or canceling a request.
+   * Checks the current connection state at execution time using a ref to avoid stale callback issues.
+   * This ensures that if the state changes while an alert dialog is open,
+   * the correct handler is called when the user confirms.
+   * 
+   * Note: This function is not memoized to ensure it always calls the latest versions
+   * of cancelRequest and handleEndCall with fresh closures.
+   */
+  const handleEndCallOrCancel = () => {
+    // Check current state at execution time using ref, not render-time closure
+    const currentState = connectionStateRef.current;
+    if (currentState === 'connecting') {
+      cancelRequest();
+    } else if (currentState === 'connected') {
+      handleEndCall();
+    }
+  };
+
   const handleRating = async (rating: number) => {
     if (helpRequest?.id && volunteerId) {
       try {
@@ -502,44 +583,28 @@ export default function BlindHome() {
 
   const styles = createStyles(colors, dark, insets);
 
-  // Show video call when connected
-  if (connectionState === 'connected' && agoraToken && channelName) {
+  // Show active call screen when connecting or connected
+  if (connectionState === 'connecting' || connectionState === 'connected') {
+    // When connected, show video call feed
+    const videoFeedComponent =
+      connectionState === 'connected' && agoraToken && channelName ? (
+        <VideoCall
+          channelName={channelName}
+          uid={user?.id ? parseInt(user.id.slice(0, 8), 16) : 0}
+          token={agoraToken}
+          onEndCall={handleEndCall}
+          isVolunteer={false}
+          hideControls={true}
+        />
+      ) : undefined;
+
     return (
-      <VideoCall
-        channelName={channelName}
-        uid={user?.id ? parseInt(user.id.slice(0, 8), 16) : 0}
-        token={agoraToken}
-        onEndCall={handleEndCall}
-        isVolunteer={false}
+      <ActiveCallScreen
+        onEndCall={handleEndCallOrCancel}
+        callDuration={callDuration}
+        showVideoFeed={connectionState === 'connected' && !!agoraToken && !!channelName}
+        videoFeedComponent={videoFeedComponent}
       />
-    );
-  }
-
-  // Show connection status screen - same layout but with "Connecting..." and Cancel button
-  if (connectionState === 'connecting') {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <View style={styles.content}>
-          <View style={[styles.callButton, { backgroundColor: '#0057FF' }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-              <Text style={styles.callButtonText}>
-                Connecting...
-              </Text>
-            </View>
-          </View>
-
-          {/* Cancel Button */}
-          <TouchableOpacity
-            style={[styles.historyButton, { justifyContent: 'center', backgroundColor: colors.notification, borderWidth: 0 }]}
-            onPress={cancelRequest}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel request"
-          >
-            <Text style={[styles.historyButtonText, { color: '#FFFFFF' }]}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
     );
   }
 

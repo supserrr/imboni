@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from './supabase';
 
 // Configure notification behavior
@@ -34,13 +35,44 @@ export const NotificationService = {
       }
 
       // Get the push token
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id', // Replace with your Expo project ID
-      });
+      // projectId can be provided via:
+      // 1. app.json extra.eas.projectId
+      // 2. EXPO_PUBLIC_PROJECT_ID environment variable
+      // 3. Auto-detected from EAS configuration
+      const projectId = 
+        Constants.expoConfig?.extra?.eas?.projectId ||
+        process.env.EXPO_PUBLIC_PROJECT_ID;
+      
+      // In bare workflow, projectId must be explicitly provided
+      if (!projectId) {
+        console.warn(
+          'Push notifications disabled: No Expo projectId found. ' +
+          'Add it to app.json (extra.eas.projectId) or set EXPO_PUBLIC_PROJECT_ID environment variable. ' +
+          'Get your projectId from https://expo.dev/accounts/[your-account]/projects/[your-project]'
+        );
+        return null;
+      }
+
+      // Validate projectId format (must be UUID)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(projectId)) {
+        console.warn(
+          `Push notifications disabled: Invalid projectId format: "${projectId}". ` +
+          'ProjectId must be a valid UUID (e.g., 12345678-1234-1234-1234-123456789abc)'
+        );
+        return null;
+      }
+
+      const tokenOptions: Notifications.ExpoPushTokenOptions = {
+        projectId: projectId,
+      };
+
+      const tokenData = await Notifications.getExpoPushTokenAsync(tokenOptions);
 
       return tokenData.data;
     } catch (error) {
       console.error('Error getting push token:', error);
+      // Don't throw - return null to allow app to continue without push notifications
       return null;
     }
   },
