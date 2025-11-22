@@ -18,7 +18,7 @@ export const MatchingService = {
     // 2. Sort by a score calculated from reliability and response time
     // 3. Exclude declined volunteers
     
-    const { data: volunteers, error } = await supabase
+    let query = supabase
       .from('users')
       .select(`
         id, 
@@ -29,9 +29,14 @@ export const MatchingService = {
         )
       `)
       .eq('type', 'volunteer')
-      .eq('availability', true)
-      .not('id', 'in', `(${excludeIds.join(',')})`) // This syntax might need adjustment for empty array
-      .limit(10);
+      .eq('availability', true);
+
+    // Only add exclusion filter if there are IDs to exclude
+    if (excludeIds.length > 0) {
+      query = query.not('id', 'in', `(${excludeIds.join(',')})`);
+    }
+
+    const { data: volunteers, error } = await query.limit(10);
 
     if (error) throw error;
     

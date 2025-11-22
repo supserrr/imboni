@@ -1,15 +1,27 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, StyleSheet, Text, Alert, ActivityIndicator, Switch, ScrollView } from 'react-native';
+import { View, StyleSheet, Text, Alert, ActivityIndicator, Switch, ScrollView, Modal } from 'react-native';
 import { TouchableOpacity } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthProvider';
 import { UserService } from '../../services/user';
 import { UserProfile } from '../../types/user';
+import { MatchingService } from '../../services/matching';
+import { NotificationService } from '../../services/notifications';
+import { supabase } from '../../services/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
+import VideoCall from '../../components/VideoCall';
+import * as Notifications from 'expo-notifications';
+
+interface HelpRequest {
+  id: string;
+  user_id: string;
+  status: string;
+  assigned_volunteer: string | null;
+}
 
 export default function VolunteerHome() {
   const { user } = useAuth();
@@ -17,6 +29,14 @@ export default function VolunteerHome() {
   const [loading, setLoading] = useState(true);
   const { colors, dark } = useTheme();
   const insets = useSafeAreaInsets();
+  
+  // Help request state
+  const [currentRequest, setCurrentRequest] = useState<HelpRequest | null>(null);
+  const [requestUser, setRequestUser] = useState<UserProfile | null>(null);
+  const [showAcceptDecline, setShowAcceptDecline] = useState(false);
+  const [isInCall, setIsInCall] = useState(false);
+  const [agoraToken, setAgoraToken] = useState<string | null>(null);
+  const [channelName, setChannelName] = useState<string>('');
   
   // Bottom sheet for training
   const trainingBottomSheetRef = useRef<BottomSheet>(null);
@@ -32,6 +52,156 @@ export default function VolunteerHome() {
     };
     fetchProfile();
   }, [user]);
+
+  // Listen for notifications and help requests
+  useEffect(() => {
+    if (!user?.id || !userProfile?.availability) return;
+
+    // Listen for notification responses (when user taps notification)
+    const notificationResponseSubscription = NotificationService.addNotificationResponseReceivedListener(
+      async (response) => {
+        const data = response.notification.request.content.data;
+        if (data?.type === 'help_request' && data?.requestId) {
+          await handleHelpRequestNotification(data.requestId);
+        }
+      }
+    );
+
+    // Subscribe to real-time help requests assigned to this volunteer
+    const helpRequestSubscription = supabase
+      .channel(`volunteer_${user.id}_requests`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'help_requests',
+          filter: `assigned_volunteer=eq.${user.id}`,
+        },
+        async (payload) => {
+          const request = payload.new as HelpRequest;
+          if (request.status === 'pending' && request.assigned_volunteer === user.id) {
+            await handleHelpRequestNotification(request.id);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      notificationResponseSubscription.remove();
+      helpRequestSubscription.unsubscribe();
+    };
+  }, [user?.id, userProfile?.availability]);
+
+  const handleHelpRequestNotification = async (requestId: string) => {
+    try {
+      // Fetch the help request
+      const { data: request, error: requestError } = await supabase
+        .from('help_requests')
+        .select('*')
+        .eq('id', requestId)
+        .single();
+
+      if (requestError || !request) {
+        console.error('Error fetching help request:', requestError);
+        return;
+      }
+
+      // Only show if status is still pending
+      if (request.status !== 'pending') {
+        return;
+      }
+
+      // Fetch user info
+      const { data: requestUserData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', request.user_id)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user:', userError);
+      }
+
+      setCurrentRequest(request);
+      setRequestUser(requestUserData || null);
+      setShowAcceptDecline(true);
+    } catch (error) {
+      console.error('Error handling help request notification:', error);
+    }
+  };
+
+  const handleAccept = async () => {
+    if (!currentRequest || !user?.id) return;
+
+    try {
+      // Update request status to accepted
+      const { error } = await supabase
+        .from('help_requests')
+        .update({ status: 'accepted' })
+        .eq('id', currentRequest.id);
+
+      if (error) throw error;
+
+      // Generate Agora token
+      const { data, error: tokenError } = await supabase.functions.invoke('generate-agora-token', {
+        body: {
+          userId: currentRequest.user_id,
+          volunteerId: user.id,
+          requestId: currentRequest.id,
+        },
+      });
+
+      if (tokenError) throw tokenError;
+
+      setAgoraToken(data.token);
+      setChannelName(data.channelName);
+      setShowAcceptDecline(false);
+      setIsInCall(true);
+
+      // Update request status to in_progress
+      await supabase
+        .from('help_requests')
+        .update({ status: 'in_progress' })
+        .eq('id', currentRequest.id);
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      Alert.alert('Error', 'Failed to accept request. Please try again.');
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!currentRequest || !user?.id) return;
+
+    try {
+      await MatchingService.declineRequest(currentRequest.id, user.id);
+      setShowAcceptDecline(false);
+      setCurrentRequest(null);
+      setRequestUser(null);
+    } catch (error) {
+      console.error('Error declining request:', error);
+      Alert.alert('Error', 'Failed to decline request. Please try again.');
+    }
+  };
+
+  const handleEndCall = async () => {
+    if (currentRequest?.id) {
+      try {
+        await supabase
+          .from('help_requests')
+          .update({ status: 'completed' })
+          .eq('id', currentRequest.id);
+      } catch (error) {
+        console.error('Error updating request status:', error);
+      }
+    }
+
+    setIsInCall(false);
+    setCurrentRequest(null);
+    setRequestUser(null);
+    setAgoraToken(null);
+    setChannelName('');
+  };
 
   const toggleAvailability = async () => {
     if (!user?.id || !userProfile) return;
@@ -75,6 +245,19 @@ export default function VolunteerHome() {
   );
 
   const styles = createStyles(colors, dark);
+
+  // Show video call when in call
+  if (isInCall && agoraToken && channelName) {
+    return (
+      <VideoCall
+        channelName={channelName}
+        uid={user?.id ? parseInt(user.id.slice(0, 8), 16) : 0}
+        token={agoraToken}
+        onEndCall={handleEndCall}
+        isVolunteer={true}
+      />
+    );
+  }
 
   if (loading) {
     return (
@@ -291,6 +474,45 @@ export default function VolunteerHome() {
           </ScrollView>
         </BottomSheetView>
       </BottomSheet>
+
+      {/* Accept/Decline Modal */}
+      <Modal
+        visible={showAcceptDecline}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={handleDecline}
+      >
+        <View style={[styles.modalContainer, { backgroundColor: dark ? '#000000' : '#FFFFFF' }]}>
+          <View style={styles.modalContent}>
+            <Ionicons name="person-circle" size={80} color={colors.primary} />
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Help Request
+            </Text>
+            <Text style={[styles.modalSubtitle, { color: colors.text }]}>
+              {requestUser?.full_name || 'A user'} needs your help
+            </Text>
+            <Text style={[styles.modalDescription, { color: colors.text }]}>
+              They are waiting for assistance. Would you like to help them?
+            </Text>
+            
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.declineButton, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={handleDecline}
+              >
+                <Text style={[styles.declineButtonText, { color: colors.text }]}>Decline</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.acceptButton, { backgroundColor: '#007AFF' }]}
+                onPress={handleAccept}
+              >
+                <Text style={styles.acceptButtonText}>Accept</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
     </GestureHandlerRootView>
   );
@@ -479,6 +701,64 @@ function createStyles(colors: any, dark: boolean) {
     featureDescription: {
       fontSize: 15,
       lineHeight: 20,
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    modalContent: {
+      width: '100%',
+      maxWidth: 400,
+      alignItems: 'center',
+    },
+    modalTitle: {
+      fontSize: 28,
+      fontWeight: 'bold',
+      marginTop: 20,
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    modalSubtitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      marginBottom: 10,
+      textAlign: 'center',
+    },
+    modalDescription: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 40,
+      lineHeight: 22,
+      opacity: 0.8,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      width: '100%',
+      gap: 15,
+    },
+    declineButton: {
+      flex: 1,
+      paddingVertical: 16,
+      borderRadius: 12,
+      borderWidth: 1,
+      alignItems: 'center',
+    },
+    declineButtonText: {
+      fontSize: 17,
+      fontWeight: '600',
+    },
+    acceptButton: {
+      flex: 1,
+      paddingVertical: 16,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    acceptButtonText: {
+      color: '#FFFFFF',
+      fontSize: 17,
+      fontWeight: '600',
     },
   });
 }

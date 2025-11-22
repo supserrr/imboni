@@ -120,5 +120,43 @@ export const NotificationService = {
   ) {
     return Notifications.addNotificationResponseReceivedListener(callback);
   },
+
+  /**
+   * Send push notification to a volunteer
+   * This should be called via a Supabase Edge Function in production
+   */
+  async sendPushNotificationToVolunteer(
+    volunteerToken: string,
+    title: string,
+    body: string,
+    data?: any
+  ) {
+    try {
+      // In production, this would call a Supabase Edge Function
+      // For now, we'll use the Expo Push API directly
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: volunteerToken,
+          sound: 'default',
+          title,
+          body,
+          data,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send push notification');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error sending push notification:', error);
+      throw error;
+    }
+  },
 };
 
