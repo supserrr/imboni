@@ -1,88 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import * as Speech from 'expo-speech';
 import { useAuth } from '../../context/AuthProvider';
 import { supabase } from '../../services/supabase';
 import { useTheme } from '@react-navigation/native';
 
-const LANGUAGES = [
-  { code: 'en', label: 'English', nativeName: 'English' },
-  { code: 'es', label: 'Spanish', nativeName: 'Español' },
-  { code: 'fr', label: 'French', nativeName: 'Français' },
-  { code: 'de', label: 'German', nativeName: 'Deutsch' },
-  { code: 'it', label: 'Italian', nativeName: 'Italiano' },
-  { code: 'pt', label: 'Portuguese', nativeName: 'Português' },
-  { code: 'zh', label: 'Chinese', nativeName: '中文' },
-  { code: 'ja', label: 'Japanese', nativeName: '日本語' },
-  { code: 'ko', label: 'Korean', nativeName: '한국어' },
-  { code: 'ar', label: 'Arabic', nativeName: 'العربية' },
-  { code: 'hi', label: 'Hindi', nativeName: 'हिन्दी' },
-  { code: 'ru', label: 'Russian', nativeName: 'Русский' },
-];
-
-interface LanguageRowProps {
-  language: typeof LANGUAGES[0];
-  isSelected: boolean;
-  onPress: () => void;
-  colors: any;
-  dark: boolean;
-}
-
-const LanguageRow: React.FC<LanguageRowProps> = ({ language, isSelected, onPress, colors, dark }) => {
-  const rowBackgroundColor = colors.text;
-  const textColor = colors.background;
-  const subtitleColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
-  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
-  const checkmarkColor = colors.background;
-  
-  return (
-  <TouchableOpacity
-      style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}
-    onPress={onPress}
-    accessibilityRole="radio"
-    accessibilityState={{ checked: isSelected }}
-    accessibilityLabel={`${language.label} - ${language.nativeName}`}
-  >
-    <View style={styles.rowContent}>
-        <Text style={[styles.rowTitle, { color: textColor }]}>{language.label}</Text>
-        <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>{language.nativeName}</Text>
-    </View>
-      {isSelected && <Ionicons name="checkmark" size={24} color={checkmarkColor} />}
-  </TouchableOpacity>
-);
-};
-
 export default function LanguageSettings() {
   const router = useRouter();
-  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { colors, dark } = useTheme();
-  const [uiLanguage, setUiLanguage] = useState(i18n.language);
-  const [voiceLanguage, setVoiceLanguage] = useState(i18n.language);
+  const [primaryLanguage, setPrimaryLanguage] = useState('English');
+  const [secondaryLanguagesCount, setSecondaryLanguagesCount] = useState(0);
 
-  const handleChangeUILanguage = async (langCode: string) => {
-    setUiLanguage(langCode);
-    await i18n.changeLanguage(langCode);
+  useEffect(() => {
+    loadLanguagePreferences();
+  }, [user]);
 
-    if (user?.id) {
-      await supabase.from('users').update({ preferred_language: langCode }).eq('id', user.id);
+  const loadLanguagePreferences = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data } = await supabase
+        .from('users')
+        .select('preferred_language, secondary_languages')
+        .eq('id', user.id)
+        .single();
+
+      if (data) {
+        if (data.preferred_language) {
+          const langName = getLanguageName(data.preferred_language);
+          setPrimaryLanguage(langName);
+        }
+        if (data.secondary_languages && Array.isArray(data.secondary_languages)) {
+          setSecondaryLanguagesCount(data.secondary_languages.length);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading language preferences:', error);
     }
-
-    Speech.speak('Language changed', { language: langCode });
   };
 
-  const handleChangeVoiceLanguage = async (langCode: string) => {
-    setVoiceLanguage(langCode);
-
-    if (user?.id) {
-      await supabase.from('users').update({ preferred_language: langCode }).eq('id', user.id);
-    }
-
-    Speech.speak('Voice language changed', { language: langCode });
+  const getLanguageName = (code: string): string => {
+    const languages: { [key: string]: string } = {
+      'en': 'English',
+      'es': 'Español',
+      'fr': 'Français',
+      'de': 'Deutsch',
+      'it': 'Italiano',
+      'pt': 'Português',
+      'zh': '中文',
+      'ja': '日本語',
+      'ko': '한국어',
+      'ar': 'العربية',
+      'hi': 'हिन्दी',
+      'ru': 'Русский',
+    };
+    return languages[code] || 'English';
   };
+
+  const rowBackgroundColor = colors.text;
+  const textColor = colors.background;
+  const valueColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
+  const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
+  const chevronColor = dark ? 'rgba(92, 58, 58, 0.6)' : 'rgba(232, 212, 232, 0.6)';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -95,40 +76,25 @@ export default function LanguageSettings() {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>App Language</Text>
-          <Text style={[styles.sectionDescription, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>Choose the language for the app interface</Text>
-        </View>
         <View style={styles.section}>
-          {LANGUAGES.map((lang) => (
-            <LanguageRow
-              key={`ui-${lang.code}`}
-              language={lang}
-              isSelected={uiLanguage === lang.code}
-              onPress={() => handleChangeUILanguage(lang.code)}
-              colors={colors}
-              dark={dark}
-            />
-          ))}
-        </View>
+          <TouchableOpacity
+            style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}
+            onPress={() => router.push('/(settings)/primary-language')}
+          >
+            <Text style={[styles.rowTitle, { color: textColor }]}>Primary language</Text>
+            <View style={styles.rowRight}>
+              <Text style={[styles.rowValue, { color: valueColor }]}>{primaryLanguage}</Text>
+              <Ionicons name="chevron-forward" size={20} color={chevronColor} />
+            </View>
+          </TouchableOpacity>
 
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Voice Language</Text>
-          <Text style={[styles.sectionDescription, { color: dark ? '#C4A4C4' : '#8B6B6B' }]}>
-            Choose the language for AI voice responses
-          </Text>
-        </View>
-        <View style={styles.section}>
-          {LANGUAGES.map((lang) => (
-            <LanguageRow
-              key={`voice-${lang.code}`}
-              language={lang}
-              isSelected={voiceLanguage === lang.code}
-              onPress={() => handleChangeVoiceLanguage(lang.code)}
-              colors={colors}
-              dark={dark}
-            />
-          ))}
+          <TouchableOpacity
+            style={[styles.row, { backgroundColor: rowBackgroundColor }]}
+            onPress={() => router.push('/(settings)/secondary-languages')}
+          >
+            <Text style={[styles.rowTitle, { color: textColor }]}>Secondary languages</Text>
+            <Ionicons name="chevron-forward" size={20} color={chevronColor} />
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -160,19 +126,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  sectionHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  sectionDescription: {
-    fontSize: 15,
-  },
   section: {
     marginHorizontal: 16,
     marginVertical: 10,
@@ -187,15 +140,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderBottomWidth: 0.5,
   },
-  rowContent: {
-    flex: 1,
-  },
   rowTitle: {
     fontSize: 17,
-    marginBottom: 2,
   },
-  rowSubtitle: {
-    fontSize: 15,
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rowValue: {
+    fontSize: 17,
   },
 });
-

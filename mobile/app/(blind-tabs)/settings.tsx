@@ -55,16 +55,8 @@ export default function BlindSettings() {
     router.push('/(settings)/languages');
   };
 
-  const handleNotifications = () => {
-    router.push('/(settings)/notifications');
-  };
-
   const handleShortcuts = () => {
     router.push('/(settings)/shortcuts');
-  };
-
-  const handleAISettings = () => {
-    router.push('/(settings)/ai-settings');
   };
 
   const handleSupport = () => {
@@ -103,12 +95,7 @@ export default function BlindSettings() {
         <SettingsRow title="Account" onPress={handleAccount} colors={colors} dark={dark} />
         <SettingsRow title="Appearance" onPress={handleAppearance} colors={colors} dark={dark} />
         <SettingsRow title="Languages" onPress={handleLanguages} colors={colors} dark={dark} />
-        <SettingsRow title="Notifications" onPress={handleNotifications} colors={colors} dark={dark} />
         <SettingsRow title="Shortcuts" onPress={handleShortcuts} colors={colors} dark={dark} />
-      </View>
-
-      <View style={styles.section}>
-        <SettingsRow title="AI Settings" onPress={handleAISettings} colors={colors} dark={dark} />
       </View>
 
       <View style={styles.section}>

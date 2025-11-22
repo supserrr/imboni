@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator, Alert } from 'react-native';
 import { useTheme } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +10,9 @@ import { supabase } from '../../services/supabase';
 import VideoCall from '../../components/VideoCall';
 import RatingScreen from '../../components/RatingScreen';
 import { Ionicons } from '@expo/vector-icons';
-import { Modal, ScrollView } from 'react-native';
+import { ScrollView } from 'react-native';
+import BottomSheet, { BottomSheetView, BottomSheetBackdrop, BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 type ConnectionState = 'idle' | 'connecting' | 'connected' | 'rating';
 
@@ -35,6 +37,8 @@ export default function BlindHome() {
   const [pastVolunteers, setPastVolunteers] = useState<PastVolunteer[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const subscriptionRef = useRef<any>(null);
+  const historyBottomSheetRef = useRef<BottomSheet>(null);
+  const historySnapPoints = useMemo(() => ['75%', '90%'], []);
 
   useEffect(() => {
     return () => {
@@ -242,9 +246,25 @@ export default function BlindHome() {
   };
 
   const handleShowHistory = async () => {
-    setShowHistory(true);
+    historyBottomSheetRef.current?.expand();
     await loadHistory();
   };
+
+  const handleCloseHistory = useCallback(() => {
+    historyBottomSheetRef.current?.close();
+  }, []);
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.5}
+      />
+    ),
+    []
+  );
 
   const handleCallVolunteer = async (specificVolunteerId?: string) => {
     if (!user?.id) {
@@ -498,9 +518,9 @@ export default function BlindHome() {
   // Show connection status screen - same layout but with "Connecting..." and Cancel button
   if (connectionState === 'connecting') {
     return (
-      <View style={[styles.container, { backgroundColor: '#000000', paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={styles.content}>
-          <View style={styles.callButton}>
+          <View style={[styles.callButton, { backgroundColor: '#0057FF' }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
               <ActivityIndicator size="large" color="#FFFFFF" />
               <Text style={styles.callButtonText}>
@@ -511,7 +531,7 @@ export default function BlindHome() {
 
           {/* Cancel Button */}
           <TouchableOpacity
-            style={[styles.historyButton, { justifyContent: 'center', backgroundColor: '#FF3B30', borderWidth: 0 }]}
+            style={[styles.historyButton, { justifyContent: 'center', backgroundColor: colors.notification, borderWidth: 0 }]}
             onPress={cancelRequest}
             accessibilityRole="button"
             accessibilityLabel="Cancel request"
@@ -535,46 +555,57 @@ export default function BlindHome() {
 
   // Main home screen with "Call a volunteer" button
   return (
-    <View style={[styles.container, { backgroundColor: '#000000', paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={styles.content}>
-        <TouchableOpacity
-          style={styles.callButton}
-          onPress={() => handleCallVolunteer()}
-          accessibilityRole="button"
-          accessibilityLabel="Call a volunteer"
-        >
-          <Text style={styles.callButtonText}>
-            Call a volunteer
-          </Text>
-        </TouchableOpacity>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={styles.content}>
+          <TouchableOpacity
+            style={[styles.callButton, { backgroundColor: '#0057FF' }]}
+            onPress={() => handleCallVolunteer()}
+            accessibilityRole="button"
+            accessibilityLabel="Call a volunteer"
+          >
+            <Text style={styles.callButtonText}>
+              Call a volunteer
+            </Text>
+          </TouchableOpacity>
 
-        {/* History Button */}
-        <TouchableOpacity
-          style={styles.historyButton}
-          onPress={handleShowHistory}
-          accessibilityRole="button"
-          accessibilityLabel="View call history"
-        >
-          <Text style={styles.historyButtonText}>History</Text>
-          <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+          {/* History Button */}
+          <TouchableOpacity
+            style={[styles.historyButton, { borderColor: colors.text }]}
+            onPress={handleShowHistory}
+            accessibilityRole="button"
+            accessibilityLabel="View call history"
+          >
+            <Text style={[styles.historyButtonText, { color: colors.text }]}>History</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.text} />
+          </TouchableOpacity>
+        </View>
 
-      {/* History Modal */}
-      <Modal
-        visible={showHistory}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={() => setShowHistory(false)}
+      {/* History Bottom Sheet */}
+      <BottomSheet
+        ref={historyBottomSheetRef}
+        index={-1}
+        snapPoints={historySnapPoints}
+        enablePanDownToClose
+        onChange={(index) => {
+          if (index === -1) {
+            setShowHistory(false);
+          } else {
+            setShowHistory(true);
+          }
+        }}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: colors.background }}
+        handleIndicatorStyle={{ backgroundColor: dark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)' }}
       >
-        <View style={[styles.modalContainer, { backgroundColor: dark ? '#000000' : colors.background }]}>
-          <View style={styles.modalHeader}>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Call History</Text>
+        <BottomSheetView style={styles.bottomSheetContent}>
+          <View style={styles.bottomSheetHeader}>
+            <Text style={[styles.bottomSheetTitle, { color: colors.text }]}>Call History</Text>
             <TouchableOpacity
-              onPress={() => setShowHistory(false)}
+              onPress={handleCloseHistory}
               style={styles.closeButton}
             >
-              <Ionicons name="close" size={28} color={colors.text} />
+              <Ionicons name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -593,12 +624,19 @@ export default function BlindHome() {
               </Text>
             </View>
           ) : (
-            <ScrollView style={styles.historyList} contentContainerStyle={styles.historyListContent}>
+            <BottomSheetScrollView 
+              style={styles.historyList} 
+              contentContainerStyle={styles.historyListContent}
+            >
               {pastVolunteers.map((volunteer) => (
                 <TouchableOpacity
                   key={volunteer.volunteer_id}
                   style={[styles.historyItem, { backgroundColor: colors.card, borderColor: colors.border }]}
-                  onPress={() => handleCallVolunteer(volunteer.volunteer_id)}
+                  onPress={() => {
+                    handleCloseHistory();
+                    handleCallVolunteer(volunteer.volunteer_id);
+                  }}
+                  activeOpacity={0.7}
                 >
                   <View style={styles.historyItemContent}>
                     <View style={styles.historyItemLeft}>
@@ -625,11 +663,12 @@ export default function BlindHome() {
                   </View>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
+            </BottomSheetScrollView>
           )}
-        </View>
-      </Modal>
-    </View>
+        </BottomSheetView>
+      </BottomSheet>
+      </View>
+    </GestureHandlerRootView>
   );
 }
 
@@ -637,7 +676,6 @@ function createStyles(colors: any, dark: boolean, insets: any) {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#000000',
     },
     content: {
       flex: 1,
@@ -647,7 +685,6 @@ function createStyles(colors: any, dark: boolean, insets: any) {
       paddingTop: 20,
     },
     callButton: {
-      backgroundColor: '#0057FF',
       borderRadius: 28,
       width: '100%',
       height: '77%',
@@ -697,36 +734,35 @@ function createStyles(colors: any, dark: boolean, insets: any) {
       borderRadius: 20,
       backgroundColor: 'transparent',
       borderWidth: 2,
-      borderColor: '#FFFFFF',
       width: '100%',
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
     historyButtonText: {
-      color: '#FFFFFF',
       fontSize: 20,
       fontWeight: '500',
     },
-    modalContainer: {
+    bottomSheetContent: {
       flex: 1,
-      paddingTop: insets.top + 20,
+      paddingHorizontal: 20,
     },
-    modalHeader: {
+    bottomSheetHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingBottom: 20,
+      paddingBottom: 16,
+      marginBottom: 8,
       borderBottomWidth: 1,
       borderBottomColor: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
     },
-    modalTitle: {
+    bottomSheetTitle: {
       fontSize: 28,
       fontWeight: 'bold',
     },
     closeButton: {
       padding: 8,
+      borderRadius: 20,
     },
     loadingContainer: {
       flex: 1,

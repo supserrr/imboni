@@ -13,8 +13,9 @@ export default function NotificationSettings() {
   const { colors, dark } = useTheme();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [helpRequests, setHelpRequests] = useState(true);
-  const [sessionUpdates, setSessionUpdates] = useState(true);
-  const [aiAlerts, setAiAlerts] = useState(true);
+  const [volunteerResponses, setVolunteerResponses] = useState(true);
+  const [callStatusUpdates, setCallStatusUpdates] = useState(true);
+  const [sessionReminders, setSessionReminders] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [userType, setUserType] = useState<'blind' | 'volunteer'>('blind');
@@ -70,13 +71,18 @@ export default function NotificationSettings() {
     // Save to database or local storage
   };
 
-  const handleToggleSessionUpdates = (value: boolean) => {
-    setSessionUpdates(value);
+  const handleToggleVolunteerResponses = (value: boolean) => {
+    setVolunteerResponses(value);
     // Save to database or local storage
   };
 
-  const handleToggleAiAlerts = (value: boolean) => {
-    setAiAlerts(value);
+  const handleToggleCallStatusUpdates = (value: boolean) => {
+    setCallStatusUpdates(value);
+    // Save to database or local storage
+  };
+
+  const handleToggleSessionReminders = (value: boolean) => {
+    setSessionReminders(value);
     // Save to database or local storage
   };
 
@@ -94,10 +100,9 @@ export default function NotificationSettings() {
   const textColor = colors.background;
   const subtitleColor = dark ? 'rgba(92, 58, 58, 0.7)' : 'rgba(232, 212, 232, 0.7)';
   const borderColor = dark ? 'rgba(92, 58, 58, 0.2)' : 'rgba(232, 212, 232, 0.2)';
-  // Toggle colors: OFF state uses black, ON state uses background color
-  const switchTrackColorFalse = '#000000'; // Black for OFF state
-  const switchTrackColorTrue = colors.background; // Background color for active state
-  const switchThumbColor = '#FFFFFF'; // Always white for maximum contrast
+  const switchTrackColorFalse = '#000000';
+  const switchTrackColorTrue = colors.background;
+  const switchThumbColor = '#FFFFFF';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -149,40 +154,58 @@ export default function NotificationSettings() {
                 </View>
               )}
 
-              <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
-                <View style={styles.rowContent}>
-                  <Text style={[styles.rowTitle, { color: textColor }]}>Session Updates</Text>
-                  <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>
-                    {userType === 'volunteer' 
-                      ? 'Updates about your active sessions'
-                      : 'Updates when connected to helpers'}
-                  </Text>
-                </View>
-                <Switch
-                  value={sessionUpdates}
-                  onValueChange={handleToggleSessionUpdates}
-                  trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
-                  thumbColor={switchThumbColor}
-                  ios_backgroundColor={switchTrackColorFalse}
-                />
-              </View>
-
-              {/* AI Alerts - Only for blind users */}
+              {/* Volunteer Responses - Only for blind users */}
               {userType === 'blind' && (
                 <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
                   <View style={styles.rowContent}>
-                    <Text style={[styles.rowTitle, { color: textColor }]}>AI Alerts</Text>
-                    <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>Low confidence warnings</Text>
+                    <Text style={[styles.rowTitle, { color: textColor }]}>Volunteer Responses</Text>
+                    <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>When a volunteer accepts or declines your request</Text>
                   </View>
                   <Switch
-                    value={aiAlerts}
-                    onValueChange={handleToggleAiAlerts}
+                    value={volunteerResponses}
+                    onValueChange={handleToggleVolunteerResponses}
                     trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
                     thumbColor={switchThumbColor}
                     ios_backgroundColor={switchTrackColorFalse}
                   />
                 </View>
               )}
+
+              <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
+                <View style={styles.rowContent}>
+                  <Text style={[styles.rowTitle, { color: textColor }]}>Call Status Updates</Text>
+                  <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>
+                    {userType === 'volunteer' 
+                      ? 'Updates about active calls and sessions'
+                      : 'Updates when your call connects or disconnects'}
+                  </Text>
+                </View>
+                <Switch
+                  value={callStatusUpdates}
+                  onValueChange={handleToggleCallStatusUpdates}
+                  trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+                  thumbColor={switchThumbColor}
+                  ios_backgroundColor={switchTrackColorFalse}
+                />
+              </View>
+
+              <View style={[styles.row, { backgroundColor: rowBackgroundColor, borderBottomColor: borderColor }]}>
+                <View style={styles.rowContent}>
+                  <Text style={[styles.rowTitle, { color: textColor }]}>Session Reminders</Text>
+                  <Text style={[styles.rowSubtitle, { color: subtitleColor }]}>
+                    {userType === 'volunteer' 
+                      ? 'Reminders about upcoming or active sessions'
+                      : 'Reminders about your call history and past volunteers'}
+                  </Text>
+                </View>
+                <Switch
+                  value={sessionReminders}
+                  onValueChange={handleToggleSessionReminders}
+                  trackColor={{ false: switchTrackColorFalse, true: switchTrackColorTrue }}
+                  thumbColor={switchThumbColor}
+                  ios_backgroundColor={switchTrackColorFalse}
+                />
+              </View>
             </View>
 
             <View style={styles.sectionHeader}>
@@ -284,4 +307,3 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
-
