@@ -36,11 +36,13 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||
     request.nextUrl.pathname.startsWith("/verify-email") ||
+    request.nextUrl.pathname.startsWith("/auth/callback") ||
     request.nextUrl.pathname.startsWith("/callback") ||
     request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/privacy-terms")
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith("/blind/") ||
+  const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard/") ||
+    request.nextUrl.pathname.startsWith("/blind/") ||
     request.nextUrl.pathname.startsWith("/volunteer/") ||
     request.nextUrl.pathname.startsWith("/settings/")
 
@@ -50,9 +52,91 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (user && isAuthRoute && request.nextUrl.pathname !== "/") {
+  // Fetch user profile once if user is authenticated (used for both dashboard and auth route checks)
+  let userProfile: { type: string } | null = null
+  let profileError: Error | null = null
+  
+  if (user) {
+    const profileResult = await supabase
+      .from("users")
+      .select("type")
+      .eq("id", user.id)
+      .single()
+    
+    userProfile = profileResult.data
+    profileError = profileResult.error
+  }
+
+  // Check user type for dashboard routes and redirect if mismatch
+  if (user && request.nextUrl.pathname.startsWith("/dashboard/")) {
+    // Handle database query errors
+    if (profileError) {
+      console.error("Error fetching user profile in middleware:", profileError)
+      // On error, allow request to proceed to avoid blocking legitimate access
+      // The page component will handle user type verification
+      return supabaseResponse
+    }
+    
+    // If user profile doesn't exist, reject access to dashboard
+    // Users must have a profile to access dashboard routes
+    if (!userProfile) {
+      console.warn(`User profile not found for user ${user.id} in middleware - redirecting to signup`)
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/signup"
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    // Validate that userType exists and is a valid value
+    const userType = userProfile.type
+    if (!userType || (userType !== "blind" && userType !== "volunteer")) {
+      console.warn(`Invalid user type "${userType}" for user ${user.id} in middleware - redirecting to signup`)
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = "/signup"
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    const requestedType = request.nextUrl.pathname.startsWith("/dashboard/blind") ? "blind" :
+                         request.nextUrl.pathname.startsWith("/dashboard/volunteer") ? "volunteer" : null
+    
+    if (requestedType && userType !== requestedType) {
+      const redirectUrl = request.nextUrl.clone()
+      redirectUrl.pathname = `/dashboard/${userType}`
+      return NextResponse.redirect(redirectUrl)
+    }
+  }
+
+  // Redirect authenticated users away from auth routes, but allow callback routes to complete
+  // Callback routes must be allowed to process even for authenticated users to complete OAuth flow
+  const isCallbackRoute = request.nextUrl.pathname.startsWith("/auth/callback") ||
+                          request.nextUrl.pathname.startsWith("/callback")
+  
+  if (user && isAuthRoute && request.nextUrl.pathname !== "/" && !isCallbackRoute) {
     const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = "/blind/home"
+    
+    // Handle database query errors
+    if (profileError) {
+      console.error("Error fetching user profile in middleware (auth route):", profileError)
+      // On error, redirect to signup to allow user to complete profile setup
+      redirectUrl.pathname = "/signup"
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    // If user profile doesn't exist, redirect to signup to complete profile setup
+    if (!userProfile) {
+      console.warn(`User profile not found for user ${user.id} in middleware (auth route) - redirecting to signup`)
+      redirectUrl.pathname = "/signup"
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    // Validate that userType exists and is a valid value
+    const userType = userProfile.type
+    if (!userType || (userType !== "blind" && userType !== "volunteer")) {
+      console.warn(`Invalid user type "${userType}" for user ${user.id} in middleware (auth route) - redirecting to signup`)
+      redirectUrl.pathname = "/signup"
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    redirectUrl.pathname = `/dashboard/${userType}`
     return NextResponse.redirect(redirectUrl)
   }
 

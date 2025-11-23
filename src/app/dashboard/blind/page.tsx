@@ -21,7 +21,7 @@ import type { HelpRequest } from "@/types/help-request"
 import type { SessionWithUsers } from "@/types/session"
 
 export default function BlindHomePage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const { callState, setCallState, callDuration, setCallDuration, resetCall } = useCall()
   const router = useRouter()
   const [currentRequest, setCurrentRequest] = useState<HelpRequest | null>(null)
@@ -30,41 +30,86 @@ export default function BlindHomePage() {
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null)
   const [historySessions, setHistorySessions] = useState<SessionWithUsers[]>([])
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [isVerifyingUserType, setIsVerifyingUserType] = useState(true)
 
   const { request } = useHelpRequest(currentRequest?.id || null)
 
   useEffect(() => {
+    if (authLoading) return
+    
     if (!user) {
       router.push("/login")
       return
     }
     
+    let isMounted = true
+    
     const checkUserType = async () => {
-      const supabase = createClient()
-      const { data: profile } = await supabase
-        .from("users")
-        .select("type")
-        .eq("id", user.id)
-        .single()
-      
-      if (profile?.type === "volunteer") {
-        router.replace("/dashboard/volunteer")
+      setIsVerifyingUserType(true)
+      try {
+        const supabase = createClient()
+        const { data: profile, error: profileError } = await supabase
+          .from("users")
+          .select("type")
+          .eq("id", user.id)
+          .single()
+        
+        // Handle database query errors
+        if (profileError) {
+          console.error("Error fetching user profile:", profileError)
+          // On error, allow user to proceed (page component will handle verification)
+          if (isMounted) {
+            setIsVerifyingUserType(false)
+          }
+          return
+        }
+        
+        if (profile?.type === "volunteer") {
+          if (isMounted) {
+            setIsVerifyingUserType(false)
+          }
+          router.replace("/dashboard/volunteer")
+          return
+        }
+        
+        if (isMounted) {
+          setIsVerifyingUserType(false)
+        }
+      } catch (error) {
+        console.error("Unexpected error in checkUserType:", error)
+        // Ensure loading state is cleared even on unexpected errors
+        if (isMounted) {
+          setIsVerifyingUserType(false)
+        }
       }
     }
     
-    checkUserType()
+    // Await the async function to handle any errors
+    checkUserType().catch((error) => {
+      console.error("Unhandled error in checkUserType:", error)
+      if (isMounted) {
+        setIsVerifyingUserType(false)
+      }
+    })
 
     const loadHistory = async () => {
       try {
         const sessions = await historyService.getSessionHistory(user.id, 10)
-        setHistorySessions(sessions as SessionWithUsers[])
+        // Only set state if component is still mounted
+        if (isMounted) {
+          setHistorySessions(sessions as SessionWithUsers[])
+        }
       } catch (error) {
         console.error("Failed to load history:", error)
       }
     }
 
     loadHistory()
-  }, [user, router])
+    
+    return () => {
+      isMounted = false
+    }
+  }, [user, router, authLoading])
 
   useEffect(() => {
     if (request) {
@@ -212,19 +257,42 @@ export default function BlindHomePage() {
     }
   }
 
-  if (callState === "connected" || callState === "connecting") {
-    if (!currentRequest) return null
+  // Show video feed as soon as request is created (pending, accepted, or connected)
+  if (currentRequest && (callState === "connected" || callState === "connecting" || currentRequest.status === "pending" || currentRequest.status === "accepted")) {
+    if (!user) return null
+    
+    // Don't render VideoCall if volunteer is not yet assigned
+    if (!currentRequest.assigned_volunteer) {
+      return (
+        <div className="container mx-auto p-8 max-w-2xl">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground">Waiting for volunteer assignment...</p>
+            </div>
+          </div>
+        </div>
+      )
+    }
 
     return (
       <ActiveCallScreen
         onEndCall={handleEndCall}
         callDuration={callDuration}
         showVideoFeed={true}
-        isConnecting={callState === "connecting"}
+        isConnecting={callState === "connecting" || currentRequest.status === "pending" || currentRequest.status === "accepted"}
         requestId={currentRequest.id}
-        userId={user!.id}
-        volunteerId={currentRequest.assigned_volunteer!}
+        userId={user.id}
+        volunteerId={currentRequest.assigned_volunteer}
         isVolunteer={false}
+        onConnectionStateChange={(state) => {
+          if (state === "connected" && callState !== "connected") {
+            setCallState("connected")
+          } else if (state === "disconnected" && callState !== "rating") {
+            // When connection is lost, end the call
+            handleEndCall()
+          }
+        }}
       />
     )
   }
@@ -235,6 +303,19 @@ export default function BlindHomePage() {
         onRate={handleRating}
         onSkip={handleSkipRating}
       />
+    )
+  }
+
+  if (authLoading || isVerifyingUserType) {
+    return (
+      <div className="container mx-auto p-8 max-w-2xl">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
     )
   }
 

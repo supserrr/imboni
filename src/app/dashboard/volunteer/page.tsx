@@ -20,7 +20,7 @@ import type { User } from "@/types/user"
 import type { HelpRequest } from "@/types/help-request"
 
 export default function VolunteerHomePage() {
-  const { user: authUser } = useAuth()
+  const { user: authUser, isLoading: authLoading } = useAuth()
   const { callState, setCallState, callDuration, setCallDuration, resetCall } = useCall()
   const router = useRouter()
   const supabase = createClient()
@@ -30,42 +30,87 @@ export default function VolunteerHomePage() {
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
   const [requestUser, setRequestUser] = useState<{ name: string; avatar: string | null } | null>(null)
+  const [isVerifyingUserType, setIsVerifyingUserType] = useState(true)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const { requests } = useVolunteerRequests(user?.id || null)
 
   useEffect(() => {
+    if (authLoading) return
+    
     if (!authUser) {
       router.push("/login")
       return
     }
     
+    let isMounted = true
+    
     const checkUserType = async () => {
-      const supabase = createClient()
-      const { data: profile } = await supabase
-        .from("users")
-        .select("type")
-        .eq("id", authUser.id)
-        .single()
-      
-      if (profile?.type === "blind") {
-        router.replace("/dashboard/blind")
+      setIsVerifyingUserType(true)
+      try {
+        const supabase = createClient()
+        const { data: profile, error: profileError } = await supabase
+          .from("users")
+          .select("type")
+          .eq("id", authUser.id)
+          .single()
+        
+        // Handle database query errors
+        if (profileError) {
+          console.error("Error fetching user profile:", profileError)
+          // On error, allow user to proceed (page component will handle verification)
+          if (isMounted) {
+            setIsVerifyingUserType(false)
+          }
+          return
+        }
+        
+        if (profile?.type === "blind") {
+          if (isMounted) {
+            setIsVerifyingUserType(false)
+          }
+          router.replace("/dashboard/blind")
+          return
+        }
+        
+        if (isMounted) {
+          setIsVerifyingUserType(false)
+        }
+      } catch (error) {
+        console.error("Unexpected error in checkUserType:", error)
+        // Ensure loading state is cleared even on unexpected errors
+        if (isMounted) {
+          setIsVerifyingUserType(false)
+        }
       }
     }
     
-    checkUserType()
+    // Await the async function to handle any errors
+    checkUserType().catch((error) => {
+      console.error("Unhandled error in checkUserType:", error)
+      if (isMounted) {
+        setIsVerifyingUserType(false)
+      }
+    })
 
     const loadUser = async () => {
       try {
         const userData = await userService.getProfile(authUser.id)
-        setUser(userData)
+        // Only set state if component is still mounted
+        if (isMounted) {
+          setUser(userData)
+        }
       } catch (error) {
         console.error("Failed to load user:", error)
       }
     }
 
     loadUser()
-  }, [authUser, router])
+    
+    return () => {
+      isMounted = false
+    }
+  }, [authUser, router, authLoading])
 
   useEffect(() => {
     if (requests.length > 0 && !currentRequest) {
@@ -204,7 +249,7 @@ export default function VolunteerHomePage() {
   if (callState === "connected" || callState === "connecting") {
     if (!currentRequest || !user) return null
 
-    return (
+      return (
       <ActiveCallScreen
         onEndCall={handleEndCall}
         callDuration={callDuration}
@@ -214,7 +259,28 @@ export default function VolunteerHomePage() {
         userId={currentRequest.user_id}
         volunteerId={user.id}
         isVolunteer={true}
+        onConnectionStateChange={(state) => {
+          if (state === "connected" && callState !== "connected") {
+            setCallState("connected")
+          } else if (state === "disconnected" && callState !== "rating") {
+            // When connection is lost, end the call
+            handleEndCall()
+          }
+        }}
       />
+    )
+  }
+
+  if (authLoading || isVerifyingUserType) {
+    return (
+      <div className="container mx-auto p-8 max-w-2xl">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
     )
   }
 

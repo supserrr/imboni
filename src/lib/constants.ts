@@ -22,7 +22,9 @@ export const CALL_STATE = {
 
 export const WEBRTC_CONFIG = {
   iceServers: [
+    { urls: "stun:openrelay.metered.ca:80" },
     { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun2.l.google.com:19302" },
     ...(process.env.NEXT_PUBLIC_TURN_URL
       ? [
           {

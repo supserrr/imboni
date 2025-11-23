@@ -15,6 +15,7 @@ interface ActiveCallScreenProps {
   userId: string
   volunteerId: string
   isVolunteer: boolean
+  onConnectionStateChange?: (state: "connecting" | "connected" | "disconnected") => void
 }
 
 export function ActiveCallScreen({
@@ -27,6 +28,7 @@ export function ActiveCallScreen({
   userId,
   volunteerId,
   isVolunteer,
+  onConnectionStateChange,
 }: ActiveCallScreenProps) {
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
@@ -40,6 +42,8 @@ export function ActiveCallScreen({
           volunteerId={volunteerId}
           isVolunteer={isVolunteer}
           onEndCall={onEndCall}
+          onConnectionStateChange={onConnectionStateChange}
+          hideControls={true}
         />
       )}
 
