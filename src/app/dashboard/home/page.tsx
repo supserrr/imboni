@@ -22,6 +22,7 @@ export default function HomePage() {
   const [showModeSelection, setShowModeSelection] = useState(false)
   const [question, setQuestion] = useState<string>("")
   const [answer, setAnswer] = useState<string>("")
+  const [answerHistory, setAnswerHistory] = useState<Array<{ id: string; text: string; timestamp: number }>>([])
   const [textQuery, setTextQuery] = useState<string>("")
   const [customQuery, setCustomQuery] = useState<string>("")
   const [analysisHistory, setAnalysisHistory] = useState<string[]>([])
@@ -34,10 +35,75 @@ export default function HomePage() {
   const recognitionRef = useRef<any>(null)
   const synthesisRef = useRef<SpeechSynthesis | null>(null)
   const inputModeRef = useRef<"none" | "text" | "voice">("none")
+  const audioContextRef = useRef<AudioContext | null>(null)
 
   useEffect(() => {
     checkPermission()
   }, [checkPermission])
+
+  // Initialize audio context for sound effects
+  useEffect(() => {
+    if (typeof window !== "undefined" && !audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+    }
+  }, [])
+
+  // Sound effect generator using Web Audio API
+  const playSound = async (frequency: number, duration: number, type: "sine" | "square" | "triangle" = "sine") => {
+    if (!audioContextRef.current) {
+      if (typeof window !== "undefined") {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      } else {
+        return
+      }
+    }
+    
+    try {
+      // Resume audio context if suspended (browser autoplay policy)
+      if (audioContextRef.current.state === "suspended") {
+        await audioContextRef.current.resume()
+      }
+      
+      const oscillator = audioContextRef.current.createOscillator()
+      const gainNode = audioContextRef.current.createGain()
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContextRef.current.destination)
+      
+      oscillator.frequency.value = frequency
+      oscillator.type = type
+      
+      gainNode.gain.setValueAtTime(0.1, audioContextRef.current.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContextRef.current.currentTime + duration)
+      
+      oscillator.start(audioContextRef.current.currentTime)
+      oscillator.stop(audioContextRef.current.currentTime + duration)
+    } catch (err) {
+      console.error("Error playing sound:", err)
+    }
+  }
+
+  // Sound effects for different states - all unique frequencies and patterns
+  const playAnalyzingSound = () => playSound(440, 0.1, "sine") // A4 note, short beep
+  const playAnswerReadySound = () => playSound(523.25, 0.15, "sine") // C5 note
+  const playListeningSound = () => playSound(330, 0.08, "triangle") // E4 note, subtle
+  const playErrorSound = () => playSound(220, 0.2, "square") // A3 note, lower tone
+  const playStopSound = async () => {
+    // Descending tone pattern for stop
+    await playSound(392, 0.08, "sine") // G4
+    setTimeout(() => playSound(294, 0.1, "sine"), 50) // D4
+  }
+  const playTextModeSound = async () => {
+    // Two-tone ascending pattern for text mode
+    await playSound(349.23, 0.1, "sine") // F4
+    setTimeout(() => playSound(440, 0.1, "sine"), 80) // A4
+  }
+  const playVoiceModeSound = async () => {
+    // Three-tone pattern for voice mode
+    await playSound(261.63, 0.08, "triangle") // C4
+    setTimeout(() => playSound(329.63, 0.08, "triangle"), 60) // E4
+    setTimeout(() => playSound(392, 0.1, "triangle"), 120) // G4
+  }
 
   const analyzeFrame = async (query: string) => {
     if (!videoRef.current || !isStreaming) {
@@ -76,6 +142,7 @@ export default function HomePage() {
     setQuestion(questionText)
     setError(null)
     isAnsweringQuestionRef.current = true
+    playAnalyzingSound() // Play sound when analysis starts
 
     try {
       // Capture current frame and answer the question immediately
@@ -88,12 +155,23 @@ export default function HomePage() {
       const response = await queryMoondream(frameDataUrl, questionText, MOONDREAM_API_URL)
       setAnswer(response)
       
+      // Add to answer history for bottom overlay display
+      const newAnswer = {
+        id: Date.now().toString(),
+        text: response,
+        timestamp: Date.now()
+      }
+      setAnswerHistory(prev => [newAnswer, ...prev].slice(0, 3)) // Keep last 3 answers
+      
+      playAnswerReadySound() // Play sound when answer is ready
+      
       // Small delay to ensure state is updated, then speak the answer
       await new Promise(resolve => setTimeout(resolve, 100))
       speak(response)
     } catch (err: any) {
       console.error("Error answering question:", err)
       setError(err.message || "Failed to answer question")
+      playErrorSound() // Play error sound
     } finally {
       isAnsweringQuestionRef.current = false
     }
@@ -289,6 +367,7 @@ export default function HomePage() {
     if (recognitionRef.current && !isListening) {
       try {
         recognitionRef.current.start()
+        playListeningSound() // Play sound when listening starts
       } catch (err) {
         console.error("Error starting speech recognition:", err)
       }
@@ -348,6 +427,7 @@ export default function HomePage() {
   }
 
   const handleSelectTextMode = async () => {
+    playTextModeSound() // Play sound when text mode is selected
     if (!isStreaming) {
       await startCamera()
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -363,6 +443,7 @@ export default function HomePage() {
   }
 
   const handleSelectVoiceMode = async () => {
+    playVoiceModeSound() // Play sound when voice mode is selected
     if (!isStreaming) {
       await startCamera()
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -380,6 +461,7 @@ export default function HomePage() {
   }
 
   const handleStopAI = () => {
+    playStopSound() // Play sound when AI is stopped
     stopContinuousAnalysis()
     stopListening()
     stopSpeaking()
@@ -391,6 +473,7 @@ export default function HomePage() {
     setTextQuery("")
     setLatestBackgroundAnalysis("")
     setAnalysisHistory([])
+    setAnswerHistory([])
     isAnsweringQuestionRef.current = false
   }
 
@@ -424,56 +507,63 @@ export default function HomePage() {
         style={{ transform: "scaleX(-1)" }}
       />
 
-      {/* Status Overlay - Top Center */}
-      {(isListening || isAnsweringQuestionRef.current || isSpeaking || question || answer || error) && (
-        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 max-w-md max-h-64 overflow-y-auto">
-          {isListening && !isSpeaking && (
-            <div className="flex items-center gap-2 text-white">
-              <Mic className="h-4 w-4 animate-pulse text-red-400" />
-              <span className="text-sm">Listening... (you can interrupt anytime)</span>
+      {/* Status Indicator - Top Center (single centered dot for all states) */}
+      <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20">
+        {error && (
+          <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse" />
+        )}
+        {!error && isSpeaking && (
+          <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse" />
+        )}
+        {!error && !isSpeaking && isAnsweringQuestionRef.current && (
+          <div className="h-3 w-3 bg-blue-400 rounded-full animate-pulse" />
+        )}
+        {!error && !isSpeaking && !isAnsweringQuestionRef.current && isListening && (
+          <div className="h-3 w-3 bg-red-400 rounded-full animate-pulse" />
+        )}
+        {!error && !isSpeaking && !isAnsweringQuestionRef.current && !isListening && isAnalyzing && (
+          <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse" />
+        )}
+      </div>
+
+      {/* Answer History Overlay - Bottom (slides up from bottom) */}
+      {answerHistory.length > 0 && (
+        <div
+          className="absolute left-4 right-4 z-30 pointer-events-none"
+          style={{
+            display: 'flex',
+            flexDirection: 'column-reverse',
+            gap: '8px',
+            maxWidth: '800px',
+            margin: '0 auto',
+            bottom: inputMode === "text" ? "220px" : inputMode === "voice" ? "200px" : "200px", // Position above the input controls
+          }}
+        >
+          {answerHistory.map((answerItem, index) => {
+            const opacityLevels = [1, 0.5, 0.25]
+            return (
+              <div
+                key={answerItem.id}
+                className="text-white shadow-lg leading-snug text-sm"
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  background: 'rgba(0, 0, 0, 0.1)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  opacity: opacityLevels[index] || 0.25,
+                  animation: index === 0 ? 'slideUp 0.3s ease-out' : 'none',
+                  transition: 'opacity 0.3s ease-out',
+                  borderRadius: '16px',
+                }}
+              >
+                {answerItem.text}
             </div>
-          )}
-          {isAnsweringQuestionRef.current && !isSpeaking && (
-            <div className="flex items-center gap-2 text-white">
-              <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm">Analyzing your question...</span>
-            </div>
-          )}
-          {isSpeaking && (
-            <div className="flex items-center gap-2 text-white">
-              <Mic className="h-4 w-4 text-green-400 animate-pulse" />
-              <span className="text-sm">Speaking... (speak to interrupt)</span>
-            </div>
-          )}
-          {error && (
-            <div className="text-red-300 text-sm">
-              {error}
-            </div>
-          )}
-          {question && (
-            <div className="text-white text-sm mt-1">
-              <span className="text-gray-400">You: </span>
-              {question}
-            </div>
-          )}
-          {answer && (
-            <div className="text-white text-sm mt-1">
-              <span className="text-gray-400">AI: </span>
-              {answer}
-            </div>
-          )}
+            )
+          })}
         </div>
       )}
       
-      {/* Background Analysis Indicator (subtle) */}
-      {isAnalyzing && !isAnsweringQuestionRef.current && !isSpeaking && (
-        <div className="absolute top-4 right-4 z-20 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-white text-xs">Analyzing...</span>
-          </div>
-        </div>
-      )}
 
       {/* Query Input and Controls - Floating above bottom navbar */}
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
