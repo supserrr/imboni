@@ -126,7 +126,7 @@ export class NotificationService {
     
     const { data: user } = await this.supabase
       .from("users")
-      .select("notification_token")
+      .select("notification_token, device_info")
       .eq("id", userId)
       .single()
 
@@ -135,6 +135,12 @@ export class NotificationService {
     }
 
     const subscription = JSON.parse(user.notification_token)
+    
+    // Get sound preference from device_info (defaults to true if not set)
+    const deviceInfo = user.device_info as Record<string, unknown> | null
+    const soundEnabled = deviceInfo?.notification_sound_enabled !== undefined 
+      ? (deviceInfo.notification_sound_enabled as boolean)
+      : true
 
     try {
       const response = await fetch("/api/notifications/send", {
@@ -147,6 +153,7 @@ export class NotificationService {
           title,
           body,
           data,
+          sound: soundEnabled ? "default" : null,
         }),
       })
 

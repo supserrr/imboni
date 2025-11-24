@@ -34,6 +34,10 @@ export default function AccountSettingsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
+  // Check if user logged in with Google OAuth
+  const isGoogleUser = authUser?.app_metadata?.provider === "google" || 
+    authUser?.identities?.some((identity: any) => identity.provider === "google")
+
   useEffect(() => {
     if (!authUser) {
       router.push("/login")
@@ -74,6 +78,11 @@ export default function AccountSettingsPage() {
       return
     }
 
+    if (isGoogleUser) {
+      toast.error("Email changes are not available for Google accounts. Please update your email in your Google account settings.")
+      return
+    }
+
     if (newEmail === authUser.email) {
       toast.error("New email must be different from your current email")
       return
@@ -90,6 +99,11 @@ export default function AccountSettingsPage() {
   }
 
   const handleChangePassword = async () => {
+    if (isGoogleUser) {
+      toast.error("Password changes are not available for Google accounts. Please update your password in your Google account settings.")
+      return
+    }
+
     if (!newPassword || !confirmPassword) {
       toast.error("Please fill in all password fields")
       return
@@ -173,88 +187,120 @@ export default function AccountSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Change Email</CardTitle>
-            <CardDescription>Update your email address</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!isChangingEmail ? (
-              <Button variant="outline" onClick={() => setIsChangingEmail(true)}>
-                Change Email
-              </Button>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="newEmail">New Email</Label>
-                  <Input
-                    id="newEmail"
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="Enter new email address"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleChangeEmail}>Update Email</Button>
-                  <Button variant="outline" onClick={() => {
-                    setIsChangingEmail(false)
-                    setNewEmail("")
-                  }}>
-                    Cancel
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        {!isGoogleUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Email</CardTitle>
+              <CardDescription>Update your email address</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!isChangingEmail ? (
+                <Button variant="outline" onClick={() => setIsChangingEmail(true)}>
+                  Change Email
+                </Button>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="newEmail">New Email</Label>
+                    <Input
+                      id="newEmail"
+                      type="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="Enter new email address"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleChangeEmail}>Update Email</Button>
+                    <Button variant="outline" onClick={() => {
+                      setIsChangingEmail(false)
+                      setNewEmail("")
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Change Password</CardTitle>
-            <CardDescription>Update your account password</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!isChangingPassword ? (
-              <Button variant="outline" onClick={() => setIsChangingPassword(true)}>
-                Change Password
-              </Button>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm new password"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleChangePassword}>Update Password</Button>
-                  <Button variant="outline" onClick={() => {
-                    setIsChangingPassword(false)
-                    setNewPassword("")
-                    setConfirmPassword("")
-                  }}>
-                    Cancel
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+        {isGoogleUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Email</CardTitle>
+              <CardDescription>Email managed by Google</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Your email is managed through your Google account. To change your email, please update it in your Google account settings.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {!isGoogleUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Password</CardTitle>
+              <CardDescription>Update your account password</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!isChangingPassword ? (
+                <Button variant="outline" onClick={() => setIsChangingPassword(true)}>
+                  Change Password
+                </Button>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleChangePassword}>Update Password</Button>
+                    <Button variant="outline" onClick={() => {
+                      setIsChangingPassword(false)
+                      setNewPassword("")
+                      setConfirmPassword("")
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {isGoogleUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Password</CardTitle>
+              <CardDescription>Password managed by Google</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Your account is authenticated through Google. To change your password, please update it in your Google account settings.
+              </p>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>
