@@ -28,6 +28,13 @@ export default function HomePage() {
   const [analysisHistory, setAnalysisHistory] = useState<string[]>([])
   const [latestBackgroundAnalysis, setLatestBackgroundAnalysis] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
+  // Narration settings from localStorage
+  const [narrationSpeed, setNarrationSpeed] = useState(1)
+  const [selectedVoice, setSelectedVoice] = useState<string>("")
+  const [autoNarrate, setAutoNarrate] = useState(true)
+  const [showPreview, setShowPreview] = useState(false)
+  const [analysisFrequency, setAnalysisFrequency] = useState(2)
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
   const analysisLoopRef = useRef<boolean>(false)
   const isAnsweringQuestionRef = useRef<boolean>(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -40,6 +47,84 @@ export default function HomePage() {
   useEffect(() => {
     checkPermission()
   }, [checkPermission])
+
+  // Load narration settings from localStorage
+  useEffect(() => {
+    const savedSpeed = localStorage.getItem("narrationSpeed")
+    const savedVoice = localStorage.getItem("selectedVoice")
+    const savedAutoNarrate = localStorage.getItem("autoNarrate")
+    const savedShowPreview = localStorage.getItem("showPreview")
+    const savedFrequency = localStorage.getItem("analysisFrequency")
+
+    if (savedSpeed) setNarrationSpeed(parseFloat(savedSpeed))
+    if (savedVoice) setSelectedVoice(savedVoice)
+    if (savedAutoNarrate) setAutoNarrate(savedAutoNarrate === "true")
+    if (savedShowPreview) setShowPreview(savedShowPreview === "true")
+    if (savedFrequency) setAnalysisFrequency(parseFloat(savedFrequency))
+  }, [])
+
+  // Load available voices and listen for changes
+  useEffect(() => {
+    const loadVoices = () => {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        const voices = window.speechSynthesis.getVoices()
+        setAvailableVoices(voices)
+      }
+    }
+
+    loadVoices()
+    if (typeof window !== "undefined" && window.speechSynthesis.onvoiceschanged) {
+      window.speechSynthesis.onvoiceschanged = loadVoices
+    }
+
+    return () => {
+      if (typeof window !== "undefined" && window.speechSynthesis.onvoiceschanged) {
+        window.speechSynthesis.onvoiceschanged = null
+      }
+    }
+  }, [])
+
+  // Listen for changes to narration settings in localStorage (from settings page)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "narrationSpeed" && e.newValue) {
+        setNarrationSpeed(parseFloat(e.newValue))
+      } else if (e.key === "selectedVoice" && e.newValue !== null) {
+        setSelectedVoice(e.newValue)
+      } else if (e.key === "autoNarrate" && e.newValue !== null) {
+        setAutoNarrate(e.newValue === "true")
+      } else if (e.key === "showPreview" && e.newValue !== null) {
+        setShowPreview(e.newValue === "true")
+      } else if (e.key === "analysisFrequency" && e.newValue) {
+        setAnalysisFrequency(parseFloat(e.newValue))
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    
+    // Also listen for custom events (for same-tab updates)
+    const handleCustomStorageChange = () => {
+      const savedSpeed = localStorage.getItem("narrationSpeed")
+      const savedVoice = localStorage.getItem("selectedVoice")
+      const savedAutoNarrate = localStorage.getItem("autoNarrate")
+      const savedShowPreview = localStorage.getItem("showPreview")
+      const savedFrequency = localStorage.getItem("analysisFrequency")
+
+      if (savedSpeed) setNarrationSpeed(parseFloat(savedSpeed))
+      if (savedVoice !== null) setSelectedVoice(savedVoice)
+      if (savedAutoNarrate !== null) setAutoNarrate(savedAutoNarrate === "true")
+      if (savedShowPreview !== null) setShowPreview(savedShowPreview === "true")
+      if (savedFrequency) setAnalysisFrequency(parseFloat(savedFrequency))
+    }
+
+    // Poll for changes (since localStorage events don't fire in same tab)
+    const interval = setInterval(handleCustomStorageChange, 1000)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      clearInterval(interval)
+    }
+  }, [])
 
   // Initialize audio context for sound effects
   useEffect(() => {
@@ -171,9 +256,11 @@ export default function HomePage() {
       
       playAnswerReadySound() // Play sound when answer is ready
       
-      // Small delay to ensure state is updated, then speak the answer
+      // Small delay to ensure state is updated, then speak the answer if auto-narrate is enabled
       await new Promise(resolve => setTimeout(resolve, 100))
-      speak(response)
+      if (autoNarrate) {
+        speak(response)
+      }
     } catch (err: any) {
       console.error("Error answering question:", err)
       setError(err.message || "Failed to answer question")
@@ -207,8 +294,9 @@ export default function HomePage() {
             setAnalysisHistory(prev => [response, ...prev].slice(0, 10))
           }
           
-          // Wait before next analysis (2-3 seconds between analyses)
-          await new Promise(resolve => setTimeout(resolve, 2000))
+          // Wait before next analysis (use user's preferred frequency)
+          const delayMs = analysisFrequency * 1000
+          await new Promise(resolve => setTimeout(resolve, delayMs))
         } catch (err: any) {
           console.error("Continuous analysis error:", err)
           // Continue loop even on error, but wait longer
@@ -395,15 +483,28 @@ export default function HomePage() {
   }
 
   const speak = (text: string) => {
+    // Don't speak if auto-narrate is disabled
+    if (!autoNarrate) {
+      return
+    }
+
     if (synthesisRef.current) {
       // Cancel any ongoing speech when new speech starts (allows interruption)
       synthesisRef.current.cancel()
       
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = "en-US"
-      utterance.rate = 1.0 // Natural speaking rate
+      utterance.rate = narrationSpeed // Use user's preferred speed
       utterance.pitch = 1.0 // Natural pitch
       utterance.volume = 1.0
+
+      // Use selected voice if available
+      if (selectedVoice && availableVoices.length > 0) {
+        const voice = availableVoices.find(v => v.name === selectedVoice)
+        if (voice) {
+          utterance.voice = voice
+        }
+      }
 
       utterance.onstart = () => {
         setIsSpeaking(true)
@@ -510,14 +611,15 @@ export default function HomePage() {
 
   return (
     <div className="fixed inset-0 w-full h-full bg-black overflow-hidden">
-      {/* Full Screen Camera Feed */}
+      {/* Full Screen Camera Feed - Conditionally visible based on showPreview setting */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        className="w-full h-full object-contain"
+        className={showPreview ? "w-full h-full object-contain" : "hidden"}
         style={{ transform: "scaleX(-1)" }}
+        aria-hidden={!showPreview}
       />
 
       {/* Status Indicator - Top Center (single centered dot for all states) */}
