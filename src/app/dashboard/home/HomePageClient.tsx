@@ -200,14 +200,53 @@ export function HomePageClient() {
   }
 
   const handleQuestion = async (questionText: string) => {
-    if (!videoRef.current || !isStreaming) {
-      setError("Camera is not ready")
+    console.log("[handleQuestion] Called with:", questionText)
+    console.log("[handleQuestion] State check - videoRef:", !!videoRef.current, "isStreaming:", isStreaming, "streamRef:", !!streamRef.current)
+    
+    // Check if we actually have an active stream (more reliable than state)
+    const hasActiveStream = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
+    
+    // If camera isn't streaming, try to start it
+    if (!isStreaming && !hasActiveStream) {
+      console.log("[handleQuestion] Camera not streaming, attempting to start...")
+      await startCamera()
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Re-check after delay
+      const stillHasStream = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
+      console.log("[handleQuestion] After camera start attempt, hasActiveStream:", stillHasStream)
+    }
+    
+    // Final check - use streamRef as source of truth
+    const finalStreamCheck = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
+    
+    if (!videoRef.current || !finalStreamCheck) {
+      console.error("[handleQuestion] Camera still not ready - videoRef:", !!videoRef.current, "hasActiveStream:", finalStreamCheck)
+      setError("Camera is not ready. Please ensure camera permissions are granted and try again.")
+      // Try to restart listening if in voice mode
+      if (inputModeRef.current === "voice" && recognitionRef.current) {
+        setTimeout(() => {
+          try {
+            if (recognitionRef.current) {
+              recognitionRef.current.start()
+              setIsListening(true)
+            }
+          } catch (err: any) {
+            // If already started, that's fine
+            if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+              console.log("[handleQuestion] Recognition already active, setting listening state")
+              setIsListening(true)
+            } else {
+              console.error("[handleQuestion] Error restarting recognition:", err)
+            }
+          }
+        }, 1000)
+      }
       return
     }
 
     // Prevent processing if already answering
     if (isAnsweringQuestionRef.current) {
-      console.log("Already processing a question, ignoring:", questionText)
+      console.log("[handleQuestion] Already processing a question, ignoring:", questionText)
       return
     }
 
@@ -220,17 +259,21 @@ export function HomePageClient() {
     setQuestion(questionText)
     setError(null)
     isAnsweringQuestionRef.current = true
+    console.log("[handleQuestion] Starting to process question...")
     playAnalyzingSound() // Play sound when analysis starts
 
     try {
+      console.log("[handleQuestion] Capturing frame from video...")
       // Capture current frame and answer the question immediately
       const frameDataUrl = captureFrameFromVideo(videoRef.current)
       if (!frameDataUrl) {
         throw new Error("Failed to capture frame from camera")
       }
+      console.log("[handleQuestion] Frame captured, querying Moondream API...")
 
       // Query Moondream API with the user's question
       const response = await queryMoondream(frameDataUrl, questionText, MOONDREAM_API_URL)
+      console.log("[handleQuestion] Got response from Moondream:", response?.substring(0, 100))
       setAnswer(response)
       
       // Add to answer history for bottom overlay display
@@ -246,27 +289,44 @@ export function HomePageClient() {
       // Small delay to ensure state is updated, then speak the answer if auto-narrate is enabled
       await new Promise(resolve => setTimeout(resolve, 100))
       if (autoNarrate) {
-        speak(response)
+        console.log("[handleQuestion] Speaking answer...")
+        await speak(response)
+        console.log("[handleQuestion] Answer spoken")
+      } else {
+        console.log("[handleQuestion] Auto-narrate disabled, skipping speech")
       }
     } catch (err: any) {
-      console.error("Error answering question:", err)
+      console.error("[handleQuestion] Error answering question:", err)
       setError(err.message || "Failed to answer question")
       playErrorSound() // Play error sound
     } finally {
-      // Reset answering flag after speech starts to allow new questions
+      console.log("[handleQuestion] Question processing finished, resetting flag...")
+      // Reset answering flag after a delay to allow speech to start
       setTimeout(() => {
         isAnsweringQuestionRef.current = false
+        console.log("[handleQuestion] Question processing complete, ready for next question")
+        
         // Restart listening if in voice mode
         if (inputModeRef.current === "voice" && recognitionRef.current) {
-          try {
-            recognitionRef.current.start()
-            setIsListening(true)
-          } catch (err) {
-            // Ignore restart errors
-            console.error("Error restarting recognition:", err)
-          }
+          // Wait a bit longer to ensure speech has started
+          setTimeout(() => {
+            try {
+              console.log("[handleQuestion] Restarting voice recognition...")
+              recognitionRef.current.start()
+              setIsListening(true)
+            } catch (err: any) {
+              // If already started, that's fine
+              if (err.message?.includes("already started") || err.name === "InvalidStateError") {
+                console.log("[handleQuestion] Recognition already active")
+                setIsListening(true)
+              } else {
+                console.error("[handleQuestion] Error restarting recognition:", err)
+                setIsListening(false)
+              }
+            }
+          }, 500)
         }
-      }, 1000) // Wait for speech to start before allowing new questions
+      }, 1500) // Wait for speech to start before allowing new questions
     }
   }
 
@@ -329,12 +389,30 @@ export function HomePageClient() {
           const transcript = event.results[event.results.length - 1][0].transcript.trim()
           
           // Ignore empty transcripts
-          if (!transcript) return
+          if (!transcript) {
+            console.log("[onresult] Empty transcript, ignoring")
+            return
+          }
+          
+          console.log("[onresult] Transcript received:", transcript)
           
           // Don't process if already answering a question
-          if (isAnsweringQuestionRef.current) return
+          if (isAnsweringQuestionRef.current) {
+            console.log("[onresult] Already processing question, ignoring:", transcript)
+            return
+          }
+          
+          console.log("[onresult] Question detected, calling handleQuestion:", transcript)
           
           // Stop listening while processing the question
+          if (recognitionRef.current) {
+            try {
+              console.log("[onresult] Stopping recognition...")
+              recognitionRef.current.stop()
+            } catch (err) {
+              console.error("[onresult] Error stopping recognition:", err)
+            }
+          }
           setIsListening(false)
           
           // If user is speaking while AI is speaking, interrupt the AI
@@ -344,7 +422,10 @@ export function HomePageClient() {
           }
           
           // Process the question
-          handleQuestion(transcript)
+          console.log("[onresult] Calling handleQuestion with:", transcript)
+          handleQuestion(transcript).catch(err => {
+            console.error("[onresult] Error in handleQuestion promise:", err)
+          })
         }
 
         recognition.onerror = (event: any) => {
@@ -412,9 +493,43 @@ export function HomePageClient() {
 
   const startCamera = async () => {
     try {
+      console.log("[startCamera] Starting camera...", { permissionStatus, isStreaming: isStreaming, hasStream: !!streamRef.current })
+      
+      // Check if we already have an active stream
+      if (streamRef.current) {
+        const hasActiveTracks = streamRef.current.getTracks().some(track => track.readyState === 'live')
+        if (hasActiveTracks) {
+          console.log("[startCamera] Stream already active, reusing it")
+          setIsStreaming(true)
+          if (videoRef.current && !videoRef.current.srcObject) {
+            videoRef.current.srcObject = streamRef.current
+            await videoRef.current.play()
+          }
+          return
+        }
+      }
+      
       if (permissionStatus !== "granted") {
-        setShowPermissionPrompt(true)
-        return
+        console.log("[startCamera] Permission not granted, checking permission status...")
+        // Re-check permission status before showing prompt
+        const currentPermission = await navigator.permissions.query({ name: 'camera' as PermissionName }).catch(() => null)
+        if (currentPermission?.state === 'granted') {
+          console.log("[startCamera] Permission actually granted, proceeding...")
+          // Permission is granted, continue
+        } else {
+          console.log("[startCamera] Permission not granted, showing prompt")
+          setShowPermissionPrompt(true)
+          return
+        }
+      }
+
+      // Stop existing stream if any (but only if it's not active)
+      if (streamRef.current) {
+        const hasActiveTracks = streamRef.current.getTracks().some(track => track.readyState === 'live')
+        if (!hasActiveTracks) {
+          streamRef.current.getTracks().forEach(track => track.stop())
+          streamRef.current = null
+        }
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -426,16 +541,23 @@ export function HomePageClient() {
         audio: false,
       })
 
+      console.log("[startCamera] Stream obtained:", !!stream)
       streamRef.current = stream
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        videoRef.current.play()
+        await videoRef.current.play()
         setIsStreaming(true)
         setError(null)
+        console.log("[startCamera] Camera started successfully, isStreaming set to true")
+      } else {
+        console.error("[startCamera] videoRef.current is null!")
+        stream.getTracks().forEach(track => track.stop())
+        setError("Video element not ready")
+        setIsStreaming(false)
       }
     } catch (err: any) {
-      console.error("Error starting camera:", err)
+      console.error("[startCamera] Error starting camera:", err)
       setError(err.message || "Failed to start camera")
       setIsStreaming(false)
     }
@@ -515,10 +637,13 @@ export function HomePageClient() {
   }
 
   const handleStartAI = async () => {
+    console.log("[handleStartAI] Called, isStreaming:", isStreaming)
     if (!isStreaming) {
+      console.log("[handleStartAI] Camera not streaming, starting camera...")
       await startCamera()
-      // Wait a bit for camera to be ready
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait a bit for camera to be ready and state to update
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log("[handleStartAI] After camera start, isStreaming:", isStreaming)
     }
     // Show input mode selection (text/voice buttons)
     setShowModeSelection(true)
@@ -541,10 +666,21 @@ export function HomePageClient() {
   }
 
   const handleSelectVoiceMode = async () => {
+    console.log("[handleSelectVoiceMode] Called, isStreaming:", isStreaming)
     playVoiceModeSound() // Play sound when voice mode is selected
     if (!isStreaming) {
+      console.log("[handleSelectVoiceMode] Camera not streaming, starting camera...")
       await startCamera()
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait longer for camera to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log("[handleSelectVoiceMode] After camera start, isStreaming:", isStreaming)
+      
+      // Double-check streaming state
+      if (!isStreaming) {
+        console.error("[handleSelectVoiceMode] Camera still not streaming after start attempt!")
+        setError("Camera failed to start. Please try again.")
+        return
+      }
     }
     
     setInputMode("voice")
@@ -554,6 +690,7 @@ export function HomePageClient() {
     startContinuousAnalysis()
     // Start listening for questions continuously
     setTimeout(() => {
+      console.log("[handleSelectVoiceMode] Starting voice recognition...")
       startListening()
     }, 100)
   }

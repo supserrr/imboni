@@ -55,7 +55,7 @@ export function PermissionPrompt({
               ? "Camera Not Available"
               : "Camera Permission Required"}
           </DialogTitle>
-          <DialogDescription className="pt-4">
+          <div className="pt-4">
             {isDenied ? (
               <div className="space-y-2">
                 <p>
@@ -82,7 +82,7 @@ export function PermissionPrompt({
                 </p>
               </div>
             )}
-          </DialogDescription>
+          </div>
         </DialogHeader>
         <DialogFooter>
           {isDenied || isNotSupported ? (

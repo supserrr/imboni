@@ -77,7 +77,7 @@ export function useTextToSpeech(options: TextToSpeechOptions = {}) {
       utterance.onerror = (event) => {
         // Don't log "canceled" errors - they're expected when interrupting speech
         if (event.error !== "canceled") {
-          console.error("Speech synthesis error:", event)
+        console.error("Speech synthesis error:", event)
         }
         setIsSpeaking(false)
         utteranceRef.current = null
