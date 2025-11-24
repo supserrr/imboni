@@ -454,13 +454,13 @@ export default function HomePage() {
                 value={textQuery}
                 onChange={(e) => setTextQuery(e.target.value)}
                 placeholder="Type your question or ask by voice..."
-                className="flex-1 bg-black/70 backdrop-blur-sm border-white/30 text-white placeholder:text-white/50 rounded-full px-6 py-6 text-base"
+                className="flex-1 bg-black/70 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/50 rounded-none px-6 py-6 text-base"
                 disabled={!isStreaming}
               />
               <Button
                 type="submit"
                 size="lg"
-                className="rounded-full px-6 shadow-2xl"
+                className="rounded-none px-6 shadow-2xl"
                 disabled={!isStreaming || !textQuery.trim()}
               >
                 <Send className="h-5 w-5" />
@@ -472,22 +472,24 @@ export default function HomePage() {
               onClick={handleStopAI}
               size="lg"
               variant="destructive"
-              className="w-full py-6 text-lg font-semibold rounded-full shadow-2xl"
+              className="w-full py-6 text-lg font-semibold rounded-none shadow-2xl"
             >
               <Square className="mr-2 h-6 w-6" />
               Stop AI
             </Button>
           </div>
         ) : (
-          <Button
-            onClick={handleStartAI}
-            size="lg"
-            className="px-12 py-6 text-lg font-semibold rounded-full shadow-2xl"
-            disabled={!isStreaming}
-          >
-            <Play className="mr-2 h-6 w-6" />
-            Start AI
-          </Button>
+          <div className="flex justify-center">
+            <Button
+              onClick={handleStartAI}
+              size="lg"
+              className="px-24 py-11 text-2xl font-semibold rounded-none shadow-2xl"
+              disabled={!isStreaming}
+            >
+              <Play className="mr-4 h-10 w-10" />
+              Start AI
+            </Button>
+          </div>
         )}
       </div>
 

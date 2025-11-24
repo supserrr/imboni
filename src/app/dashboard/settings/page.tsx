@@ -59,7 +59,7 @@ export default function SettingsPage() {
             <Card key={section.href} className="hover:bg-muted/50 transition-colors">
               <Link href={section.href}>
                 <CardHeader className="flex flex-row items-center gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-none bg-primary/10 border border-border">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="flex-1">

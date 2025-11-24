@@ -1,6 +1,6 @@
 "use client"
 
-import { BottomTabs } from "@/components/dashboard/BottomTabs"
+import { BottomNavBar } from "@/components/ui/bottom-nav-bar"
 import { useAuth } from "@/contexts/AuthProvider"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
@@ -37,7 +37,9 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1 pb-20">{children}</main>
-      <BottomTabs />
+      <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4" style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0))" }}>
+        <BottomNavBar stickyBottom />
+      </div>
     </div>
   )
 }
