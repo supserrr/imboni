@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { subscription, title, body, data } = body
+    const requestBody = await request.json()
+    const { subscription, title, body: messageBody, data } = requestBody
 
     if (!subscription) {
       return NextResponse.json(
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         to: subscription.endpoint,
         sound: "default",
         title,
-        body,
+        body: messageBody,
         data,
       }),
     })

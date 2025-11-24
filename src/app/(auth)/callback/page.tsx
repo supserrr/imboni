@@ -22,15 +22,7 @@ export default function CallbackPage() {
         await authService.handleOAuthCallback(url)
         setStatus("success")
         setTimeout(() => {
-          const supabase = createClient()
-          const { data: profile } = await supabase
-            .from("users")
-            .select("type")
-            .eq("id", data.user.id)
-            .single()
-          
-          const userType = profile?.type || "blind"
-          router.push(`/dashboard/${userType}`)
+          router.push("/")
         }, 1000)
       } catch (err: any) {
         setError(err.message || "Authentication failed")

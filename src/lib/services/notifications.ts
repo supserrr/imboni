@@ -78,7 +78,7 @@ export class NotificationService {
 
       const newSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey: this.urlBase64ToUint8Array(vapidPublicKey) as BufferSource,
       })
 
       await this.saveNotificationToken(userId, newSubscription)

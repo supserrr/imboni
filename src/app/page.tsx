@@ -1,55 +1,21 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+"use client"
 
-export default function WelcomePage() {
+import Player from '@/components/solutions/analyze-live-video/player';
+import { Navigation } from '@/components/Navigation';
+
+const MOONDREAM_API_URL = process.env.NEXT_PUBLIC_MOONDREAM_API_URL || 'https://api.moondream.ai/v1';
+
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-8">
-      <div className="w-full max-w-md space-y-8 text-center">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold">Imboni</h1>
-          <p className="text-muted-foreground">
-            Visual assistance at your fingertips
-          </p>
+    <div className="flex flex-col min-h-screen bg-background">
+      <Navigation />
+      <main className="flex-1 flex flex-col" role="main">
+        <div className="flex-1 relative min-h-screen bg-[#050505] text-white">
+          <div className="mx-auto max-w-6xl px-4 pb-16 pt-8">
+            <Player inferenceUrl={MOONDREAM_API_URL} />
+          </div>
         </div>
-
-        <div className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>I need visual assistance</CardTitle>
-              <CardDescription>
-                Get help from volunteers via video call
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full" size="lg">
-                <Link href="/signup/blind">Get Started</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>I'd like to volunteer</CardTitle>
-              <CardDescription>
-                Help others by providing visual assistance
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline" className="w-full" size="lg">
-                <Link href="/signup/volunteer">Volunteer</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="underline hover:text-foreground">
-            Log in
-          </Link>
-        </div>
-      </div>
+      </main>
     </div>
-  )
+  );
 }

@@ -48,21 +48,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       await authService.signInWithEmail(values.email, values.password)
       toast.success("Successfully signed in")
       onSuccess?.()
-      
-      const { data: user } = await authService.getUser()
-      if (user) {
-        const supabase = createClient()
-        const { data: profile } = await supabase
-          .from("users")
-          .select("type")
-          .eq("id", user.id)
-          .single()
-        
-        const userType = profile?.type || "blind"
-        router.push(`/dashboard/${userType}`)
-      } else {
-        router.push("/dashboard/blind")
-      }
+      router.push("/")
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in")
     } finally {

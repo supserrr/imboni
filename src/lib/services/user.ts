@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
-import type { User, TablesUpdate } from "@/types/database"
+import type { User } from "@/types/user"
+import type { TablesUpdate } from "@/types/database"
 
 export class UserService {
   private supabase = createClient()
@@ -12,7 +13,12 @@ export class UserService {
       .single()
 
     if (error) throw error
-    return data
+    if (!data) return null
+    // Convert database type to User type
+    return {
+      ...data,
+      device_info: data.device_info as Record<string, unknown> | null,
+    } as User
   }
 
   async updateProfile(

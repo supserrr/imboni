@@ -216,6 +216,41 @@ export type Database = {
           },
         ]
       }
+      analysis_history: {
+        Row: {
+          id: string
+          user_id: string | null
+          image_data: string | null
+          prompt: string
+          response: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          image_data?: string | null
+          prompt: string
+          response: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          image_data?: string | null
+          prompt?: string
+          response?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
