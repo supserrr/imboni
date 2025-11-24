@@ -177,18 +177,23 @@ export class ElevenLabsService {
   }
 
   /**
-   * Stop current speech
+   * Stop current speech immediately
    */
   stop(): void {
-    console.log("[ElevenLabs] Stopping audio playback")
+    console.log("[ElevenLabs] Stopping audio playback immediately")
     if (this.currentAudio) {
       try {
+        // Immediately pause and reset
+        this.currentAudio.pause()
+        this.currentAudio.currentTime = 0
+        // Load empty source to completely stop playback
+        this.currentAudio.load()
+        
         // Remove event listeners to prevent callbacks after stop
         this.currentAudio.onended = null
         this.currentAudio.onerror = null
         this.currentAudio.onpause = null
-        this.currentAudio.pause()
-        this.currentAudio.currentTime = 0
+        
         // Clean up the object URL if it exists
         if (this.currentAudio.src && this.currentAudio.src.startsWith('blob:')) {
           URL.revokeObjectURL(this.currentAudio.src)
@@ -200,7 +205,7 @@ export class ElevenLabsService {
       }
     }
     this.isPlaying = false
-    console.log("[ElevenLabs] Audio stopped, isPlaying set to false")
+    console.log("[ElevenLabs] Audio stopped immediately, isPlaying set to false")
   }
 
   /**

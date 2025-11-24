@@ -1037,17 +1037,17 @@ export function HomePageClient() {
   }
 
   const handleStopAI = () => {
-    console.log("[handleStopAI] Stopping AI analysis and all operations")
-    playStopSound() // Play sound when AI is stopped
+    console.log("[handleStopAI] Stopping AI analysis and all operations immediately")
     
-    // Stop continuous analysis first
+    // Stop speaking FIRST and immediately (most important for user experience)
+    stopElevenLabs()
+    setIsSpeaking(false)
+    
+    // Stop continuous analysis
     stopContinuousAnalysis()
     
     // Stop listening
     stopListening()
-    
-    // Stop speaking
-    stopSpeaking()
     
     // Clear any pending recognition restart timeouts
     if (recognitionRestartTimeoutRef.current) {
@@ -1070,7 +1070,9 @@ export function HomePageClient() {
     // Ensure analyzing state is false
     setIsAnalyzing(false)
     setIsListening(false)
-    setIsSpeaking(false)
+    
+    // Play stop sound after stopping (so it doesn't get interrupted)
+    playStopSound()
     
     console.log("[handleStopAI] AI stopped successfully")
   }
