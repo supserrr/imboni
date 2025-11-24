@@ -19,10 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 
 const navigationItems = [
-  { title: "FEATURES", href: "#features" },
+  { title: "HOME", href: "/" },
   { title: "ABOUT", href: "#about" },
-  { title: "RESOURCES", href: "#resources" },
-  { title: "SUPPORT", href: "#support" },
+  { title: "CONTACT", href: "#contact" },
 ];
 
 const labels = [
