@@ -358,8 +358,8 @@ export const FlickeringFooter = () => {
   return (
     <footer id="footer" className="w-full pb-0">
       <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between py-10">
-        <div className="flex flex-col items-start justify-start gap-y-5 max-w-xs mx-0">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between py-10 gap-8 md:gap-0">
+        <div className="flex flex-col items-start justify-start gap-y-5 max-w-xs mx-0 pl-4 md:pl-0">
           <Link href="/" className="flex items-center gap-2">
             <Logo variant="full" className="h-8 w-auto" />
           </Link>
@@ -368,14 +368,14 @@ export const FlickeringFooter = () => {
             Get instant descriptions of your surroundings, detect objects,
             and navigate the world with confidence.
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 hidden md:flex">
             <p className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} Imboni. All rights reserved.
             </p>
           </div>
         </div>
         <div className="pt-5 md:ml-auto">
-          <ul className="flex flex-col items-start justify-start md:flex-row md:items-center md:justify-end gap-x-8 gap-y-2">
+          <ul className="flex flex-row items-center justify-end gap-x-8">
             {footerLinks.map((link) => (
               <li
                 key={link.id}
