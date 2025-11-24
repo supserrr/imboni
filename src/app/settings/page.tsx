@@ -1,15 +1,8 @@
-"use client"
+"use cache"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { redirect } from "next/navigation"
 
-export default function SettingsPage() {
-  const router = useRouter()
-
-  useEffect(() => {
-    router.replace("/dashboard/settings/narration")
-  }, [router])
-
-  return null
+export default async function SettingsPage() {
+  redirect("/dashboard/settings/narration")
 }
 

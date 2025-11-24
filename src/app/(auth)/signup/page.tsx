@@ -1,7 +1,7 @@
-"use client"
+"use cache"
 
-import { Component } from "@/components/ui/animated-characters-signup-page"
+import { SignupPageClient } from "./SignupPageClient"
 
-export default function SignupPage() {
-  return <Component />
+export default async function SignupPage() {
+  return <SignupPageClient />
 }

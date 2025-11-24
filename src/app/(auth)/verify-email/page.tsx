@@ -1,7 +1,7 @@
-"use client"
+"use cache"
 
-import { Component } from "@/components/ui/animated-characters-verify-email-page"
+import { VerifyEmailPageClient } from "./VerifyEmailPageClient"
 
-export default function VerifyEmailPage() {
-  return <Component />
+export default async function VerifyEmailPage() {
+  return <VerifyEmailPageClient />
 }
