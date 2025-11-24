@@ -1,8 +1,28 @@
 import { createClient } from "@/lib/supabase/client"
 import type { UserType } from "@/types/user"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 
 export class AuthService {
-  private supabase = createClient()
+  private _supabase: SupabaseClient<Database> | null = null
+
+  private get supabase() {
+    if (!this._supabase) {
+      // Only create client in browser environment
+      if (typeof window === "undefined") {
+        // During build/SSR, return null - methods will handle this gracefully
+        return null as any
+      }
+      try {
+        this._supabase = createClient()
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        console.error("Failed to create Supabase client:", errorMessage)
+        return null as any
+      }
+    }
+    return this._supabase
+  }
 
   async signUpWithEmail(
     email: string,
@@ -153,5 +173,7 @@ export class AuthService {
   }
 }
 
+// Export service instance - will be created lazily when accessed in browser
+// During build time, the instance is created but won't be used
 export const authService = new AuthService()
 

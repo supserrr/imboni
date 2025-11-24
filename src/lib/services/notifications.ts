@@ -1,10 +1,30 @@
 import { createClient } from "@/lib/supabase/client"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 
 export class NotificationService {
-  private supabase = createClient()
+  private _supabase: SupabaseClient<Database> | null = null
   private serviceWorkerRegistration: ServiceWorkerRegistration | null = null
   private initializationInProgress = false
   private initializedUsers = new Set<string>()
+
+  private get supabase() {
+    if (!this._supabase) {
+      // Only create client in browser environment
+      if (typeof window === "undefined") {
+        // During build/SSR, return null - methods will handle this gracefully
+        return null as any
+      }
+      try {
+        this._supabase = createClient()
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        console.error("Failed to create Supabase client:", errorMessage)
+        return null as any
+      }
+    }
+    return this._supabase
+  }
 
   async requestPermission(): Promise<NotificationPermission> {
     if (!("Notification" in window)) {
@@ -33,6 +53,10 @@ export class NotificationService {
     userId: string,
     subscription: PushSubscription
   ): Promise<void> {
+    if (!this.supabase) {
+      throw new Error("Supabase client is not available")
+    }
+    
     const subscriptionJson = subscription.toJSON()
     const token = JSON.stringify(subscriptionJson)
 
@@ -96,6 +120,10 @@ export class NotificationService {
     body: string,
     data?: Record<string, unknown>
   ): Promise<void> {
+    if (!this.supabase) {
+      throw new Error("Supabase client is not available")
+    }
+    
     const { data: user } = await this.supabase
       .from("users")
       .select("notification_token")
@@ -147,5 +175,7 @@ export class NotificationService {
   }
 }
 
+// Export service instance - will be created lazily when accessed in browser
+// During build time, the instance is created but won't be used
 export const notificationService = new NotificationService()
 

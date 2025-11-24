@@ -1,9 +1,28 @@
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@/types/user"
 import type { TablesUpdate } from "@/types/database"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 
 export class UserService {
-  private supabase = createClient()
+  private _supabase: SupabaseClient<Database> | null = null
+
+  private get supabase() {
+    if (!this._supabase) {
+      // Only create client in browser environment
+      if (typeof window === "undefined") {
+        throw new Error("Supabase client can only be created in browser environment")
+      }
+      try {
+        this._supabase = createClient()
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        console.error("Failed to create Supabase client:", errorMessage)
+        throw new Error(`Supabase client is not available: ${errorMessage}`)
+      }
+    }
+    return this._supabase
+  }
 
   async getProfile(userId: string): Promise<User | null> {
     const { data, error } = await this.supabase
@@ -64,5 +83,7 @@ export class UserService {
   }
 }
 
+// Export service instance - will be created lazily when accessed in browser
+// During build time, the instance is created but won't be used
 export const userService = new UserService()
 

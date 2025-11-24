@@ -49,6 +49,25 @@ A real-time camera-based AI assistant for blind and low vision users, powered by
 
 6. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+## Deployment
+
+For detailed deployment instructions, see the [Deployment Documentation](./docs/deployment/vercel-deployment.md).
+
+### Quick Start
+
+1. Push your code to GitHub/GitLab/Bitbucket
+2. Import the repository in [Vercel](https://vercel.com)
+3. Set required environment variables (see [deployment guide](./docs/deployment/vercel-deployment.md))
+4. Deploy
+
+### Required Environment Variables
+
+- `NEXT_PUBLIC_MOONDREAM_API_KEY` - Your Moondream API key
+- `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+
+See the [deployment checklist](./docs/deployment/deployment-checklist.md) for a complete list of environment variables and deployment steps.
+
 ## Usage
 
 1. **Start the Camera** - Click "Start" or press Space to begin camera analysis
@@ -127,7 +146,18 @@ src/
       moondream.ts        # Moondream API client
     utils/
       frame-capture.ts    # Frame capture utilities
+docs/
+  deployment/             # Deployment documentation
+    vercel-deployment.md  # Vercel deployment guide
+    deployment-checklist.md # Deployment checklist
 ```
+
+## Documentation
+
+Additional documentation is available in the [`docs/`](./docs/) directory:
+
+- **[Deployment Guide](./docs/deployment/vercel-deployment.md)** - Complete guide for deploying to Vercel
+- **[Deployment Checklist](./docs/deployment/deployment-checklist.md)** - Pre and post-deployment checklist
 
 ## License
 
