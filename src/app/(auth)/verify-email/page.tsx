@@ -15,7 +15,6 @@ function VerifyEmailContent() {
   const [email, setEmail] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClient()
 
   useEffect(() => {
     // Get email from URL params if available
@@ -24,13 +23,18 @@ function VerifyEmailContent() {
       setEmail(emailParam)
     } else {
       // Try to get email from session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user?.email) {
-          setEmail(session.user.email)
-        }
-      })
+      try {
+        const supabase = createClient()
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user?.email) {
+            setEmail(session.user.email)
+          }
+        })
+      } catch (error) {
+        console.error("Failed to create Supabase client:", error)
+      }
     }
-  }, [searchParams, supabase])
+  }, [searchParams])
 
   const handleResend = async () => {
     if (!email) {
@@ -40,6 +44,7 @@ function VerifyEmailContent() {
 
     setIsResending(true)
     try {
+      const supabase = createClient()
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: email,

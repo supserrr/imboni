@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { PermissionPrompt } from "@/components/PermissionPrompt"
 import { useCameraPermissions } from "@/hooks/useCameraPermissions"
-import { Play, Square, Mic, MicOff } from "lucide-react"
+import { Play, Square, Mic, Send } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import { queryMoondream } from "@/lib/services/moondream"
 import { captureFrameFromVideo } from "@/lib/utils/frame-capture"
 
@@ -19,6 +20,7 @@ export default function HomePage() {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [question, setQuestion] = useState<string>("")
   const [answer, setAnswer] = useState<string>("")
+  const [textQuery, setTextQuery] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -268,6 +270,15 @@ export default function HomePage() {
     stopSpeaking()
     setQuestion("")
     setAnswer("")
+    setTextQuery("")
+  }
+
+  const handleTextQuerySubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (textQuery.trim() && isStreaming) {
+      await handleQuestion(textQuery.trim())
+      setTextQuery("")
+    }
   }
 
   // Cleanup on unmount
@@ -332,9 +343,42 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Start AI Button - Floating above bottom navbar */}
-      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20">
-        {!isAnalyzing ? (
+      {/* Query Input and Controls - Floating above bottom navbar */}
+      <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
+        {isAnalyzing ? (
+          <div className="flex flex-col gap-3">
+            {/* Text Query Input */}
+            <form onSubmit={handleTextQuerySubmit} className="flex gap-2">
+              <Input
+                type="text"
+                value={textQuery}
+                onChange={(e) => setTextQuery(e.target.value)}
+                placeholder="Type your question or ask by voice..."
+                className="flex-1 bg-black/70 backdrop-blur-sm border-white/30 text-white placeholder:text-white/50 rounded-full px-6 py-6 text-base"
+                disabled={!isStreaming}
+              />
+              <Button
+                type="submit"
+                size="lg"
+                className="rounded-full px-6 shadow-2xl"
+                disabled={!isStreaming || !textQuery.trim()}
+              >
+                <Send className="h-5 w-5" />
+              </Button>
+            </form>
+            
+            {/* Stop AI Button */}
+            <Button
+              onClick={handleStopAI}
+              size="lg"
+              variant="destructive"
+              className="w-full py-6 text-lg font-semibold rounded-full shadow-2xl"
+            >
+              <Square className="mr-2 h-6 w-6" />
+              Stop AI
+            </Button>
+          </div>
+        ) : (
           <Button
             onClick={handleStartAI}
             size="lg"
@@ -343,16 +387,6 @@ export default function HomePage() {
           >
             <Play className="mr-2 h-6 w-6" />
             Start AI
-          </Button>
-        ) : (
-          <Button
-            onClick={handleStopAI}
-            size="lg"
-            variant="destructive"
-            className="px-12 py-6 text-lg font-semibold rounded-full shadow-2xl"
-          >
-            <Square className="mr-2 h-6 w-6" />
-            Stop AI
           </Button>
         )}
       </div>

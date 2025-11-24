@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
 import { notificationService } from "@/lib/services/notifications"
@@ -18,25 +18,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<any | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+
+  const supabase = useMemo(() => {
+    try {
+      return createClient()
+    } catch (error) {
+      console.error("Failed to create Supabase client:", error)
+      return null
+    }
+  }, [])
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
-
-      if (session?.user) {
-        try {
-          await notificationService.initializeNotifications(session.user.id)
-        } catch (error) {
-          console.error("Failed to initialize notifications:", error)
-        }
-      }
-
+    if (!supabase) {
       setIsLoading(false)
+      return
+    }
+
+    const initializeAuth = async () => {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+        setSession(session)
+        setUser(session?.user ?? null)
+
+        if (session?.user) {
+          try {
+            await notificationService.initializeNotifications(session.user.id)
+          } catch (error) {
+            console.error("Failed to initialize notifications:", error)
+          }
+        }
+      } catch (error) {
+        console.error("Failed to initialize auth:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
     initializeAuth()
@@ -62,7 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
     setUser(null)
     setSession(null)
   }
