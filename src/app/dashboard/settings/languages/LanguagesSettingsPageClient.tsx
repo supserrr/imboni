@@ -112,7 +112,6 @@ export function LanguagesSettingsPageClient() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en")
-  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (!authUser) {
@@ -139,26 +138,26 @@ export function LanguagesSettingsPageClient() {
   const handleLanguageChange = async (languageCode: string) => {
     if (!authUser) return
 
+    // Optimistic update - update UI immediately
+    const previousLanguage = selectedLanguage
     setSelectedLanguage(languageCode)
-    setIsSaving(true)
+    
+    // Update i18n language immediately
+    i18n.changeLanguage(languageCode).catch(console.error)
 
     try {
+      // Save to database
       await userService.updateProfile(authUser.id, {
         preferred_language: languageCode,
       })
 
-      // Update i18n language
-      await i18n.changeLanguage(languageCode)
-
+      // Update local user state
       setUser(prev => prev ? { ...prev, preferred_language: languageCode } : null)
-      toast.success("Language preference updated successfully!")
     } catch (error: any) {
-      toast.error(error.message || "Failed to update language preference. Please try again.")
-      // Revert selection on error
-      const previousLanguage = user?.preferred_language || i18n.language || "en"
+      // Revert on error
       setSelectedLanguage(previousLanguage)
-    } finally {
-      setIsSaving(false)
+      i18n.changeLanguage(previousLanguage).catch(console.error)
+      toast.error(error.message || "Failed to update language preference. Please try again.")
     }
   }
 
@@ -198,7 +197,6 @@ export function LanguagesSettingsPageClient() {
               <Select
                 value={selectedLanguage}
                 onValueChange={handleLanguageChange}
-                disabled={isSaving}
               >
                 <SelectTrigger id="primaryLanguage" className="h-auto min-h-[3.5rem] py-3 w-full">
                   <div className="flex items-center gap-3 flex-1 min-w-0">

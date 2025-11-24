@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { useElevenLabs } from "@/hooks/useElevenLabs"
+import { useAuth } from "@/contexts/AuthProvider"
+import { userService } from "@/lib/services/user"
+import type { User } from "@/types/user"
 
 // All languages supported by ElevenLabs
 const ELEVENLABS_LANGUAGES = [
@@ -37,11 +40,14 @@ const LANGUAGE_NAMES: Record<string, string> = {
 }
 
 export function NarrationSettingsPageClient() {
+  const { user: authUser } = useAuth()
   const { voices, isLoading: voicesLoading, isSpeaking, speak, stop, error } = useElevenLabs()
   const [selectedVoice, setSelectedVoice] = useState<string>("")
   const [selectedLanguage, setSelectedLanguage] = useState<string>("all")
   const [autoNarrate, setAutoNarrate] = useState(true)
   const [isTesting, setIsTesting] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   // ElevenLabs voices are multilingual, but we can filter by language preference
   // Get languages that actually have voices available (from voice labels)
@@ -79,8 +85,104 @@ export function NarrationSettingsPageClient() {
     }
   }, [selectedLanguage, filteredVoices, voices, selectedVoice])
 
-  // Load saved preferences from localStorage
+  // Load saved preferences from database and localStorage
   useEffect(() => {
+    const loadSettings = async () => {
+      if (!authUser) return
+
+      try {
+        const userData = await userService.getProfile(authUser.id)
+        setUser(userData)
+
+        // Load from database first, then fallback to localStorage
+        const dbVoice = userData?.preferred_speaker
+        const dbLanguage = userData?.preferred_language
+        const deviceInfo = userData?.device_info as Record<string, unknown> | null
+        const dbAutoNarrate = deviceInfo?.auto_narrate as boolean | undefined
+        const dbNarrationLanguage = deviceInfo?.narration_language as string | undefined
+
+        // Set from database if available
+        if (dbVoice) {
+          // Validate voice ID exists in available voices
+          const voiceExists = voices.some(v => v.id === dbVoice)
+          if (voiceExists) {
+            setSelectedVoice(dbVoice)
+            localStorage.setItem("selectedVoice", dbVoice)
+          } else {
+            // Try to find by name (for backwards compatibility)
+            const voiceByName = voices.find(v => v.name === dbVoice)
+            if (voiceByName) {
+              console.log("[NarrationSettings] Found voice by name, using ID:", voiceByName.id)
+              setSelectedVoice(voiceByName.id)
+              localStorage.setItem("selectedVoice", voiceByName.id)
+              // Update database with correct ID
+              if (authUser) {
+                try {
+                  await userService.updateProfile(authUser.id, {
+                    preferred_speaker: voiceByName.id,
+                  })
+                } catch (error) {
+                  console.error("Failed to update voice ID in database:", error)
+                }
+              }
+            } else {
+              // Invalid voice, clear it
+              console.warn("[NarrationSettings] Invalid voice ID/name, clearing")
+              localStorage.removeItem("selectedVoice")
+              if (authUser) {
+                try {
+                  await userService.updateProfile(authUser.id, {
+                    preferred_speaker: null,
+                  })
+                } catch (error) {
+                  console.error("Failed to clear invalid voice from database:", error)
+                }
+              }
+            }
+          }
+        } else {
+          // Fallback to localStorage
+          const savedVoice = localStorage.getItem("selectedVoice")
+          if (savedVoice) {
+            // Validate saved voice
+            const voiceExists = voices.some(v => v.id === savedVoice)
+            if (voiceExists) {
+              setSelectedVoice(savedVoice)
+            } else {
+              // Try to find by name
+              const voiceByName = voices.find(v => v.name === savedVoice)
+              if (voiceByName) {
+                setSelectedVoice(voiceByName.id)
+                localStorage.setItem("selectedVoice", voiceByName.id)
+              } else {
+                // Invalid voice, clear it
+                localStorage.removeItem("selectedVoice")
+              }
+            }
+          }
+        }
+
+        if (dbNarrationLanguage) {
+          setSelectedLanguage(dbNarrationLanguage)
+          localStorage.setItem("selectedLanguage", dbNarrationLanguage)
+        } else if (dbLanguage) {
+          setSelectedLanguage(dbLanguage)
+          localStorage.setItem("selectedLanguage", dbLanguage)
+        } else {
+          const savedLanguage = localStorage.getItem("selectedLanguage")
+          if (savedLanguage) setSelectedLanguage(savedLanguage)
+        }
+
+        if (dbAutoNarrate !== undefined) {
+          setAutoNarrate(dbAutoNarrate)
+          localStorage.setItem("autoNarrate", dbAutoNarrate.toString())
+        } else {
+          const savedAutoNarrate = localStorage.getItem("autoNarrate")
+          if (savedAutoNarrate) setAutoNarrate(savedAutoNarrate === "true")
+        }
+      } catch (error) {
+        console.error("Failed to load narration settings:", error)
+        // Fallback to localStorage only
     const savedVoice = localStorage.getItem("selectedVoice")
     const savedAutoNarrate = localStorage.getItem("autoNarrate")
     const savedLanguage = localStorage.getItem("selectedLanguage")
@@ -88,17 +190,32 @@ export function NarrationSettingsPageClient() {
     if (savedVoice) setSelectedVoice(savedVoice)
     if (savedAutoNarrate) setAutoNarrate(savedAutoNarrate === "true")
     if (savedLanguage) setSelectedLanguage(savedLanguage)
-  }, [])
+      }
+    }
+
+    // Wait for voices to load before validating
+    if (!voicesLoading && voices.length > 0) {
+      loadSettings()
+    }
+  }, [authUser, voices, voicesLoading])
 
   // Helper function to dispatch custom storage event for same-tab updates
   const dispatchStorageEvent = (key: string, newValue: string | null) => {
-    // Dispatch custom event for same-tab listeners
+    // Save to localStorage first
+    if (newValue !== null) {
+      localStorage.setItem(key, newValue)
+    } else {
+      localStorage.removeItem(key)
+    }
+    // Dispatch custom event for same-tab listeners (instant update)
     window.dispatchEvent(new CustomEvent("localStorageChange", {
       detail: { key, newValue }
     }))
+    console.log("[NarrationSettings] Dispatched voice change:", key, newValue)
   }
 
-  // Save preferences to localStorage and dispatch events
+  // Note: Database saves are now handled directly in the onChange handlers for instant updates
+  // These useEffect hooks only handle localStorage and events for cross-component sync
   useEffect(() => {
     if (selectedVoice) {
       localStorage.setItem("selectedVoice", selectedVoice)
@@ -169,9 +286,35 @@ export function NarrationSettingsPageClient() {
                 <Label htmlFor="language-filter">Filter by Language</Label>
                 <Select 
                   value={selectedLanguage} 
-                  onValueChange={(lang) => {
+                  onValueChange={async (lang) => {
+                    // Optimistic update - update UI immediately
+                    const previousLanguage = selectedLanguage
                     setSelectedLanguage(lang)
+                    // Immediately save to localStorage and dispatch event
+                    localStorage.setItem("selectedLanguage", lang)
+                    dispatchStorageEvent("selectedLanguage", lang)
                     // Voice will be auto-selected by useEffect when language changes
+                    
+                    // Save to database immediately
+                    if (authUser) {
+                      try {
+                        const deviceInfo = (user?.device_info as Record<string, unknown>) || {}
+                        const updatedDeviceInfo = {
+                          ...deviceInfo,
+                          narration_language: lang,
+                        }
+                        await userService.updateProfile(authUser.id, {
+                          device_info: updatedDeviceInfo,
+                        })
+                        setUser(prev => prev ? { ...prev, device_info: updatedDeviceInfo } : null)
+                      } catch (error) {
+                        console.error("Failed to save narration language to database:", error)
+                        // Revert on error
+                        setSelectedLanguage(previousLanguage)
+                        localStorage.setItem("selectedLanguage", previousLanguage)
+                        dispatchStorageEvent("selectedLanguage", previousLanguage)
+                      }
+                    }
                   }}
                 >
                   <SelectTrigger id="language-filter" className="w-full">
@@ -219,9 +362,30 @@ export function NarrationSettingsPageClient() {
                 ) : (
                   <Select 
                     value={selectedVoice || undefined} 
-                    onValueChange={(value) => {
+                    onValueChange={async (value) => {
+                      // Optimistic update - update UI immediately
+                      const previousVoice = selectedVoice
                       setSelectedVoice(value)
+                      // Immediately save to localStorage and dispatch event for instant update
                       localStorage.setItem("selectedVoice", value)
+                      dispatchStorageEvent("selectedVoice", value)
+                      console.log("[NarrationSettings] Voice selected:", value)
+                      
+                      // Save to database immediately
+                      if (authUser) {
+                        try {
+                          await userService.updateProfile(authUser.id, {
+                            preferred_speaker: value,
+                          })
+                          setUser(prev => prev ? { ...prev, preferred_speaker: value } : null)
+                        } catch (error) {
+                          console.error("Failed to save voice to database:", error)
+                          // Revert on error
+                          setSelectedVoice(previousVoice)
+                          localStorage.setItem("selectedVoice", previousVoice)
+                          dispatchStorageEvent("selectedVoice", previousVoice)
+                        }
+                      }
                     }}
                   >
                     <SelectTrigger id="voice-select" className="w-full">
@@ -290,7 +454,35 @@ export function NarrationSettingsPageClient() {
               <Switch
                 id="auto-narrate"
                 checked={autoNarrate}
-                onCheckedChange={setAutoNarrate}
+                onCheckedChange={async (checked) => {
+                  // Optimistic update - update UI immediately
+                  const previousValue = autoNarrate
+                  setAutoNarrate(checked)
+                  // Immediately save to localStorage and dispatch event
+                  localStorage.setItem("autoNarrate", checked.toString())
+                  dispatchStorageEvent("autoNarrate", checked.toString())
+                  
+                  // Save to database immediately
+                  if (authUser) {
+                    try {
+                      const deviceInfo = (user?.device_info as Record<string, unknown>) || {}
+                      const updatedDeviceInfo = {
+                        ...deviceInfo,
+                        auto_narrate: checked,
+                      }
+                      await userService.updateProfile(authUser.id, {
+                        device_info: updatedDeviceInfo,
+                      })
+                      setUser(prev => prev ? { ...prev, device_info: updatedDeviceInfo } : null)
+                    } catch (error) {
+                      console.error("Failed to save autoNarrate to database:", error)
+                      // Revert on error
+                      setAutoNarrate(previousValue)
+                      localStorage.setItem("autoNarrate", previousValue.toString())
+                      dispatchStorageEvent("autoNarrate", previousValue.toString())
+                    }
+                  }
+                }}
               />
             </div>
           </CardContent>

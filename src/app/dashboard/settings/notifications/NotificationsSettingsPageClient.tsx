@@ -57,53 +57,60 @@ export function NotificationsSettingsPageClient() {
   const handleToggleNotifications = async (enabled: boolean) => {
     if (!authUser) return
 
+    // For enabling, we need to check permissions first, so don't do optimistic update
+    // For disabling, we can do optimistic update
+    if (!enabled) {
+      // Optimistic update for disabling
+      const previousValue = notificationEnabled
+      setNotificationEnabled(false)
+      
+      try {
+        await userService.updateNotificationToken(authUser.id, null)
+        setUser(prev => prev ? { ...prev, notification_token: null } : null)
+      } catch (error: any) {
+        // Revert on error
+        setNotificationEnabled(previousValue)
+        toast.error(error.message || "Failed to update notification settings. Please try again.")
+        return
+      }
+      return
+    }
+
+    // Enable notifications - request permission and initialize
     setIsUpdating(true)
     try {
-      if (enabled) {
-        // Enable notifications - request permission and initialize
-        if (!("Notification" in window)) {
-          toast.error("Your browser does not support notifications")
-          setIsUpdating(false)
-          return
-        }
-
-        if (Notification.permission === "denied") {
-          toast.error("Notification permission is denied. Please enable it in your browser settings.")
-          setIsUpdating(false)
-          return
-        }
-
-        if (Notification.permission === "default") {
-          const permission = await Notification.requestPermission()
-          setPermissionStatus(permission)
-          
-          if (permission !== "granted") {
-            toast.error("Notification permission is required to enable notifications")
-            setIsUpdating(false)
-            return
-          }
-        }
-
-        // Initialize notifications (this will create subscription and save token)
-        await notificationService.initializeNotifications(authUser.id)
-        
-        // Reload user to get updated token
-        const userData = await userService.getProfile(authUser.id)
-        setUser(userData)
-        setNotificationEnabled(!!userData?.notification_token)
-        
-        toast.success("Push notifications enabled successfully!")
-      } else {
-        // Disable notifications - remove token
-        await userService.updateNotificationToken(authUser.id, null)
-        setNotificationEnabled(false)
-        setUser(prev => prev ? { ...prev, notification_token: null } : null)
-        
-        toast.success("Push notifications disabled")
+      if (!("Notification" in window)) {
+        toast.error("Your browser does not support notifications")
+        setIsUpdating(false)
+        return
       }
+
+      if (Notification.permission === "denied") {
+        toast.error("Notification permission is denied. Please enable it in your browser settings.")
+        setIsUpdating(false)
+        return
+      }
+
+      if (Notification.permission === "default") {
+        const permission = await Notification.requestPermission()
+        setPermissionStatus(permission)
+        
+        if (permission !== "granted") {
+          toast.error("Notification permission is required to enable notifications")
+          setIsUpdating(false)
+          return
+        }
+      }
+
+      // Initialize notifications (this will create subscription and save token)
+      await notificationService.initializeNotifications(authUser.id)
+      
+      // Reload user to get updated token
+      const userData = await userService.getProfile(authUser.id)
+      setUser(userData)
+      setNotificationEnabled(!!userData?.notification_token)
     } catch (error: any) {
       toast.error(error.message || "Failed to update notification settings. Please try again.")
-      setNotificationEnabled(!enabled) // Revert toggle on error
     } finally {
       setIsUpdating(false)
     }
@@ -112,7 +119,10 @@ export function NotificationsSettingsPageClient() {
   const handleToggleSound = async (enabled: boolean) => {
     if (!authUser) return
 
-    setIsUpdating(true)
+    // Optimistic update - update UI immediately
+    const previousValue = soundEnabled
+    setSoundEnabled(enabled)
+
     try {
       const currentDeviceInfo = (user?.device_info as Record<string, unknown>) || {}
       const updatedDeviceInfo = {
@@ -124,15 +134,11 @@ export function NotificationsSettingsPageClient() {
         device_info: updatedDeviceInfo,
       })
 
-      setSoundEnabled(enabled)
       setUser(prev => prev ? { ...prev, device_info: updatedDeviceInfo } : null)
-      
-      toast.success(enabled ? "Notification sounds enabled" : "Notification sounds disabled")
     } catch (error: any) {
+      // Revert on error
+      setSoundEnabled(previousValue)
       toast.error(error.message || "Failed to update sound settings. Please try again.")
-      setSoundEnabled(!enabled) // Revert toggle on error
-    } finally {
-      setIsUpdating(false)
     }
   }
 

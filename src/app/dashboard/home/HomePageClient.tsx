@@ -33,7 +33,7 @@ export function HomePageClient() {
   const [selectedVoice, setSelectedVoice] = useState<string>("")
   const [selectedLanguage, setSelectedLanguage] = useState<string>("all")
   const [autoNarrate, setAutoNarrate] = useState(true)
-  const { speak: speakElevenLabs, stop: stopElevenLabs, isSpeaking: isElevenLabsSpeaking } = useElevenLabs()
+  const { speak: speakElevenLabs, stop: stopElevenLabs, isSpeaking: isElevenLabsSpeaking, voices: availableVoices, isLoading: voicesLoading } = useElevenLabs()
   const analysisLoopRef = useRef<boolean>(false)
   const isAnsweringQuestionRef = useRef<boolean>(false)
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -41,27 +41,165 @@ export function HomePageClient() {
   const recognitionRef = useRef<any>(null)
   const inputModeRef = useRef<"none" | "text" | "voice">("none")
   const audioContextRef = useRef<AudioContext | null>(null)
+  const recognitionRestartTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastSpeechEndTimeRef = useRef<number>(0)
 
   useEffect(() => {
     checkPermission()
   }, [checkPermission])
 
-  // Load narration settings from localStorage
+  // Load narration settings from localStorage and validate voice when voices are loaded
   useEffect(() => {
     const savedVoice = localStorage.getItem("selectedVoice")
     const savedLanguage = localStorage.getItem("selectedLanguage")
     const savedAutoNarrate = localStorage.getItem("autoNarrate")
 
-    if (savedVoice) setSelectedVoice(savedVoice)
     if (savedLanguage) setSelectedLanguage(savedLanguage)
     else setSelectedLanguage("all") // Default to "all" if not set
     if (savedAutoNarrate) setAutoNarrate(savedAutoNarrate === "true")
-  }, [])
 
-  // Sync isSpeaking state with ElevenLabs
+    // Validate voice when voices are loaded
+    if (savedVoice && availableVoices.length > 0) {
+      const voiceExists = availableVoices.some(v => v.id === savedVoice)
+      if (voiceExists) {
+        setSelectedVoice(savedVoice)
+        console.log("[HomePage] Loaded and validated voice from localStorage:", savedVoice)
+      } else {
+        // Try to find by name
+        const voiceByName = availableVoices.find(v => v.name === savedVoice)
+        if (voiceByName) {
+          console.log("[HomePage] Found voice by name, using ID:", voiceByName.id)
+          setSelectedVoice(voiceByName.id)
+          localStorage.setItem("selectedVoice", voiceByName.id)
+        } else {
+          // Invalid voice, clear it and use Sarah as default
+          console.warn("[HomePage] Invalid voice, clearing and using default Sarah")
+          localStorage.removeItem("selectedVoice")
+          if (availableVoices.length > 0) {
+            const sarahVoice = availableVoices.find(v => v.name.toLowerCase() === "sarah")
+            if (sarahVoice) {
+              setSelectedVoice(sarahVoice.id)
+              localStorage.setItem("selectedVoice", sarahVoice.id)
+              console.log("[HomePage] Set default Sarah voice:", sarahVoice.id)
+            } else {
+              // Sarah not found, use first available as fallback
+              console.warn("[HomePage] Sarah voice not found, using first available as fallback")
+              setSelectedVoice(availableVoices[0].id)
+              localStorage.setItem("selectedVoice", availableVoices[0].id)
+            }
+          }
+        }
+      }
+    } else if (savedVoice && availableVoices.length === 0) {
+      // Voices not loaded yet, set temporarily (will be validated when voices load)
+      setSelectedVoice(savedVoice)
+      console.log("[HomePage] Loaded voice from localStorage (will validate when voices load):", savedVoice)
+    } else if (!savedVoice && availableVoices.length > 0) {
+      // No voice saved, use Sarah as default
+      const sarahVoice = availableVoices.find(v => v.name.toLowerCase() === "sarah")
+      if (sarahVoice) {
+        setSelectedVoice(sarahVoice.id)
+        localStorage.setItem("selectedVoice", sarahVoice.id)
+        console.log("[HomePage] No saved voice, using default Sarah:", sarahVoice.id)
+      } else {
+        // Sarah not found, use first available as fallback
+        console.warn("[HomePage] Sarah voice not found, using first available as fallback")
+        setSelectedVoice(availableVoices[0].id)
+        localStorage.setItem("selectedVoice", availableVoices[0].id)
+      }
+    } else {
+      console.log("[HomePage] No saved voice found in localStorage")
+    }
+  }, [availableVoices])
+
+  // Sync isSpeaking state with ElevenLabs and stop/start recognition accordingly
   useEffect(() => {
     setIsSpeaking(isElevenLabsSpeaking)
-  }, [isElevenLabsSpeaking])
+    
+    // Stop recognition when AI starts speaking to prevent it from hearing its own voice
+    if (isElevenLabsSpeaking) {
+      // Clear any pending restart timeout
+      if (recognitionRestartTimeoutRef.current) {
+        clearTimeout(recognitionRestartTimeoutRef.current)
+        recognitionRestartTimeoutRef.current = null
+      }
+      
+      if (recognitionRef.current && isListening) {
+        console.log("[isSpeaking] AI started speaking, stopping recognition to prevent feedback")
+        try {
+          recognitionRef.current.stop()
+          setIsListening(false)
+        } catch (err) {
+          console.error("[isSpeaking] Error stopping recognition:", err)
+        }
+      }
+    } else {
+      // Record when speech ended
+      lastSpeechEndTimeRef.current = Date.now()
+      
+      // Restart recognition when AI finishes speaking (only if in voice mode and not answering)
+      // Use a longer delay (3 seconds) to ensure speech has fully ended and audio has cleared
+      if (inputModeRef.current === "voice" && recognitionRef.current) {
+        // Clear any existing timeout
+        if (recognitionRestartTimeoutRef.current) {
+          clearTimeout(recognitionRestartTimeoutRef.current)
+        }
+        
+        // Wait longer to ensure speech has fully ended and audio has cleared
+        recognitionRestartTimeoutRef.current = setTimeout(() => {
+          // Double-check we're still in voice mode
+          if (inputModeRef.current === "voice" && recognitionRef.current) {
+            // Ensure at least 2.5 seconds have passed since speech ended
+            const timeSinceSpeechEnd = Date.now() - lastSpeechEndTimeRef.current
+            if (timeSinceSpeechEnd >= 2500) {
+              // Don't check isAnsweringQuestionRef here - allow recognition to restart
+              // The flag will prevent processing if a question is already being handled
+              try {
+                console.log("[isSpeaking] AI finished speaking, restarting recognition after delay")
+                recognitionRef.current.start()
+                setIsListening(true)
+              } catch (err: any) {
+                // If already started, that's fine
+                if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+                  console.log("[isSpeaking] Recognition already active")
+                  setIsListening(true)
+                } else {
+                  console.error("[isSpeaking] Error restarting recognition:", err)
+                }
+              }
+            } else {
+              console.log("[isSpeaking] Too soon after speech ended, waiting more...")
+              // Reschedule if too soon
+              const remainingTime = 2500 - timeSinceSpeechEnd
+              recognitionRestartTimeoutRef.current = setTimeout(() => {
+                if (inputModeRef.current === "voice" && recognitionRef.current) {
+                  try {
+                    console.log("[isSpeaking] Restarting recognition after additional wait")
+                    recognitionRef.current.start()
+                    setIsListening(true)
+                  } catch (err: any) {
+                    if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+                      setIsListening(true)
+                    }
+                  }
+                }
+                recognitionRestartTimeoutRef.current = null
+              }, remainingTime)
+            }
+          } else {
+            recognitionRestartTimeoutRef.current = null
+          }
+        }, 3000) // 3 second delay to ensure speech has fully ended
+      }
+    }
+    
+    return () => {
+      if (recognitionRestartTimeoutRef.current) {
+        clearTimeout(recognitionRestartTimeoutRef.current)
+        recognitionRestartTimeoutRef.current = null
+      }
+    }
+  }, [isElevenLabsSpeaking, isListening])
 
   // Listen for changes to narration settings in localStorage (from settings page)
   useEffect(() => {
@@ -80,7 +218,9 @@ export function HomePageClient() {
     const handleCustomStorageChange = (e: CustomEvent) => {
       const { key, newValue } = e.detail
       if (key === "selectedVoice" && newValue !== null) {
+        console.log("[HomePage] Voice updated instantly via custom event:", newValue)
         setSelectedVoice(newValue)
+        // Force immediate update - the next speak() call will use this voice
       } else if (key === "selectedLanguage" && newValue !== null) {
         setSelectedLanguage(newValue)
       } else if (key === "autoNarrate" && newValue !== null) {
@@ -286,14 +426,40 @@ export function HomePageClient() {
       
       playAnswerReadySound() // Play sound when answer is ready
       
-      // Small delay to ensure state is updated, then speak the answer if auto-narrate is enabled
-      await new Promise(resolve => setTimeout(resolve, 100))
+      // Stop recognition BEFORE speaking to prevent it from hearing the AI's voice
+      if (recognitionRef.current && isListening) {
+        console.log("[handleQuestion] Stopping recognition before speaking to prevent feedback")
+        try {
+          recognitionRef.current.stop()
+          setIsListening(false)
+        } catch (err) {
+          console.error("[handleQuestion] Error stopping recognition before speech:", err)
+        }
+      }
+      
+      // Small delay to ensure recognition has stopped, then speak the answer if auto-narrate is enabled
+      await new Promise(resolve => setTimeout(resolve, 200))
       if (autoNarrate) {
         console.log("[handleQuestion] Speaking answer...")
         await speak(response)
         console.log("[handleQuestion] Answer spoken")
       } else {
         console.log("[handleQuestion] Auto-narrate disabled, skipping speech")
+        // If not speaking, restart recognition immediately
+        if (inputModeRef.current === "voice" && recognitionRef.current) {
+          setTimeout(() => {
+            try {
+              if (recognitionRef.current && !isAnsweringQuestionRef.current) {
+                recognitionRef.current.start()
+                setIsListening(true)
+              }
+            } catch (err: any) {
+              if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+                setIsListening(true)
+              }
+            }
+          }, 500)
+        }
       }
     } catch (err: any) {
       console.error("[handleQuestion] Error answering question:", err)
@@ -301,32 +467,16 @@ export function HomePageClient() {
       playErrorSound() // Play error sound
     } finally {
       console.log("[handleQuestion] Question processing finished, resetting flag...")
-      // Reset answering flag after a delay to allow speech to start
-      setTimeout(() => {
-        isAnsweringQuestionRef.current = false
-        console.log("[handleQuestion] Question processing complete, ready for next question")
-        
-        // Restart listening if in voice mode
-        if (inputModeRef.current === "voice" && recognitionRef.current) {
-          // Wait a bit longer to ensure speech has started
-          setTimeout(() => {
-            try {
-              console.log("[handleQuestion] Restarting voice recognition...")
-              recognitionRef.current.start()
-              setIsListening(true)
-            } catch (err: any) {
-              // If already started, that's fine
-              if (err.message?.includes("already started") || err.name === "InvalidStateError") {
-                console.log("[handleQuestion] Recognition already active")
-                setIsListening(true)
-              } else {
-                console.error("[handleQuestion] Error restarting recognition:", err)
-                setIsListening(false)
-              }
-            }
-          }, 500)
-        }
-      }, 1500) // Wait for speech to start before allowing new questions
+      // Reset answering flag immediately after processing (not waiting for speech)
+      // This allows new questions to be processed even if speech is still ongoing
+      // The speech will be interrupted if a new question comes in
+      isAnsweringQuestionRef.current = false
+      console.log("[handleQuestion] Question processing complete, ready for next question")
+      
+      // Don't restart recognition here - let the isSpeaking effect handle it after speech ends
+      // This prevents recognition from restarting too early and picking up the AI's voice
+      // Recognition will restart automatically when isElevenLabsSpeaking becomes false (with 3s delay)
+      console.log("[handleQuestion] Recognition will restart after speech ends (handled by isSpeaking effect)")
     }
   }
 
@@ -338,11 +488,29 @@ export function HomePageClient() {
 
     const analysisLoop = async () => {
       while (analysisLoopRef.current && isStreaming) {
+        // Check flag before each operation
+        if (!analysisLoopRef.current) {
+          console.log("[analysisLoop] Stopped by flag, exiting loop")
+          break
+        }
+        
         try {
           // Background analysis - just describing what it sees (silent)
           const backgroundQuery = "describe what you see in one short sentence"
           
+          // Check flag again before making API call
+          if (!analysisLoopRef.current) {
+            console.log("[analysisLoop] Stopped before API call, exiting loop")
+            break
+          }
+          
           const response = await analyzeFrame(backgroundQuery)
+          
+          // Check flag after API call
+          if (!analysisLoopRef.current) {
+            console.log("[analysisLoop] Stopped after API call, exiting loop")
+            break
+          }
           
           if (response) {
             // Store latest background analysis (but don't speak it)
@@ -351,16 +519,40 @@ export function HomePageClient() {
             setAnalysisHistory(prev => [response, ...prev].slice(0, 10))
           }
           
-          // Wait before next analysis (default 2 seconds)
+          // Wait before next analysis (default 2 seconds), but check flag periodically
           const delayMs = 2000
-          await new Promise(resolve => setTimeout(resolve, delayMs))
+          const checkInterval = 200 // Check every 200ms
+          let waited = 0
+          while (waited < delayMs && analysisLoopRef.current) {
+            await new Promise(resolve => setTimeout(resolve, checkInterval))
+            waited += checkInterval
+          }
+          
+          // Final check before next iteration
+          if (!analysisLoopRef.current) {
+            console.log("[analysisLoop] Stopped during delay, exiting loop")
+            break
+          }
         } catch (err: any) {
           console.error("Continuous analysis error:", err)
+          // Check flag before continuing
+          if (!analysisLoopRef.current) {
+            console.log("[analysisLoop] Stopped after error, exiting loop")
+            break
+          }
           // Continue loop even on error, but wait longer
-          await new Promise(resolve => setTimeout(resolve, 3000))
+          const delayMs = 3000
+          const checkInterval = 200
+          let waited = 0
+          while (waited < delayMs && analysisLoopRef.current) {
+            await new Promise(resolve => setTimeout(resolve, checkInterval))
+            waited += checkInterval
+          }
         }
       }
+      console.log("[analysisLoop] Loop exited, setting isAnalyzing to false")
       setIsAnalyzing(false)
+      analysisLoopRef.current = false // Ensure flag is cleared
     }
 
     analysisLoop()
@@ -518,8 +710,8 @@ export function HomePageClient() {
           // Permission is granted, continue
         } else {
           console.log("[startCamera] Permission not granted, showing prompt")
-          setShowPermissionPrompt(true)
-          return
+        setShowPermissionPrompt(true)
+        return
         }
       }
 
@@ -611,22 +803,171 @@ export function HomePageClient() {
       return
     }
 
+    // Use selected language from narration settings (or "en" if "all" is selected)
+    const languageToUse = selectedLanguage !== "all" ? selectedLanguage : "en"
+
     try {
       // Stop any ongoing speech (allows interruption)
       stopElevenLabs()
 
-      // Use selected language from narration settings (or "en" if "all" is selected)
-      const languageToUse = selectedLanguage !== "all" ? selectedLanguage : "en"
+      // Get the selected voice from localStorage (in case state hasn't updated yet)
+      let currentVoice = selectedVoice || localStorage.getItem("selectedVoice") || undefined
       
-      // Use ElevenLabs for speech synthesis
+      // Validate voice ID - check if it exists in available voices
+      // If voices aren't loaded yet, wait for them (max 3 seconds)
+      let voicesLoaded = availableVoices.length > 0
+      
+      if (!voicesLoaded) {
+        if (voicesLoading) {
+          console.log("[speak] Voices are still loading, waiting...")
+          // Wait for voices to load (poll every 200ms, max 3 seconds)
+          let waited = 0
+          const maxWait = 3000
+          const pollInterval = 200
+          
+          while (availableVoices.length === 0 && waited < maxWait) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval))
+            waited += pollInterval
+            // Re-check voices from hook (they should update via state)
+            // Note: This relies on React state updates, so we need to check the actual hook value
+          }
+          voicesLoaded = availableVoices.length > 0
+        }
+        
+        // If still no voices after waiting, check if we can use the voice ID directly
+        if (!voicesLoaded && currentVoice) {
+          // Check if currentVoice looks like a valid ID (not a name like "Albert")
+          const looksLikeId = currentVoice.length > 10 && /^[a-zA-Z0-9]+$/.test(currentVoice)
+          if (looksLikeId) {
+            console.log("[speak] Voices not loaded but voice ID looks valid, using it directly:", currentVoice)
+            // Skip validation and use the voice ID directly - ElevenLabs will validate it
+            // Proceed to speak with currentVoice
+          } else {
+            console.warn("[speak] Voices not loaded and voice doesn't look like valid ID. Skipping speech.")
+            return
+          }
+        } else if (!voicesLoaded && !currentVoice) {
+          // No voice selected and voices not loaded, wait for voices to find Sarah
+          console.log("[speak] No voice selected, waiting for voices to load to use default Sarah...")
+          // Continue to wait or proceed - we'll handle it when voices load
+        }
+      }
+
+      // Only validate if voices are loaded
+      if (voicesLoaded) {
+        if (currentVoice) {
+          const voiceExists = availableVoices.some(v => v.id === currentVoice)
+          
+          // If voice ID doesn't exist, try to find by name (for backwards compatibility)
+          if (!voiceExists) {
+            const voiceByName = availableVoices.find(v => v.name === currentVoice)
+            if (voiceByName) {
+              console.log("[speak] Found voice by name, using ID:", voiceByName.id)
+              currentVoice = voiceByName.id
+              // Update storage with correct ID
+              localStorage.setItem("selectedVoice", voiceByName.id)
+              setSelectedVoice(voiceByName.id)
+            } else {
+              // Voice not found, use Sarah as default
+              console.warn("[speak] Voice ID/name not found, using default Sarah")
+              const sarahVoice = availableVoices.find(v => v.name.toLowerCase() === "sarah")
+              if (sarahVoice) {
+                currentVoice = sarahVoice.id
+                localStorage.setItem("selectedVoice", sarahVoice.id)
+                setSelectedVoice(sarahVoice.id)
+                console.log("[speak] Set default Sarah voice:", sarahVoice.id)
+              } else {
+                // Sarah not found, use first available as fallback
+                console.warn("[speak] Sarah voice not found, using first available as fallback")
+                currentVoice = availableVoices[0]?.id || undefined
+                if (currentVoice) {
+                  localStorage.setItem("selectedVoice", currentVoice)
+                  setSelectedVoice(currentVoice)
+                }
+              }
+            }
+          }
+        } else {
+          // No voice selected, use Sarah as default
+          const sarahVoice = availableVoices.find(v => v.name.toLowerCase() === "sarah")
+          if (sarahVoice) {
+            currentVoice = sarahVoice.id
+            localStorage.setItem("selectedVoice", sarahVoice.id)
+            setSelectedVoice(sarahVoice.id)
+            console.log("[speak] No voice selected, using default Sarah:", sarahVoice.id)
+          } else {
+            // Sarah not found, use first available as fallback
+            console.warn("[speak] Sarah voice not found, using first available as fallback")
+            currentVoice = availableVoices[0]?.id || undefined
+            if (currentVoice) {
+              localStorage.setItem("selectedVoice", currentVoice)
+              setSelectedVoice(currentVoice)
+            }
+          }
+        }
+      }
+      
+      // Final fallback: If still no voice after all checks, use Sarah
+      if (!currentVoice && voicesLoaded && availableVoices.length > 0) {
+        const sarahVoice = availableVoices.find(v => v.name.toLowerCase() === "sarah")
+        if (sarahVoice) {
+          currentVoice = sarahVoice.id
+          localStorage.setItem("selectedVoice", sarahVoice.id)
+          setSelectedVoice(sarahVoice.id)
+          console.log("[speak] Final fallback: Using default Sarah voice:", sarahVoice.id)
+        } else {
+          // Sarah not found, use first available as last resort
+          currentVoice = availableVoices[0].id
+          localStorage.setItem("selectedVoice", currentVoice)
+          setSelectedVoice(currentVoice)
+          console.warn("[speak] Sarah not found, using first available as last resort:", currentVoice)
+        }
+      }
+      
+      // Ensure we have a voice before speaking
+      if (!currentVoice) {
+        console.error("[speak] No voice available, cannot speak")
+        return
+      }
+      
+      console.log("[speak] Using voice:", currentVoice, "language:", languageToUse)
+      
+      // Use ElevenLabs for speech synthesis - ALWAYS use voice from settings or Sarah default
       await speakElevenLabs(text, {
-        voiceId: selectedVoice || undefined, // Use selected voice or default
+        voiceId: currentVoice, // Always use the voice from settings or Sarah default
         stability: 0.5,
         similarityBoost: 0.75,
         language: languageToUse, // Use selected language from narration settings
       })
     } catch (error: any) {
       console.error("Speech synthesis error:", error)
+      
+      // If error is voice_not_found, clear invalid voice and retry with Sarah
+      if (error.message?.includes("voice_not_found") || error.message?.includes("404")) {
+        console.log("[speak] Voice not found, clearing and retrying with default Sarah")
+        localStorage.removeItem("selectedVoice")
+        setSelectedVoice("")
+        
+        if (availableVoices.length > 0) {
+          const sarahVoice = availableVoices.find(v => v.name.toLowerCase() === "sarah")
+          const defaultVoice = sarahVoice ? sarahVoice.id : availableVoices[0].id
+          localStorage.setItem("selectedVoice", defaultVoice)
+          setSelectedVoice(defaultVoice)
+          
+          console.log("[speak] Retrying with default voice:", defaultVoice)
+          // Retry with default voice
+          try {
+            await speakElevenLabs(text, {
+              voiceId: defaultVoice,
+              stability: 0.5,
+              similarityBoost: 0.75,
+              language: languageToUse,
+            })
+          } catch (retryError) {
+            console.error("Speech synthesis retry error:", retryError)
+          }
+        }
+      }
       // Don't show alert for user-facing errors, just log
     }
   }
@@ -696,10 +1037,25 @@ export function HomePageClient() {
   }
 
   const handleStopAI = () => {
+    console.log("[handleStopAI] Stopping AI analysis and all operations")
     playStopSound() // Play sound when AI is stopped
+    
+    // Stop continuous analysis first
     stopContinuousAnalysis()
+    
+    // Stop listening
     stopListening()
+    
+    // Stop speaking
     stopSpeaking()
+    
+    // Clear any pending recognition restart timeouts
+    if (recognitionRestartTimeoutRef.current) {
+      clearTimeout(recognitionRestartTimeoutRef.current)
+      recognitionRestartTimeoutRef.current = null
+    }
+    
+    // Reset all state
     setInputMode("none")
     inputModeRef.current = "none"
     setShowModeSelection(false)
@@ -710,6 +1066,13 @@ export function HomePageClient() {
     setAnalysisHistory([])
     setAnswerHistory([])
     isAnsweringQuestionRef.current = false
+    
+    // Ensure analyzing state is false
+    setIsAnalyzing(false)
+    setIsListening(false)
+    setIsSpeaking(false)
+    
+    console.log("[handleStopAI] AI stopped successfully")
   }
 
   const handleTextQuerySubmit = async (e?: React.FormEvent) => {

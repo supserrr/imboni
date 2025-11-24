@@ -114,23 +114,61 @@ export class ElevenLabsService {
 
       // Play audio
       const audio = new Audio(audioUrl)
-      this.currentAudio = audio
-      this.isPlaying = true
-
+      
+      // Set up event handlers before assigning to currentAudio
       audio.onended = () => {
+        console.log("[ElevenLabs] Audio playback ended")
         this.isPlaying = false
-        URL.revokeObjectURL(audioUrl)
-        this.currentAudio = null
+        if (audio.src === audioUrl) {
+          URL.revokeObjectURL(audioUrl)
+        }
+        if (this.currentAudio === audio) {
+          this.currentAudio = null
+        }
       }
 
       audio.onerror = (error) => {
-        console.error("Audio playback error:", error)
+        console.error("[ElevenLabs] Audio playback error:", error)
         this.isPlaying = false
-        URL.revokeObjectURL(audioUrl)
-        this.currentAudio = null
+        if (audio.src === audioUrl) {
+          URL.revokeObjectURL(audioUrl)
+        }
+        if (this.currentAudio === audio) {
+          this.currentAudio = null
+        }
+      }
+      
+      // Also listen for pause events (in case audio is paused/stopped externally)
+      audio.onpause = () => {
+        console.log("[ElevenLabs] Audio paused")
+        if (audio.ended || audio.paused) {
+          this.isPlaying = false
+          if (this.currentAudio === audio) {
+            this.currentAudio = null
+          }
+        }
       }
 
-      await audio.play()
+      // Set currentAudio after handlers are set up
+      this.currentAudio = audio
+      this.isPlaying = true
+
+      try {
+        await audio.play()
+      } catch (playError: any) {
+        // Handle AbortError and other play() interruptions gracefully
+        if (playError.name === 'AbortError' || playError.name === 'NotAllowedError') {
+          console.log("Audio play() was interrupted or not allowed:", playError.name)
+          // Clean up
+          this.isPlaying = false
+          URL.revokeObjectURL(audioUrl)
+          this.currentAudio = null
+          // Don't throw - this is expected when interrupting playback
+          return
+        }
+        // Re-throw other errors
+        throw playError
+      }
     } catch (error: any) {
       console.error("ElevenLabs speak error:", error)
       this.isPlaying = false
@@ -142,18 +180,49 @@ export class ElevenLabsService {
    * Stop current speech
    */
   stop(): void {
+    console.log("[ElevenLabs] Stopping audio playback")
     if (this.currentAudio) {
-      this.currentAudio.pause()
-      this.currentAudio.currentTime = 0
-      this.currentAudio = null
+      try {
+        // Remove event listeners to prevent callbacks after stop
+        this.currentAudio.onended = null
+        this.currentAudio.onerror = null
+        this.currentAudio.onpause = null
+        this.currentAudio.pause()
+        this.currentAudio.currentTime = 0
+        // Clean up the object URL if it exists
+        if (this.currentAudio.src && this.currentAudio.src.startsWith('blob:')) {
+          URL.revokeObjectURL(this.currentAudio.src)
+        }
+        this.currentAudio = null
+      } catch (error) {
+        console.error("[ElevenLabs] Error stopping audio:", error)
+        this.currentAudio = null
+      }
     }
     this.isPlaying = false
+    console.log("[ElevenLabs] Audio stopped, isPlaying set to false")
   }
 
   /**
    * Check if currently speaking
    */
   getIsPlaying(): boolean {
+    // Also check the actual audio element state as a fallback
+    if (this.currentAudio) {
+      // If audio has ended or is paused, update state
+      if (this.currentAudio.ended || this.currentAudio.paused) {
+        if (this.isPlaying) {
+          console.log("[ElevenLabs] Audio ended/paused detected, updating isPlaying to false")
+          this.isPlaying = false
+          this.currentAudio = null
+        }
+        return false
+      }
+      // If audio is playing, ensure state matches
+      if (!this.currentAudio.paused && !this.currentAudio.ended) {
+        return true
+      }
+    }
     return this.isPlaying
   }
 }

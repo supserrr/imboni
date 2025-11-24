@@ -33,6 +33,7 @@ export function AccountSettingsPageClient() {
   const [isChangingPassword, setIsChangingPassword] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null)
 
   // Check if user logged in with Google OAuth
   const isGoogleUser = authUser?.app_metadata?.provider === "google" || 
@@ -66,11 +67,67 @@ export function AccountSettingsPageClient() {
       await userService.updateProfile(authUser.id, {
         full_name: fullName,
       })
-      toast.success("Your profile has been updated! Your changes are saved and ready to use.")
+      setUser(prev => prev ? { ...prev, full_name: fullName } : null)
     } catch (error: any) {
       toast.error(error.message || "We couldn't update your profile right now. Please try again, and we're here to help if you need support.")
+      // Revert on error
+      const previousName = user?.full_name || ""
+      setFullName(previousName)
     }
   }
+
+  const handleFullNameChange = (value: string) => {
+    setFullName(value)
+    
+    // Clear existing timeout
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+    }
+
+    // Save to database after 500ms of no changes (debounce)
+    const timeout = setTimeout(async () => {
+      if (!authUser) return
+      
+      try {
+        await userService.updateProfile(authUser.id, {
+          full_name: value,
+        })
+        setUser(prev => prev ? { ...prev, full_name: value } : null)
+      } catch (error: any) {
+        console.error("Failed to save full name:", error)
+        // Revert on error
+        const previousName = user?.full_name || ""
+        setFullName(previousName)
+        toast.error("Failed to save name. Please try again.")
+      }
+    }, 500)
+    
+    setSaveTimeout(timeout)
+  }
+
+  const handleFullNameBlur = () => {
+    // Clear timeout and save immediately on blur
+    if (saveTimeout) {
+      clearTimeout(saveTimeout)
+      setSaveTimeout(null)
+    }
+    
+    if (!authUser) return
+    
+    // Only save if value has changed
+    if (fullName !== user?.full_name) {
+      handleSave()
+    }
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout)
+      }
+    }
+  }, [saveTimeout])
 
   const handleChangeEmail = async () => {
     if (!authUser || !newEmail) {
@@ -168,8 +225,13 @@ export function AccountSettingsPageClient() {
               <Input
                 id="fullName"
                 value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
+                onChange={(e) => handleFullNameChange(e.target.value)}
+                onBlur={handleFullNameBlur}
+                placeholder="Enter your full name"
               />
+              <p className="text-xs text-muted-foreground">
+                Changes are saved automatically
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -182,8 +244,6 @@ export function AccountSettingsPageClient() {
                 className="bg-muted"
               />
             </div>
-
-            <Button onClick={handleSave}>Save Changes</Button>
           </CardContent>
         </Card>
 

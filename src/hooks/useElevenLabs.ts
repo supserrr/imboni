@@ -36,7 +36,15 @@ export function useElevenLabs() {
   // Check speaking status periodically
   useEffect(() => {
     const interval = setInterval(() => {
-      setIsSpeaking(service.getIsPlaying())
+      const isCurrentlyPlaying = service.getIsPlaying()
+      // Only update if state changed to avoid unnecessary re-renders
+      setIsSpeaking(prev => {
+        if (prev !== isCurrentlyPlaying) {
+          console.log("[useElevenLabs] Speaking state changed:", isCurrentlyPlaying)
+          return isCurrentlyPlaying
+        }
+        return prev
+      })
     }, 100)
 
     return () => clearInterval(interval)
