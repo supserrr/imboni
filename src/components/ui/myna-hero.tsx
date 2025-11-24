@@ -90,7 +90,7 @@ export function MynaHero() {
   return (
     <div className="container mx-auto px-4 min-h-screen bg-background">
       <header className="pt-6 md:pt-9">
-        <div className="flex h-16 items-center justify-between">
+        <div className="max-w-6xl mx-auto flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Logo variant="full" className="h-8 w-auto" />
           </Link>
@@ -243,7 +243,7 @@ export function MynaHero() {
               stiffness: 100,
               damping: 10,
             }}
-            className="text-center text-4xl font-mono font-bold mb-6"
+            className="text-center text-4xl font-mono font-bold mb-12"
           >
             Unlock the Power of AI
           </motion.h2>
