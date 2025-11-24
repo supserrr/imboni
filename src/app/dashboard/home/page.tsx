@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { PermissionPrompt } from "@/components/PermissionPrompt"
 import { useCameraPermissions } from "@/hooks/useCameraPermissions"
-import { Play, Square, Mic, Send } from "lucide-react"
+import { Play, Square, Mic, Send, Type } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { queryMoondream } from "@/lib/services/moondream"
 import { captureFrameFromVideo } from "@/lib/utils/frame-capture"
@@ -18,6 +18,8 @@ export default function HomePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [inputMode, setInputMode] = useState<"none" | "text" | "voice">("none")
+  const [showModeSelection, setShowModeSelection] = useState(false)
   const [question, setQuestion] = useState<string>("")
   const [answer, setAnswer] = useState<string>("")
   const [textQuery, setTextQuery] = useState<string>("")
@@ -31,6 +33,7 @@ export default function HomePage() {
   const streamRef = useRef<MediaStream | null>(null)
   const recognitionRef = useRef<any>(null)
   const synthesisRef = useRef<SpeechSynthesis | null>(null)
+  const inputModeRef = useRef<"none" | "text" | "voice">("none")
 
   useEffect(() => {
     checkPermission()
@@ -192,10 +195,10 @@ export default function HomePage() {
         }
 
         recognition.onend = () => {
-          // Auto-restart if still in AI mode (continuous listening)
+          // Auto-restart if still in voice mode (continuous listening)
           // This enables natural conversation flow - user can speak anytime
           setTimeout(() => {
-            if (isAnalyzing && recognitionRef.current) {
+            if (inputModeRef.current === "voice" && recognitionRef.current) {
               try {
                 recognitionRef.current.start()
               } catch (err) {
@@ -340,10 +343,36 @@ export default function HomePage() {
       // Wait a bit for camera to be ready
       await new Promise(resolve => setTimeout(resolve, 500))
     }
+    // Show input mode selection (text/voice buttons)
+    setShowModeSelection(true)
+  }
+
+  const handleSelectTextMode = async () => {
+    if (!isStreaming) {
+      await startCamera()
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
     
-    // Start continuous analysis (will use custom query if set, otherwise default)
+    setInputMode("text")
+    inputModeRef.current = "text"
+    setShowModeSelection(false)
+    // Start continuous analysis for text mode
     startContinuousAnalysis()
+    // Stop any voice listening if it was active
+    stopListening()
+  }
+
+  const handleSelectVoiceMode = async () => {
+    if (!isStreaming) {
+      await startCamera()
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
     
+    setInputMode("voice")
+    inputModeRef.current = "voice"
+    setShowModeSelection(false)
+    // Start continuous analysis for voice mode
+    startContinuousAnalysis()
     // Start listening for questions continuously
     setTimeout(() => {
       startListening()
@@ -354,6 +383,9 @@ export default function HomePage() {
     stopContinuousAnalysis()
     stopListening()
     stopSpeaking()
+    setInputMode("none")
+    inputModeRef.current = "none"
+    setShowModeSelection(false)
     setQuestion("")
     setAnswer("")
     setTextQuery("")
@@ -445,22 +477,45 @@ export default function HomePage() {
 
       {/* Query Input and Controls - Floating above bottom navbar */}
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
-        {isAnalyzing ? (
+        {showModeSelection ? (
+          // Show Text/Voice selection buttons after Start AI is clicked
           <div className="flex flex-col gap-3">
-            {/* Text Query Input */}
-            <form onSubmit={handleTextQuerySubmit} className="flex gap-2">
+            <div className="flex gap-3">
+              <Button
+                onClick={handleSelectTextMode}
+                size="lg"
+                className="flex-1 py-8 text-xl font-semibold rounded-none shadow-2xl"
+              >
+                <Type className="mr-3 h-6 w-6" />
+                Text
+              </Button>
+              <Button
+                onClick={handleSelectVoiceMode}
+                size="lg"
+                className="flex-1 py-8 text-xl font-semibold rounded-none shadow-2xl"
+              >
+                <Mic className="mr-3 h-6 w-6" />
+                Voice
+              </Button>
+            </div>
+          </div>
+        ) : inputMode === "text" ? (
+          // Text mode: Show text input and stop button
+          <div className="flex flex-col gap-3">
+            {/* Text Query Input - Optimized for text mode */}
+            <form onSubmit={handleTextQuerySubmit} className="flex items-center gap-2">
               <Input
                 type="text"
                 value={textQuery}
                 onChange={(e) => setTextQuery(e.target.value)}
-                placeholder="Type your question or ask by voice..."
-                className="flex-1 bg-black/70 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/50 rounded-none px-6 py-6 text-base"
+                placeholder="Type your question..."
+                className="flex-1 bg-black/70 backdrop-blur-sm border border-white/30 text-white placeholder:text-white/50 rounded-none px-6 py-6 text-base h-14"
                 disabled={!isStreaming}
+                autoFocus
               />
               <Button
                 type="submit"
-                size="lg"
-                className="rounded-none px-6 shadow-2xl"
+                className="rounded-none px-6 py-6 shadow-2xl h-14"
                 disabled={!isStreaming || !textQuery.trim()}
               >
                 <Send className="h-5 w-5" />
@@ -478,7 +533,28 @@ export default function HomePage() {
               Stop AI
             </Button>
           </div>
+        ) : inputMode === "voice" ? (
+          // Voice mode: Show voice status and stop button
+          <div className="flex flex-col gap-3">
+            {/* Voice mode indicator */}
+            <div className="flex items-center justify-center gap-2 bg-black/70 backdrop-blur-sm border border-white/30 rounded-none px-6 py-6 text-white">
+              <Mic className="h-5 w-5 text-red-400 animate-pulse" />
+              <span className="text-base">Listening for your questions...</span>
+            </div>
+            
+            {/* Stop AI Button */}
+            <Button
+              onClick={handleStopAI}
+              size="lg"
+              variant="destructive"
+              className="w-full py-6 text-lg font-semibold rounded-none shadow-2xl"
+            >
+              <Square className="mr-2 h-6 w-6" />
+              Stop AI
+            </Button>
+          </div>
         ) : (
+          // Initial state: Show Start AI button
           <div className="flex justify-center">
             <Button
               onClick={handleStartAI}
