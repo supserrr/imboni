@@ -444,9 +444,7 @@ export const FlickeringFooter = () => {
             <Logo variant="full" className="h-8 w-auto" />
           </Link>
           <p className="tracking-tight text-muted-foreground font-mono text-sm">
-            Real-time camera-based AI assistant powered by Moondream AI.
-            Get instant descriptions of your surroundings, detect objects,
-            and navigate the world with confidence.
+            We empower blind and low vision users with cutting-edge AI technology to transform visual surroundings into clear, helpful descriptions.
           </p>
           <div className="flex items-center gap-2 hidden md:flex">
             <p className="text-xs text-muted-foreground">

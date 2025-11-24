@@ -16,7 +16,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-6xl border p-8 md:p-12 text-center">
             <p className="text-2xl md:text-4xl font-mono text-foreground">
-              Reach out with questions or any support you need. Our team is ready to help
+              We're here for you. Reach out with any questions or support you need. Our team is ready to help you every step of the way.
             </p>
             <div className="mt-8 flex justify-center">
               <Button

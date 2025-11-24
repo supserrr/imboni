@@ -1,10 +1,10 @@
 # Imboni - AI Vision Assistant
 
-A real-time camera-based AI assistant for blind and low vision users, powered by Moondream AI. The app analyzes live camera feeds and provides audio descriptions of the user's environment.
+An AI assistant designed to help blind and low vision users understand their surroundings. The app analyzes live camera feeds and provides real-time audio descriptions of the user's environment.
 
 ## Features
 
-- **Real-time Camera Analysis** - Continuous scene description using Moondream AI
+- **Real-time Camera Analysis** - Continuous scene descriptions to help you understand your environment
 - **Interactive Queries** - Ask specific questions about what the camera sees
 - **Text-to-Speech Narration** - Automatic audio descriptions with customizable voice and speed
 - **Preset Questions** - Quick access to common queries like "What's in front of me?" and "Read any text"
@@ -17,7 +17,7 @@ A real-time camera-based AI assistant for blind and low vision users, powered by
 ### Prerequisites
 
 - Node.js 18+ 
-- A Moondream API key ([Get one here](https://moondream.ai))
+- An API key for vision analysis services
 - Supabase project (optional, for authentication and history)
 
 ### Installation
@@ -30,7 +30,7 @@ A real-time camera-based AI assistant for blind and low vision users, powered by
 
 3. Set up environment variables in `.env.local`:
    ```env
-   NEXT_PUBLIC_MOONDREAM_API_KEY=sk-your-moondream-key
+   NEXT_PUBLIC_MOONDREAM_API_KEY=sk-your-api-key
    NEXT_PUBLIC_MOONDREAM_API_URL=https://api.moondream.ai/v1
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
@@ -62,7 +62,7 @@ For detailed deployment instructions, see the [Deployment Documentation](./docs/
 
 ### Required Environment Variables
 
-- `NEXT_PUBLIC_MOONDREAM_API_KEY` - Your Moondream API key
+- `NEXT_PUBLIC_MOONDREAM_API_KEY` - Your vision analysis API key
 - `NEXT_PUBLIC_SUPABASE_URL` - Your Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Your Supabase anonymous key
 
@@ -85,7 +85,7 @@ See the [deployment checklist](./docs/deployment/deployment-checklist.md) for a 
 ## Technology Stack
 
 - **Next.js 16** - React framework with App Router
-- **Moondream AI** - Vision language model for image analysis
+- **Vision Analysis API** - Advanced vision language model for image analysis
 - **Supabase** - Authentication and database (optional)
 - **shadcn/ui** - UI component library
 - **Web Speech API** - Text-to-speech functionality

@@ -6,7 +6,7 @@ const resources = {
   en: {
     translation: {
       welcome: "Welcome to Imboni",
-      tagline: "Visual assistance at your fingertips",
+      tagline: "Visual assistance designed to support you",
       needHelp: "I need visual assistance",
       alreadyHaveAccount: "Already have an account? Log in",
       login: "Log in",
@@ -48,7 +48,7 @@ const resources = {
       termsOfService: "Terms of Service",
       agreeAndContinue: "Agree and Continue",
       verifyEmail: "Verify your email",
-      verifyEmailMessage: "Please check your email and click the verification link.",
+      verifyEmailMessage: "We've sent you a verification email. Please check your inbox and click the verification link. We're here to help you get started.",
       resendEmail: "Resend verification email",
       emailVerified: "Email verified",
       loading: "Loading...",

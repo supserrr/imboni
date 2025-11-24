@@ -51,17 +51,17 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
         values.password,
         values.fullName
       )
-      toast.success("Account created! Please check your email to verify.")
+      toast.success("Your account has been created. Please check your email to verify your account. We're here to help you get started.")
       onSuccess?.()
       router.push("/verify-email")
     } catch (error: any) {
       if (error.message === "ACCOUNT_EXISTS" || error.name === "AccountExistsError") {
-        toast.error("An account with this email already exists. Please log in instead.")
+        toast.error("An account with this email already exists. You can sign in with your existing account. We'll help you get back in.")
         setTimeout(() => {
           router.push("/login")
         }, 2000)
       } else {
-        toast.error(error.message || "Failed to create account")
+        toast.error(error.message || "We couldn't create your account right now. Please try again, and we're here to help if you need support.")
       }
     } finally {
       setIsLoading(false)
@@ -73,7 +73,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     try {
       await authService.signInWithGoogle()
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign up with Google")
+      toast.error(error.message || "We couldn't sign you up with Google right now. Please try again, and we're here to help if you need support.")
       setIsLoading(false)
     }
   }

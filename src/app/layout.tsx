@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Imboni - AI Vision Assistant",
-  description: "Real-time camera-based AI assistant for blind and low vision users powered by Moondream AI",
+  description: "An AI assistant designed to help blind and low vision users understand their surroundings with real-time visual descriptions",
 };
 
 export default function RootLayout({

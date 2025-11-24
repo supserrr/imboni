@@ -46,11 +46,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     setIsLoading(true)
     try {
       await authService.signInWithEmail(values.email, values.password)
-      toast.success("Successfully signed in")
+      toast.success("Welcome back! We're glad to see you again.")
       onSuccess?.()
       router.push("/dashboard")
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in")
+      toast.error(error.message || "We couldn't sign you in right now. Please check your credentials and try again. We're here to help if you need support.")
     } finally {
       setIsLoading(false)
     }
@@ -61,7 +61,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     try {
       await authService.signInWithGoogle()
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in with Google")
+      toast.error(error.message || "We couldn't sign you in with Google right now. Please try again, and we're here to help if you need support.")
       setIsLoading(false)
     }
   }

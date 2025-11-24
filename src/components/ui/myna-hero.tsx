@@ -35,19 +35,19 @@ const features = [
     icon: Eye,
     label: "Object Detection",
     description:
-      "Identify objects, people, text, and scenes with advanced AI vision technology.",
+      "Identify objects, people, text, and scenes to help you understand your environment with clarity.",
   },
   {
     icon: Sparkles,
     label: "Smart Triggers",
     description:
-      "Set up custom triggers to detect specific gestures, actions, or events.",
+      "Set up personalized triggers that alert you to important moments, gestures, or events when you need them most.",
   },
   {
     icon: Heart,
     label: "Accessible Design",
     description:
-      "Built with accessibility in mind, supporting screen readers and keyboard navigation.",
+      "Built with your needs in mind, supporting screen readers, keyboard navigation, and your preferred way of interacting.",
   },
 ];
 
@@ -79,9 +79,9 @@ export function MynaHero() {
   }, []);
 
   const titleWords = [
+    "ADVANCED",
     "AI",
     "VISION",
-    "ASSISTANT",
     "FOR",
     "EVERYONE",
   ];
@@ -184,9 +184,7 @@ export function MynaHero() {
               transition={{ delay: 1.2, duration: 0.6 }}
               className="mx-auto mt-8 max-w-2xl text-xl text-foreground font-mono"
             >
-              Real-time camera-based AI assistant powered by Moondream AI.
-              Get instant descriptions of your surroundings, detect objects,
-              and navigate the world with confidence.
+              We empower blind and low vision users with cutting-edge AI technology to transform visual surroundings into clear, helpful descriptions.
             </motion.p>
 
             <motion.div
@@ -248,7 +246,7 @@ export function MynaHero() {
             }}
             className="text-center text-4xl font-mono font-bold mb-12"
           >
-            Unlock the Power of AI
+            Your AI Companion
           </motion.h2>
           <motion.div
             initial={{ opacity: 0 }}

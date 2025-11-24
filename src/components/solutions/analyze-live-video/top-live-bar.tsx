@@ -60,13 +60,13 @@ export function TopLiveBar({
               height: isLargeView ? '48px' : '32px',
             }}
           >
-            <img src="/md_logo.svg" alt="Moondream" width={48} height={48} className="w-full h-full" />
+            <img src="/md_logo.svg" alt="Imboni" width={48} height={48} className="w-full h-full" />
           </div>
           <span
             className={`text-white font-semibold tracking-tight hidden sm:block ${isLargeView ? 'text-2xl' : 'text-base'}`}
             style={{ textShadow: '0 2px 4px rgba(0, 0, 0, 0.6)' }}
           >
-            Moondream
+            Imboni
           </span>
           {isStreaming && (
             <div className="flex items-center bg-red-500 rounded-md px-2 py-1" style={{ gap: '4px', marginLeft: '4px' }}>

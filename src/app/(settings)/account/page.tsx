@@ -53,9 +53,9 @@ export default function AccountSettingsPage() {
         phone_number: phoneNumber,
         bio: bio,
       })
-      toast.success("Profile updated successfully")
+      toast.success("Your profile has been updated! Your changes are saved and ready to use.")
     } catch (error: any) {
-      toast.error(error.message || "Failed to update profile")
+      toast.error(error.message || "We couldn't update your profile right now. Please try again, and we're here to help if you need support.")
     }
   }
 

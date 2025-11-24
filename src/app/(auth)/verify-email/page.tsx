@@ -38,7 +38,7 @@ function VerifyEmailContent() {
 
   const handleResend = async () => {
     if (!email) {
-      toast.error("Email address not found")
+      toast.error("We couldn't find your email address. Please try signing up again, and we're here to help if you need support.")
       return
     }
 
@@ -50,9 +50,9 @@ function VerifyEmailContent() {
         email: email,
       })
       if (error) throw error
-      toast.success("Verification email sent!")
+      toast.success("We've sent you a verification email. Please check your inbox. We're here to help you get started.")
     } catch (error: any) {
-      toast.error(error.message || "Failed to resend email")
+      toast.error(error.message || "We couldn't resend the email right now. Please try again, and we're here to help if you need support.")
     } finally {
       setIsResending(false)
     }
@@ -80,7 +80,7 @@ function VerifyEmailContent() {
             </div>
           <CardTitle>Verify your email</CardTitle>
           <CardDescription>
-              We've sent a verification link to your email address
+              We've sent a verification link to your email address. We're here to help you get started on your journey.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

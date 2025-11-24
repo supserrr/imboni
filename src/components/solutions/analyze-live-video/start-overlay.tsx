@@ -12,7 +12,7 @@ export default function StartOverlay({ onStartWebcam, onVideoFileChange }: Start
     <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
       <div className="flex flex-col gap-3 sm:gap-4 items-center px-4 max-w-md w-full">
         <h2 className="text-white text-xl sm:text-2xl font-semibold text-center mb-2">
-          Try Moondream with live video
+          Start your visual assistance journey
         </h2>
         <button
           onClick={onStartWebcam}
