@@ -322,7 +322,7 @@ function LoginPage() {
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="relative hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary/90 via-primary to-primary/80 p-12 text-primary-foreground">
         <div className="relative z-20">
-          <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
+          <Link href="/" className="flex items-center gap-2 text-lg font-semibold font-mono">
             <Logo variant="full" className="h-8 w-auto" />
           </Link>
         </div>
@@ -495,20 +495,20 @@ function LoginPage() {
 
       <div className="flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-[420px]">
-          <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12">
+          <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12 font-mono">
             <Link href="/" className="flex items-center gap-2">
               <Logo variant="full" className="h-8 w-auto" />
             </Link>
           </div>
 
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Welcome back!</h1>
-            <p className="text-muted-foreground text-sm">Please enter your details</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono">Welcome back!</h1>
+            <p className="text-muted-foreground text-sm font-mono">Please enter your details</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium font-mono">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -519,13 +519,13 @@ function LoginPage() {
                 onFocus={() => setIsTyping(true)}
                 onBlur={() => setIsTyping(false)}
                 required
-                className="h-12 bg-background border-border/60 focus:border-primary"
+                className="h-12 bg-background border border-input rounded-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 disabled={isLoading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium font-mono">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -571,14 +571,14 @@ function LoginPage() {
             </div>
 
             {error && (
-              <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg">
+              <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg font-mono">
                 {error}
               </div>
             )}
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium" 
+              className="w-full h-12 text-base font-medium font-mono rounded-none" 
               size="lg" 
               disabled={isLoading}
             >
@@ -589,7 +589,7 @@ function LoginPage() {
           <div className="mt-6">
             <Button 
               variant="outline" 
-              className="w-full h-12 bg-background border-border/60 hover:bg-accent"
+              className="w-full h-12 bg-background hover:bg-accent font-mono rounded-none"
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isLoading}
@@ -599,7 +599,7 @@ function LoginPage() {
             </Button>
           </div>
 
-          <div className="text-center text-sm text-muted-foreground mt-8">
+          <div className="text-center text-sm text-muted-foreground mt-8 font-mono">
             Don't have an account?{" "}
             <Link href="/signup" className="text-foreground font-medium hover:underline">
               Sign Up
