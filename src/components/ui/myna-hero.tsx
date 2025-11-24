@@ -60,6 +60,11 @@ export function MynaHero() {
   const ref = React.useRef(null);
   const isInView = useInView(ref, { once: true, amount: 0.1 });
   const [canAnimateFeatures, setCanAnimateFeatures] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (isInView) {
@@ -116,39 +121,47 @@ export function MynaHero() {
                 GET STARTED <ArrowRight className="ml-1 w-4 h-4" />
               </Link>
             </Button>
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                <SheetDescription className="sr-only">
-                  Mobile navigation menu with links to different sections
-                </SheetDescription>
-                <nav className="flex flex-col gap-6 mt-6">
-                  {navigationItems.map((item) => (
-                    <Link
-                      key={item.title}
-                      href={item.href}
-                      className="text-sm font-mono text-foreground hover:text-primary transition-colors"
-                    >
-                      {item.title}
-                    </Link>
-                  ))}
-                  <Button
-                    asChild
-                    className="cursor-pointer rounded-none font-mono"
-                  >
-                    <Link href="/signup">
-                      GET STARTED <ArrowRight className="ml-1 w-4 h-4" />
-                    </Link>
+            {mounted && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle menu</span>
                   </Button>
-                </nav>
-              </SheetContent>
-            </Sheet>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    Mobile navigation menu with links to different sections
+                  </SheetDescription>
+                  <nav className="flex flex-col gap-6 mt-6">
+                    {navigationItems.map((item) => (
+                      <Link
+                        key={item.title}
+                        href={item.href}
+                        className="text-sm font-mono text-foreground hover:text-primary transition-colors"
+                      >
+                        {item.title}
+                      </Link>
+                    ))}
+                    <Button
+                      asChild
+                      className="cursor-pointer rounded-none font-mono"
+                    >
+                      <Link href="/signup">
+                        GET STARTED <ArrowRight className="ml-1 w-4 h-4" />
+                      </Link>
+                    </Button>
+                  </nav>
+                </SheetContent>
+              </Sheet>
+            )}
+            {!mounted && (
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            )}
           </div>
         </div>
       </header>

@@ -3,7 +3,7 @@
 import { ChevronRightIcon } from "@radix-ui/react-icons";
 import { ClassValue, clsx } from "clsx";
 import * as Color from "color-bits";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
@@ -408,6 +408,18 @@ export const FlickeringFooter = () => {
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [currentYear, setCurrentYear] = useState(2025);
+  const footerRef = useRef(null);
+  const isFooterInView = useInView(footerRef, { once: true, amount: 0.1 });
+  const [canAnimateFooter, setCanAnimateFooter] = useState(false);
+
+  // Wait for support section to finish animating before allowing footer to animate
+  // Support section: 4.5s (canAnimateSupport) + 0.4s (button delay) + 0.6s (duration) = 5.5s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setCanAnimateFooter(true);
+    }, 5600); // Slightly after support section completes
+    return () => clearTimeout(timer);
+  }, []);
 
   // Determine logo path based on theme
   useEffect(() => {
@@ -438,38 +450,90 @@ export const FlickeringFooter = () => {
     : "/logos/imboni-logo-full-black.png";
 
   return (
-    <footer id="footer" className="w-full pb-0">
+    <footer id="footer" className="w-full pb-0" ref={footerRef}>
       <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between py-10 gap-8 md:gap-0">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          transition={{
+            duration: 0.6,
+            type: "spring",
+            stiffness: 100,
+            damping: 10,
+          }}
+          className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between py-10 gap-8 md:gap-0"
+        >
         <div className="flex flex-col items-start justify-start gap-y-5 max-w-xs mx-0 pl-4 md:pl-0">
-          <Link href="/" className="flex items-center gap-2">
-            <Logo variant="full" className="h-8 w-auto" />
-          </Link>
-          <p className="tracking-tight text-muted-foreground font-mono text-sm">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{
+              delay: 0.2,
+              duration: 0.6,
+            }}
+          >
+            <Link href="/" className="flex items-center gap-2">
+              <Logo variant="full" className="h-8 w-auto" />
+            </Link>
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{
+              delay: 0.3,
+              duration: 0.6,
+            }}
+            className="tracking-tight text-muted-foreground font-mono text-sm"
+          >
             We empower blind and low vision users with cutting-edge AI technology to transform visual surroundings into clear, helpful descriptions.
-          </p>
-          <div className="flex items-center gap-2 hidden md:flex">
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{
+              delay: 0.4,
+              duration: 0.6,
+            }}
+            className="flex items-center gap-2 hidden md:flex"
+          >
             <p className="text-xs text-muted-foreground">
               © {currentYear} Imboni. All rights reserved.
             </p>
-          </div>
+          </motion.div>
         </div>
-        <div className="pt-5 md:ml-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          transition={{
+            delay: 0.5,
+            duration: 0.6,
+          }}
+          className="pt-5 md:ml-auto"
+        >
           <ul className="flex flex-row items-center justify-end gap-x-8">
-            {footerLinks.map((link) => (
-              <li
+            {footerLinks.map((link, index) => (
+              <motion.li
                 key={link.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                transition={{
+                  delay: 0.5 + index * 0.1,
+                  duration: 0.6,
+                  type: "spring",
+                  stiffness: 100,
+                  damping: 10,
+                }}
                 className="group inline-flex cursor-pointer items-center justify-start gap-1 text-sm font-mono text-foreground hover:text-primary transition-colors"
               >
                 <Link href={link.url}>{link.title}</Link>
                 <div className="flex size-4 items-center justify-center border border-border rounded translate-x-0 transform opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100">
                   <ChevronRightIcon className="h-4 w-4" />
                 </div>
-              </li>
+              </motion.li>
             ))}
           </ul>
-        </div>
-        </div>
+        </motion.div>
+        </motion.div>
       </div>
       <div className="w-full h-48 md:h-64 relative mt-24 z-0">
         <div className="absolute inset-0 bg-gradient-to-t from-transparent to-background z-10 from-40%" />

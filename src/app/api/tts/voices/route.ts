@@ -50,6 +50,13 @@ export async function GET() {
 
     return NextResponse.json({ voices: formattedVoices })
   } catch (error: any) {
+    // Handle prerendering errors during build time
+    const errorMessage = error?.message || ''
+    if (errorMessage.includes('prerender') || errorMessage.includes('prerendering')) {
+      // During build/prerendering, return empty array to avoid build failures
+      return NextResponse.json({ voices: [] })
+    }
+    
     console.error("ElevenLabs voices error:", error)
     return NextResponse.json(
       { error: error.message || "Failed to fetch voices" },
