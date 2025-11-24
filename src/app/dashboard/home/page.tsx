@@ -21,7 +21,12 @@ export default function HomePage() {
   const [question, setQuestion] = useState<string>("")
   const [answer, setAnswer] = useState<string>("")
   const [textQuery, setTextQuery] = useState<string>("")
+  const [customQuery, setCustomQuery] = useState<string>("")
+  const [analysisHistory, setAnalysisHistory] = useState<string[]>([])
+  const [latestBackgroundAnalysis, setLatestBackgroundAnalysis] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
+  const analysisLoopRef = useRef<boolean>(false)
+  const isAnsweringQuestionRef = useRef<boolean>(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const recognitionRef = useRef<any>(null)
@@ -31,36 +36,104 @@ export default function HomePage() {
     checkPermission()
   }, [checkPermission])
 
+  const analyzeFrame = async (query: string) => {
+    if (!videoRef.current || !isStreaming) {
+      return null
+    }
+
+    try {
+      // Capture frame from video
+      const frameDataUrl = captureFrameFromVideo(videoRef.current)
+      if (!frameDataUrl) {
+        return null
+      }
+
+      // Query Moondream API
+      const response = await queryMoondream(frameDataUrl, query, MOONDREAM_API_URL)
+      return response
+    } catch (err: any) {
+      console.error("Error analyzing frame:", err)
+      setError(err.message || "Failed to analyze image")
+      return null
+    }
+  }
+
   const handleQuestion = async (questionText: string) => {
     if (!videoRef.current || !isStreaming) {
       setError("Camera is not ready")
       return
     }
 
-    setIsAnalyzing(true)
-    setAnswer("")
+    // Cancel any ongoing speech when new question comes in (interruption support)
+    if (isSpeaking && synthesisRef.current) {
+      synthesisRef.current.cancel()
+      setIsSpeaking(false)
+    }
+
+    setQuestion(questionText)
     setError(null)
+    isAnsweringQuestionRef.current = true
 
     try {
-      // Capture frame from video
+      // Capture current frame and answer the question immediately
       const frameDataUrl = captureFrameFromVideo(videoRef.current)
       if (!frameDataUrl) {
         throw new Error("Failed to capture frame from camera")
       }
 
-      // Query Moondream API
+      // Query Moondream API with the user's question
       const response = await queryMoondream(frameDataUrl, questionText, MOONDREAM_API_URL)
       setAnswer(response)
       
-      // Speak the answer
+      // Small delay to ensure state is updated, then speak the answer
+      await new Promise(resolve => setTimeout(resolve, 100))
       speak(response)
     } catch (err: any) {
-      console.error("Error analyzing frame:", err)
-      setError(err.message || "Failed to analyze image")
-      setIsAnalyzing(false)
+      console.error("Error answering question:", err)
+      setError(err.message || "Failed to answer question")
     } finally {
+      isAnsweringQuestionRef.current = false
+    }
+  }
+
+  const startContinuousAnalysis = async () => {
+    if (analysisLoopRef.current) return
+    
+    analysisLoopRef.current = true
+    setIsAnalyzing(true)
+
+    const analysisLoop = async () => {
+      while (analysisLoopRef.current && isStreaming) {
+        try {
+          // Background analysis - just describing what it sees (silent)
+          const backgroundQuery = "describe what you see in one short sentence"
+          
+          const response = await analyzeFrame(backgroundQuery)
+          
+          if (response) {
+            // Store latest background analysis (but don't speak it)
+            setLatestBackgroundAnalysis(response)
+            // Add to history silently
+            setAnalysisHistory(prev => [response, ...prev].slice(0, 10))
+          }
+          
+          // Wait before next analysis (2-3 seconds between analyses)
+          await new Promise(resolve => setTimeout(resolve, 2000))
+        } catch (err: any) {
+          console.error("Continuous analysis error:", err)
+          // Continue loop even on error, but wait longer
+          await new Promise(resolve => setTimeout(resolve, 3000))
+        }
+      }
       setIsAnalyzing(false)
     }
+
+    analysisLoop()
+  }
+
+  const stopContinuousAnalysis = () => {
+    analysisLoopRef.current = false
+    setIsAnalyzing(false)
   }
 
   // Initialize speech recognition
@@ -78,7 +151,17 @@ export default function HomePage() {
         }
 
         recognition.onresult = (event: any) => {
-          const transcript = event.results[event.results.length - 1][0].transcript
+          const transcript = event.results[event.results.length - 1][0].transcript.trim()
+          
+          // Ignore empty transcripts
+          if (!transcript) return
+          
+          // If user is speaking while AI is speaking, interrupt the AI
+          if (isSpeaking && synthesisRef.current) {
+            synthesisRef.current.cancel()
+            setIsSpeaking(false)
+          }
+          
           setQuestion(transcript)
           handleQuestion(transcript)
         }
@@ -110,19 +193,19 @@ export default function HomePage() {
 
         recognition.onend = () => {
           // Auto-restart if still in AI mode (continuous listening)
-          // Use a small delay to avoid immediate restart issues
+          // This enables natural conversation flow - user can speak anytime
           setTimeout(() => {
             if (isAnalyzing && recognitionRef.current) {
               try {
                 recognitionRef.current.start()
               } catch (err) {
                 // Ignore restart errors (might already be starting)
-                console.log("Recognition restart skipped:", err)
+                // This is normal - recognition might already be active
               }
             } else {
               setIsListening(false)
             }
-          }, 100)
+          }, 300) // Shorter delay for more responsive conversation
         }
 
         recognitionRef.current = recognition
@@ -176,6 +259,7 @@ export default function HomePage() {
   }
 
   const stopCamera = () => {
+    stopContinuousAnalysis()
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop())
       streamRef.current = null
@@ -184,7 +268,6 @@ export default function HomePage() {
       videoRef.current.srcObject = null
     }
     setIsStreaming(false)
-    setIsAnalyzing(false)
     stopListening()
     stopSpeaking()
   }
@@ -218,13 +301,13 @@ export default function HomePage() {
 
   const speak = (text: string) => {
     if (synthesisRef.current) {
-      // Cancel any ongoing speech
+      // Cancel any ongoing speech when new speech starts (allows interruption)
       synthesisRef.current.cancel()
       
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = "en-US"
-      utterance.rate = 1.0
-      utterance.pitch = 1.0
+      utterance.rate = 1.0 // Natural speaking rate
+      utterance.pitch = 1.0 // Natural pitch
       utterance.volume = 1.0
 
       utterance.onstart = () => {
@@ -239,6 +322,7 @@ export default function HomePage() {
         setIsSpeaking(false)
       }
 
+      // Store utterance reference so we can cancel it if user interrupts
       synthesisRef.current.speak(utterance)
     }
   }
@@ -256,26 +340,32 @@ export default function HomePage() {
       // Wait a bit for camera to be ready
       await new Promise(resolve => setTimeout(resolve, 500))
     }
-    setIsAnalyzing(true)
+    
+    // Start continuous analysis (will use custom query if set, otherwise default)
+    startContinuousAnalysis()
+    
     // Start listening for questions continuously
-    // Small delay to ensure state is updated
     setTimeout(() => {
       startListening()
     }, 100)
   }
 
   const handleStopAI = () => {
-    setIsAnalyzing(false)
+    stopContinuousAnalysis()
     stopListening()
     stopSpeaking()
     setQuestion("")
     setAnswer("")
     setTextQuery("")
+    setLatestBackgroundAnalysis("")
+    setAnalysisHistory([])
+    isAnsweringQuestionRef.current = false
   }
 
   const handleTextQuerySubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
     if (textQuery.trim() && isStreaming) {
+      // Answer the question immediately with current frame
       await handleQuestion(textQuery.trim())
       setTextQuery("")
     }
@@ -303,24 +393,24 @@ export default function HomePage() {
       />
 
       {/* Status Overlay - Top Center */}
-      {(isListening || isAnalyzing || isSpeaking || question || answer || error) && (
-        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 max-w-md">
-          {isListening && (
+      {(isListening || isAnsweringQuestionRef.current || isSpeaking || question || answer || error) && (
+        <div className="absolute top-8 left-1/2 transform -translate-x-1/2 z-20 bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 max-w-md max-h-64 overflow-y-auto">
+          {isListening && !isSpeaking && (
             <div className="flex items-center gap-2 text-white">
               <Mic className="h-4 w-4 animate-pulse text-red-400" />
-              <span className="text-sm">Listening...</span>
+              <span className="text-sm">Listening... (you can interrupt anytime)</span>
             </div>
           )}
-          {isAnalyzing && !isListening && !isSpeaking && (
+          {isAnsweringQuestionRef.current && !isSpeaking && (
             <div className="flex items-center gap-2 text-white">
               <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              <span className="text-sm">Analyzing...</span>
+              <span className="text-sm">Analyzing your question...</span>
             </div>
           )}
           {isSpeaking && (
             <div className="flex items-center gap-2 text-white">
-              <Mic className="h-4 w-4 text-green-400" />
-              <span className="text-sm">Speaking...</span>
+              <Mic className="h-4 w-4 text-green-400 animate-pulse" />
+              <span className="text-sm">Speaking... (speak to interrupt)</span>
             </div>
           )}
           {error && (
@@ -328,18 +418,28 @@ export default function HomePage() {
               {error}
             </div>
           )}
-          {question && !isAnalyzing && (
+          {question && (
             <div className="text-white text-sm mt-1">
-              <span className="text-gray-400">Q: </span>
+              <span className="text-gray-400">You: </span>
               {question}
             </div>
           )}
           {answer && (
             <div className="text-white text-sm mt-1">
-              <span className="text-gray-400">A: </span>
+              <span className="text-gray-400">AI: </span>
               {answer}
             </div>
           )}
+        </div>
+      )}
+      
+      {/* Background Analysis Indicator (subtle) */}
+      {isAnalyzing && !isAnsweringQuestionRef.current && !isSpeaking && (
+        <div className="absolute top-4 right-4 z-20 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1.5">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-white text-xs">Analyzing...</span>
+          </div>
         </div>
       )}
 
