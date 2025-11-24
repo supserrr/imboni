@@ -519,7 +519,7 @@ function LoginPage() {
                 onFocus={() => setIsTyping(true)}
                 onBlur={() => setIsTyping(false)}
                 required
-                className="h-12 bg-background border border-input rounded-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="h-12 bg-background border border-input focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 disabled={isLoading}
               />
             </div>
@@ -571,14 +571,14 @@ function LoginPage() {
             </div>
 
             {error && (
-              <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-lg font-mono">
+              <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-none font-mono">
                 {error}
               </div>
             )}
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium font-mono rounded-none" 
+              className="w-full h-12 text-base font-medium font-mono" 
               size="lg" 
               disabled={isLoading}
             >
@@ -589,7 +589,7 @@ function LoginPage() {
           <div className="mt-6">
             <Button 
               variant="outline" 
-              className="w-full h-12 bg-background hover:bg-accent font-mono rounded-none"
+              className="w-full h-12 bg-background hover:bg-accent font-mono"
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isLoading}
