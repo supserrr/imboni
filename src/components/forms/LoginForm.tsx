@@ -48,7 +48,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       await authService.signInWithEmail(values.email, values.password)
       toast.success("Successfully signed in")
       onSuccess?.()
-      router.push("/")
+      router.push("/dashboard")
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in")
     } finally {
@@ -59,7 +59,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
     try {
-      await authService.signInWithGoogle("blind")
+      await authService.signInWithGoogle()
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in with Google")
       setIsLoading(false)

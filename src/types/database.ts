@@ -7,110 +7,39 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
-      help_requests: {
-        Row: {
-          assigned_volunteer: string | null
-          created_at: string | null
-          id: string
-          status: Database["public"]["Enums"]["request_status"] | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          assigned_volunteer?: string | null
-          created_at?: string | null
-          id?: string
-          status?: Database["public"]["Enums"]["request_status"] | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          assigned_volunteer?: string | null
-          created_at?: string | null
-          id?: string
-          status?: Database["public"]["Enums"]["request_status"] | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "help_requests_assigned_volunteer_fkey"
-            columns: ["assigned_volunteer"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "help_requests_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sessions: {
+      analysis_history: {
         Row: {
           created_at: string | null
-          duration: number | null
-          ended_at: string | null
-          help_request_id: string | null
           id: string
-          rating: number | null
-          started_at: string | null
-          user_id: string
-          volunteer_id: string
+          image_data: string | null
+          prompt: string
+          response: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
-          duration?: number | null
-          ended_at?: string | null
-          help_request_id?: string | null
           id?: string
-          rating?: number | null
-          started_at?: string | null
-          user_id: string
-          volunteer_id: string
+          image_data?: string | null
+          prompt: string
+          response: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
-          duration?: number | null
-          ended_at?: string | null
-          help_request_id?: string | null
           id?: string
-          rating?: number | null
-          started_at?: string | null
-          user_id?: string
-          volunteer_id?: string
+          image_data?: string | null
+          prompt?: string
+          response?: string
+          user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "sessions_help_request_id_fkey"
-            columns: ["help_request_id"]
-            isOneToOne: false
-            referencedRelation: "help_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessions_volunteer_id_fkey"
-            columns: ["volunteer_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       users: {
         Row: {
@@ -175,99 +104,12 @@ export type Database = {
         }
         Relationships: []
       }
-      volunteer_behavior: {
-        Row: {
-          accept_count: number | null
-          created_at: string | null
-          decline_count: number | null
-          last_active: string | null
-          response_time_avg: number | null
-          success_sessions: number | null
-          updated_at: string | null
-          volunteer_id: string
-        }
-        Insert: {
-          accept_count?: number | null
-          created_at?: string | null
-          decline_count?: number | null
-          last_active?: string | null
-          response_time_avg?: number | null
-          success_sessions?: number | null
-          updated_at?: string | null
-          volunteer_id: string
-        }
-        Update: {
-          accept_count?: number | null
-          created_at?: string | null
-          decline_count?: number | null
-          last_active?: string | null
-          response_time_avg?: number | null
-          success_sessions?: number | null
-          updated_at?: string | null
-          volunteer_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "volunteer_behavior_volunteer_id_fkey"
-            columns: ["volunteer_id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      analysis_history: {
-        Row: {
-          id: string
-          user_id: string | null
-          image_data: string | null
-          prompt: string
-          response: string
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          image_data?: string | null
-          prompt: string
-          response: string
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          image_data?: string | null
-          prompt?: string
-          response?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "analysis_history_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      accept_help_request: {
-        Args: { request_id: string; volunteer_id: string }
-        Returns: undefined
-      }
-      decline_help_request: {
-        Args: { request_id: string; volunteer_id: string }
-        Returns: undefined
-      }
-      increment_decline_count: {
-        Args: { volunteer_id: string }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       request_status:
@@ -285,18 +127,135 @@ export type Database = {
   }
 }
 
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
 export type Tables<
-  T extends keyof Database["public"]["Tables"],
-> = Database["public"]["Tables"][T]["Row"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
-  T extends keyof Database["public"]["Tables"],
-> = Database["public"]["Tables"][T]["Insert"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
-  T extends keyof Database["public"]["Tables"],
-> = Database["public"]["Tables"][T]["Update"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
-export type Enums<T extends keyof Database["public"]["Enums"]> =
-  Database["public"]["Enums"][T]
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      request_status: [
+        "pending",
+        "accepted",
+        "declined",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      user_type: ["blind", "volunteer"],
+    },
+  },
+} as const

@@ -42,8 +42,7 @@ export default function PrivacyTermsPage() {
               <h3 className="font-semibold mb-2">Terms of Service</h3>
               <p className="text-sm text-muted-foreground">
                 By using Imboni, you agree to use the service responsibly and
-                respectfully. Volunteers commit to providing helpful assistance,
-                and users commit to using the service appropriately. We reserve
+                respectfully. Users commit to using the service appropriately. We reserve
                 the right to suspend accounts that violate these terms.
               </p>
             </div>

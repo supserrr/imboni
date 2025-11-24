@@ -43,20 +43,20 @@ export async function queryMoondream(
     throw new Error('Missing Moondream API key. Set NEXT_PUBLIC_MOONDREAM_API_KEY in your .env file.');
   }
 
-  try {
+    try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
+        headers: {
         'Content-Type': 'application/json',
         'X-Moondream-Auth': apiKey,
-      },
-      body: JSON.stringify({
-        image_url: imageDataUrl,
-        question,
-      } as MoondreamQueryRequest),
+        },
+        body: JSON.stringify({
+          image_url: imageDataUrl,
+          question,
+        } as MoondreamQueryRequest),
     });
 
-    if (!response.ok) {
+      if (!response.ok) {
       if (response.status === 429 && retryCount < maxRetries) {
         const backoffMs = Math.min(1000 * Math.pow(2, retryCount), 8000);
         console.log('Backoff for', backoffMs, 'ms before retrying...');
@@ -64,11 +64,11 @@ export async function queryMoondream(
         return queryMoondream(imageDataUrl, question, inferenceUrl, retryCount + 1);
       }
       throw new Error(`API error: ${response.status}`);
-    }
+      }
 
     const data = (await response.json()) as MoondreamQueryResponse;
     return data.answer || '';
-  } catch (error) {
+    } catch (error) {
     if (error instanceof Error && error.message.includes('Rate limit')) {
       throw error;
     }

@@ -1,21 +1,48 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { Logo } from "@/components/Logo"
+import Link from "next/link"
+import { Mail, CheckCircle2 } from "lucide-react"
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const [isResending, setIsResending] = useState(false)
+  const [email, setEmail] = useState<string | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
+  useEffect(() => {
+    // Get email from URL params if available
+    const emailParam = searchParams.get("email")
+    if (emailParam) {
+      setEmail(emailParam)
+    } else {
+      // Try to get email from session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.email) {
+          setEmail(session.user.email)
+        }
+      })
+    }
+  }, [searchParams, supabase])
+
   const handleResend = async () => {
+    if (!email) {
+      toast.error("Email address not found")
+      return
+    }
+
     setIsResending(true)
     try {
       const { error } = await supabase.auth.resend({
         type: "signup",
-        email: "",
+        email: email,
       })
       if (error) throw error
       toast.success("Verification email sent!")
@@ -27,30 +54,85 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-8">
+    <div className="flex min-h-screen flex-col">
+      {/* Header */}
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-4">
+          <Link href="/" className="flex items-center">
+            <Logo variant="full" className="h-8 w-auto" />
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex-1 flex items-center justify-center p-8">
       <Card className="w-full max-w-md">
-        <CardHeader>
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                <Mail className="h-8 w-8 text-primary" />
+              </div>
+            </div>
           <CardTitle>Verify your email</CardTitle>
           <CardDescription>
-            Please check your email and click the verification link to continue
+              We've sent a verification link to your email address
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            We've sent a verification link to your email address. Please check
-            your inbox and click the link to verify your account.
-          </p>
+            {email && (
+              <div className="rounded-lg border bg-muted p-3 text-sm">
+                <p className="text-muted-foreground">Email sent to:</p>
+                <p className="font-medium">{email}</p>
+              </div>
+            )}
+            
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p>Check your inbox for the verification email</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p>Click the link in the email to verify your account</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <p>Check your spam folder if you don't see it</p>
+              </div>
+            </div>
+
           <Button
             variant="outline"
             onClick={handleResend}
-            disabled={isResending}
+              disabled={isResending || !email}
             className="w-full"
           >
             {isResending ? "Sending..." : "Resend verification email"}
           </Button>
+
+            <div className="text-center text-sm">
+              <Link href="/login" className="text-muted-foreground hover:text-foreground underline">
+                Back to login
+              </Link>
+            </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }
 
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
+  )
+}

@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input"
 import { authService } from "@/lib/services/auth"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import type { UserType } from "@/types/user"
 
 const signupSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
@@ -28,11 +27,10 @@ const signupSchema = z.object({
 type SignupFormValues = z.infer<typeof signupSchema>
 
 interface SignupFormProps {
-  userType: UserType
   onSuccess?: () => void
 }
 
-export function SignupForm({ userType, onSuccess }: SignupFormProps) {
+export function SignupForm({ onSuccess }: SignupFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
 
@@ -51,8 +49,7 @@ export function SignupForm({ userType, onSuccess }: SignupFormProps) {
       await authService.signUpWithEmail(
         values.email,
         values.password,
-        values.fullName,
-        userType
+        values.fullName
       )
       toast.success("Account created! Please check your email to verify.")
       onSuccess?.()
@@ -74,7 +71,7 @@ export function SignupForm({ userType, onSuccess }: SignupFormProps) {
   const handleGoogleSignUp = async () => {
     setIsLoading(true)
     try {
-      await authService.signInWithGoogle(userType)
+      await authService.signInWithGoogle()
     } catch (error: any) {
       toast.error(error.message || "Failed to sign up with Google")
       setIsLoading(false)

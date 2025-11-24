@@ -7,8 +7,7 @@ export class AuthService {
   async signUpWithEmail(
     email: string,
     password: string,
-    fullName: string,
-    userType: UserType
+    fullName: string
   ) {
     const { data, error } = await this.supabase.auth.signUp({
       email,
@@ -16,7 +15,7 @@ export class AuthService {
       options: {
         data: {
           full_name: fullName,
-          type: userType,
+          type: "blind",
         },
       },
     })
@@ -40,7 +39,7 @@ export class AuthService {
         .from("users")
         .upsert({
           id: data.user.id,
-          type: userType,
+          type: "blind",
           full_name: fullName,
         }, {
           onConflict: "id"
@@ -48,20 +47,6 @@ export class AuthService {
 
       if (profileError && !profileError.message.includes("duplicate key")) {
         throw profileError
-      }
-
-      if (userType === "volunteer") {
-        const { error: behaviorError } = await this.supabase
-          .from("volunteer_behavior")
-          .upsert({
-            volunteer_id: data.user.id,
-          }, {
-            onConflict: "volunteer_id"
-          })
-        
-        if (behaviorError && !behaviorError.message.includes("duplicate key")) {
-          console.error("Volunteer behavior creation error:", behaviorError)
-        }
       }
     }
 
@@ -78,16 +63,12 @@ export class AuthService {
     return data
   }
 
-  async signInWithGoogle(userType: UserType) {
-    const nextPath = userType === "volunteer" ? "/dashboard/volunteer" : "/dashboard/blind"
-    const redirectUrl = `${window.location.origin}/auth/callback?next=${nextPath}&user_type=${userType}`
+  async signInWithGoogle() {
+    const redirectUrl = `${window.location.origin}/auth/callback`
     const { data, error } = await this.supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectUrl,
-        queryParams: {
-          user_type: userType,
-        },
       },
     })
 
@@ -126,8 +107,10 @@ export class AuthService {
   }
 
   async handleOAuthCallback(url: string) {
-    const code = new URL(url).searchParams.get("code")
+    const urlObj = new URL(url)
+    const code = urlObj.searchParams.get("code")
     if (!code) throw new Error("No code in callback URL")
+
 
     const { data, error } = await this.supabase.auth.exchangeCodeForSession(
       code
@@ -135,24 +118,26 @@ export class AuthService {
     if (error) throw error
 
     if (data.user) {
-      const userType = data.user.user_metadata?.user_type as UserType
-      if (userType) {
-        const { error: profileError } = await this.supabase
-          .from("users")
-          .upsert({
-            id: data.user.id,
-            type: userType,
-            full_name: data.user.user_metadata?.full_name || data.user.email,
-          })
+      // Default to "blind" user type
+      const { error: profileError } = await this.supabase
+        .from("users")
+        .upsert({
+          id: data.user.id,
+          type: "blind",
+          full_name: data.user.user_metadata?.full_name || data.user.email || "User",
+        }, {
+          onConflict: "id"
+        })
 
-        if (profileError) throw profileError
+      if (profileError && !profileError.message.includes("duplicate key")) {
+        throw profileError
       }
     }
 
     return data
   }
 
-  async updateUserMetadataAfterOAuth(userId: string, userType: UserType) {
+  async updateUserMetadataAfterOAuth(userId: string) {
     const { data: user } = await this.supabase.auth.getUser()
     if (!user.user) return
 
@@ -160,7 +145,7 @@ export class AuthService {
       .from("users")
       .upsert({
         id: userId,
-        type: userType,
+        type: "blind",
         full_name: user.user.user_metadata?.full_name || user.user.email,
       })
 

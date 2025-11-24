@@ -9,6 +9,7 @@ export type { Trigger, CustomTriggerFormState } from './player-types';
 interface PlayerProps {
   inferenceUrl: string;
   defaultFullscreen?: boolean;
+  onStartAttempt?: () => void;
 }
 
 const PRE_DEFINED_TRIGGERS: Trigger[] = [
@@ -49,7 +50,7 @@ const PRE_DEFINED_TRIGGERS: Trigger[] = [
   },
 ];
 
-export default function Player({ inferenceUrl, defaultFullscreen = false }: PlayerProps) {
+export default function Player({ inferenceUrl, defaultFullscreen = false, onStartAttempt }: PlayerProps) {
   const { state: videoState, actions: videoActions } = useVideoSession({ defaultFullscreen });
   const { state: triggerState, actions: triggerActions, config: triggerConfig } = useTriggerManager({
     predefinedTriggers: PRE_DEFINED_TRIGGERS,
@@ -63,7 +64,17 @@ export default function Player({ inferenceUrl, defaultFullscreen = false }: Play
     onError: videoActions.setError,
   });
 
-  const { stopStreaming } = videoActions;
+  const { stopStreaming, startWebcam } = videoActions;
+
+  const handleStartWebcam = useCallback(async () => {
+    onStartAttempt?.();
+    try {
+      await startWebcam();
+    } catch (error) {
+      // Error will be handled by useVideoSession and displayed in the error state
+      onStartAttempt?.();
+    }
+  }, [startWebcam, onStartAttempt]);
 
   const handleStopStreaming = useCallback(() => {
     stopStreaming();
@@ -74,7 +85,7 @@ export default function Player({ inferenceUrl, defaultFullscreen = false }: Play
     <div className={videoState.isFullscreen ? 'fixed inset-0 z-50 bg-black flex items-center justify-center' : 'w-full max-w-6xl mx-auto mt-8'}>
       <PlayerSurface
         video={videoState}
-        videoActions={videoActions}
+        videoActions={{ ...videoActions, startWebcam: handleStartWebcam }}
         triggers={triggerState}
         triggerActions={triggerActions}
         resultHistory={resultHistory}

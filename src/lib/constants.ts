@@ -1,6 +1,5 @@
 export const USER_TYPES = {
   BLIND: "blind",
-  VOLUNTEER: "volunteer",
 } as const
 
 export const REQUEST_STATUS = {
@@ -42,8 +41,6 @@ export const MATCHING_ALGORITHM = {
   RESPONSE_TIME_WEIGHT: 0.5,
   RATING_WEIGHT: 10,
 } as const
-
-export const VOLUNTEER_RESPONSE_TIMEOUT = 30000 // 30 seconds
 
 export const POLLING_INTERVAL = 2000 // 2 seconds
 

@@ -41,9 +41,9 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname === "/" ||
     request.nextUrl.pathname.startsWith("/privacy-terms")
 
-  const isProtectedRoute = request.nextUrl.pathname.startsWith("/dashboard/") ||
-    request.nextUrl.pathname.startsWith("/blind/") ||
-    request.nextUrl.pathname.startsWith("/volunteer/") ||
+  const isDashboardRoute = request.nextUrl.pathname.startsWith("/dashboard")
+
+  const isProtectedRoute = isDashboardRoute ||
     request.nextUrl.pathname.startsWith("/settings/")
 
   if (!user && isProtectedRoute) {
@@ -67,13 +67,14 @@ export async function middleware(request: NextRequest) {
     profileError = profileResult.error
   }
 
-  // Check user type for dashboard routes and redirect if mismatch
-  if (user && request.nextUrl.pathname.startsWith("/dashboard/")) {
+  // For dashboard routes, just ensure user has a profile
+  // No need to check user type for dashboard routes
+  if (user && isDashboardRoute) {
     // Handle database query errors
     if (profileError) {
       console.error("Error fetching user profile in middleware:", profileError)
       // On error, allow request to proceed to avoid blocking legitimate access
-      // The page component will handle user type verification
+      // The page component will handle user verification
       return supabaseResponse
     }
     
@@ -83,24 +84,6 @@ export async function middleware(request: NextRequest) {
       console.warn(`User profile not found for user ${user.id} in middleware - redirecting to signup`)
       const redirectUrl = request.nextUrl.clone()
       redirectUrl.pathname = "/signup"
-      return NextResponse.redirect(redirectUrl)
-    }
-    
-    // Validate that userType exists and is a valid value
-    const userType = userProfile.type
-    if (!userType || (userType !== "blind" && userType !== "volunteer")) {
-      console.warn(`Invalid user type "${userType}" for user ${user.id} in middleware - redirecting to signup`)
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = "/signup"
-      return NextResponse.redirect(redirectUrl)
-    }
-    
-    const requestedType = request.nextUrl.pathname.startsWith("/dashboard/blind") ? "blind" :
-                         request.nextUrl.pathname.startsWith("/dashboard/volunteer") ? "volunteer" : null
-    
-    if (requestedType && userType !== requestedType) {
-      const redirectUrl = request.nextUrl.clone()
-      redirectUrl.pathname = `/dashboard/${userType}`
       return NextResponse.redirect(redirectUrl)
     }
   }
@@ -128,15 +111,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
     
-    // Validate that userType exists and is a valid value
-    const userType = userProfile.type
-    if (!userType || (userType !== "blind" && userType !== "volunteer")) {
-      console.warn(`Invalid user type "${userType}" for user ${user.id} in middleware (auth route) - redirecting to signup`)
-      redirectUrl.pathname = "/signup"
-      return NextResponse.redirect(redirectUrl)
-    }
-    
-    redirectUrl.pathname = `/dashboard/${userType}`
+    // Redirect authenticated users to dashboard
+    redirectUrl.pathname = "/dashboard"
     return NextResponse.redirect(redirectUrl)
   }
 
