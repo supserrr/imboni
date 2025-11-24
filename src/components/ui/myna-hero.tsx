@@ -232,7 +232,7 @@ export function MynaHero() {
           </div>
         </section>
 
-        <section className="container pt-8 pb-10 md:pb-16" ref={ref} id="features">
+        <section className="container pt-8 pb-8 md:pb-12" ref={ref} id="features">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={isInView && canAnimateFeatures ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
