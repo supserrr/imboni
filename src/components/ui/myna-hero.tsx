@@ -13,7 +13,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
@@ -124,6 +124,10 @@ export function MynaHero() {
                 </Button>
               </SheetTrigger>
               <SheetContent>
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Mobile navigation menu with links to different sections
+                </SheetDescription>
                 <nav className="flex flex-col gap-6 mt-6">
                   {navigationItems.map((item) => (
                     <Link
