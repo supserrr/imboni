@@ -407,10 +407,12 @@ export const FlickeringFooter = () => {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [currentYear, setCurrentYear] = useState(2025);
 
   // Determine logo path based on theme
   useEffect(() => {
     setMounted(true);
+    setCurrentYear(new Date().getFullYear());
     const checkDarkTheme = () => {
       if (theme === "system") {
         const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -448,7 +450,7 @@ export const FlickeringFooter = () => {
           </p>
           <div className="flex items-center gap-2 hidden md:flex">
             <p className="text-xs text-muted-foreground">
-              © {typeof window !== "undefined" ? new Date().getFullYear() : 2024} Imboni. All rights reserved.
+              © {currentYear} Imboni. All rights reserved.
             </p>
           </div>
         </div>
