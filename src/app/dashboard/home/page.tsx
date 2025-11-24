@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { PermissionPrompt } from "@/components/PermissionPrompt"
 import { useCameraPermissions } from "@/hooks/useCameraPermissions"
+import { useElevenLabs } from "@/hooks/useElevenLabs"
 import { Play, Square, Mic, Send, Type } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { queryMoondream } from "@/lib/services/moondream"
@@ -31,16 +32,15 @@ export default function HomePage() {
   // Narration settings from localStorage
   const [narrationSpeed, setNarrationSpeed] = useState(1)
   const [selectedVoice, setSelectedVoice] = useState<string>("")
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("all")
   const [autoNarrate, setAutoNarrate] = useState(true)
-  const [showPreview, setShowPreview] = useState(false)
   const [analysisFrequency, setAnalysisFrequency] = useState(2)
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
+  const { speak: speakElevenLabs, stop: stopElevenLabs, isSpeaking: isElevenLabsSpeaking } = useElevenLabs()
   const analysisLoopRef = useRef<boolean>(false)
   const isAnsweringQuestionRef = useRef<boolean>(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const recognitionRef = useRef<any>(null)
-  const synthesisRef = useRef<SpeechSynthesis | null>(null)
   const inputModeRef = useRef<"none" | "text" | "voice">("none")
   const audioContextRef = useRef<AudioContext | null>(null)
 
@@ -52,76 +52,81 @@ export default function HomePage() {
   useEffect(() => {
     const savedSpeed = localStorage.getItem("narrationSpeed")
     const savedVoice = localStorage.getItem("selectedVoice")
+    const savedLanguage = localStorage.getItem("selectedLanguage")
     const savedAutoNarrate = localStorage.getItem("autoNarrate")
-    const savedShowPreview = localStorage.getItem("showPreview")
     const savedFrequency = localStorage.getItem("analysisFrequency")
 
     if (savedSpeed) setNarrationSpeed(parseFloat(savedSpeed))
     if (savedVoice) setSelectedVoice(savedVoice)
+    if (savedLanguage) setSelectedLanguage(savedLanguage)
+    else setSelectedLanguage("all") // Default to "all" if not set
     if (savedAutoNarrate) setAutoNarrate(savedAutoNarrate === "true")
-    if (savedShowPreview) setShowPreview(savedShowPreview === "true")
     if (savedFrequency) setAnalysisFrequency(parseFloat(savedFrequency))
   }, [])
 
-  // Load available voices and listen for changes
+  // Sync isSpeaking state with ElevenLabs
   useEffect(() => {
-    const loadVoices = () => {
-      if (typeof window !== "undefined" && window.speechSynthesis) {
-        const voices = window.speechSynthesis.getVoices()
-        setAvailableVoices(voices)
-      }
-    }
-
-    loadVoices()
-    if (typeof window !== "undefined" && window.speechSynthesis.onvoiceschanged) {
-      window.speechSynthesis.onvoiceschanged = loadVoices
-    }
-
-    return () => {
-      if (typeof window !== "undefined" && window.speechSynthesis.onvoiceschanged) {
-        window.speechSynthesis.onvoiceschanged = null
-      }
-    }
-  }, [])
+    setIsSpeaking(isElevenLabsSpeaking)
+  }, [isElevenLabsSpeaking])
 
   // Listen for changes to narration settings in localStorage (from settings page)
   useEffect(() => {
+    // Handle cross-tab storage events
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "narrationSpeed" && e.newValue) {
         setNarrationSpeed(parseFloat(e.newValue))
       } else if (e.key === "selectedVoice" && e.newValue !== null) {
         setSelectedVoice(e.newValue)
+      } else if (e.key === "selectedLanguage" && e.newValue !== null) {
+        setSelectedLanguage(e.newValue)
       } else if (e.key === "autoNarrate" && e.newValue !== null) {
         setAutoNarrate(e.newValue === "true")
-      } else if (e.key === "showPreview" && e.newValue !== null) {
-        setShowPreview(e.newValue === "true")
       } else if (e.key === "analysisFrequency" && e.newValue) {
         setAnalysisFrequency(parseFloat(e.newValue))
       }
     }
 
-    window.addEventListener("storage", handleStorageChange)
-    
-    // Also listen for custom events (for same-tab updates)
-    const handleCustomStorageChange = () => {
+    // Handle same-tab custom events (instant updates)
+    const handleCustomStorageChange = (e: CustomEvent) => {
+      const { key, newValue } = e.detail
+      if (key === "narrationSpeed" && newValue) {
+        setNarrationSpeed(parseFloat(newValue))
+      } else if (key === "selectedVoice" && newValue !== null) {
+        setSelectedVoice(newValue)
+      } else if (key === "selectedLanguage" && newValue !== null) {
+        setSelectedLanguage(newValue)
+      } else if (key === "autoNarrate" && newValue !== null) {
+        setAutoNarrate(newValue === "true")
+      } else if (key === "analysisFrequency" && newValue) {
+        setAnalysisFrequency(parseFloat(newValue))
+      }
+    }
+
+    // Fallback polling for changes (in case events are missed)
+    const handlePollingChange = () => {
       const savedSpeed = localStorage.getItem("narrationSpeed")
       const savedVoice = localStorage.getItem("selectedVoice")
+      const savedLanguage = localStorage.getItem("selectedLanguage")
       const savedAutoNarrate = localStorage.getItem("autoNarrate")
-      const savedShowPreview = localStorage.getItem("showPreview")
       const savedFrequency = localStorage.getItem("analysisFrequency")
 
       if (savedSpeed) setNarrationSpeed(parseFloat(savedSpeed))
       if (savedVoice !== null) setSelectedVoice(savedVoice)
+      if (savedLanguage !== null) setSelectedLanguage(savedLanguage)
+      else setSelectedLanguage("all") // Default to "all" if not set
       if (savedAutoNarrate !== null) setAutoNarrate(savedAutoNarrate === "true")
-      if (savedShowPreview !== null) setShowPreview(savedShowPreview === "true")
       if (savedFrequency) setAnalysisFrequency(parseFloat(savedFrequency))
     }
 
-    // Poll for changes (since localStorage events don't fire in same tab)
-    const interval = setInterval(handleCustomStorageChange, 1000)
+    window.addEventListener("storage", handleStorageChange)
+    window.addEventListener("localStorageChange", handleCustomStorageChange as EventListener)
+    
+    // Poll for changes every 2 seconds as fallback
+    const interval = setInterval(handlePollingChange, 2000)
 
     return () => {
       window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("localStorageChange", handleCustomStorageChange as EventListener)
       clearInterval(interval)
     }
   }, [])
@@ -225,8 +230,8 @@ export default function HomePage() {
     }
 
     // Cancel any ongoing speech when new question comes in (interruption support)
-    if (isSpeaking && synthesisRef.current) {
-      synthesisRef.current.cancel()
+    if (isSpeaking) {
+      stopElevenLabs()
       setIsSpeaking(false)
     }
 
@@ -338,8 +343,8 @@ export default function HomePage() {
           if (isAnsweringQuestionRef.current) return
           
           // If user is speaking while AI is speaking, interrupt the AI
-          if (isSpeaking && synthesisRef.current) {
-            synthesisRef.current.cancel()
+          if (isSpeaking) {
+            stopElevenLabs()
             setIsSpeaking(false)
           }
           
@@ -393,7 +398,6 @@ export default function HomePage() {
         recognitionRef.current = recognition
       }
 
-      synthesisRef.current = window.speechSynthesis
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -482,52 +486,35 @@ export default function HomePage() {
     }
   }
 
-  const speak = (text: string) => {
+  const speak = async (text: string) => {
     // Don't speak if auto-narrate is disabled
     if (!autoNarrate) {
       return
     }
 
-    if (synthesisRef.current) {
-      // Cancel any ongoing speech when new speech starts (allows interruption)
-      synthesisRef.current.cancel()
+    try {
+      // Stop any ongoing speech (allows interruption)
+      stopElevenLabs()
+
+      // Use selected language from narration settings (or "en" if "all" is selected)
+      const languageToUse = selectedLanguage !== "all" ? selectedLanguage : "en"
       
-      const utterance = new SpeechSynthesisUtterance(text)
-      utterance.lang = "en-US"
-      utterance.rate = narrationSpeed // Use user's preferred speed
-      utterance.pitch = 1.0 // Natural pitch
-      utterance.volume = 1.0
-
-      // Use selected voice if available
-      if (selectedVoice && availableVoices.length > 0) {
-        const voice = availableVoices.find(v => v.name === selectedVoice)
-        if (voice) {
-          utterance.voice = voice
-        }
-      }
-
-      utterance.onstart = () => {
-        setIsSpeaking(true)
-      }
-
-      utterance.onend = () => {
-        setIsSpeaking(false)
-      }
-
-      utterance.onerror = () => {
-        setIsSpeaking(false)
-      }
-
-      // Store utterance reference so we can cancel it if user interrupts
-      synthesisRef.current.speak(utterance)
+      // Use ElevenLabs for speech synthesis
+      await speakElevenLabs(text, {
+        voiceId: selectedVoice || undefined, // Use selected voice or default
+        stability: 0.5,
+        similarityBoost: 0.75,
+        language: languageToUse, // Use selected language from narration settings
+      })
+    } catch (error: any) {
+      console.error("Speech synthesis error:", error)
+      // Don't show alert for user-facing errors, just log
     }
   }
 
   const stopSpeaking = () => {
-    if (synthesisRef.current) {
-      synthesisRef.current.cancel()
-      setIsSpeaking(false)
-    }
+    stopElevenLabs()
+    setIsSpeaking(false)
   }
 
   const handleStartAI = async () => {
@@ -611,15 +598,15 @@ export default function HomePage() {
 
   return (
     <div className="fixed inset-0 w-full h-full bg-black overflow-hidden">
-      {/* Full Screen Camera Feed - Conditionally visible based on showPreview setting */}
+      {/* Full Screen Camera Feed - Hidden, used for frame capture only */}
       <video
         ref={videoRef}
         autoPlay
         playsInline
         muted
-        className={showPreview ? "w-full h-full object-contain" : "hidden"}
+        className="hidden"
         style={{ transform: "scaleX(-1)" }}
-        aria-hidden={!showPreview}
+        aria-hidden={true}
       />
 
       {/* Status Indicator - Top Center (single centered dot for all states) */}

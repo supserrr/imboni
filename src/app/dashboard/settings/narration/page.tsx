@@ -3,64 +3,154 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { useTextToSpeech } from "@/hooks/useTextToSpeech"
+import { useElevenLabs } from "@/hooks/useElevenLabs"
+
+// All languages supported by ElevenLabs
+const ELEVENLABS_LANGUAGES = [
+  "en", "es", "fr", "de", "it", "pt", "ru", "zh", "ja", "ko", "ar", "hi",
+  "nl", "pl", "tr", "sv", "no", "da", "fi", "el", "cs", "ro", "hu", "bg",
+  "hr", "sr", "sk", "sl", "et", "lv", "lt", "uk", "ca", "eu", "ga", "cy",
+  "mt", "is", "th", "vi", "id", "ms", "tl", "he", "fa", "ur", "bn", "ta",
+  "te", "mr", "gu", "kn", "ml", "pa", "si", "my", "km", "lo", "ka", "hy",
+  "az", "kk", "uz", "mn", "sw", "af", "zu", "xh", "am", "yo", "ig", "ha", "ne"
+]
+
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian",
+  pt: "Portuguese", ru: "Russian", zh: "Chinese", ja: "Japanese", ko: "Korean",
+  ar: "Arabic", hi: "Hindi", nl: "Dutch", pl: "Polish", tr: "Turkish",
+  sv: "Swedish", no: "Norwegian", da: "Danish", fi: "Finnish", el: "Greek",
+  cs: "Czech", ro: "Romanian", hu: "Hungarian", bg: "Bulgarian", hr: "Croatian",
+  sr: "Serbian", sk: "Slovak", sl: "Slovenian", et: "Estonian", lv: "Latvian",
+  lt: "Lithuanian", uk: "Ukrainian", ca: "Catalan", eu: "Basque", ga: "Irish",
+  cy: "Welsh", mt: "Maltese", is: "Icelandic", th: "Thai", vi: "Vietnamese",
+  id: "Indonesian", ms: "Malay", tl: "Filipino", he: "Hebrew", fa: "Persian",
+  ur: "Urdu", bn: "Bengali", ta: "Tamil", te: "Telugu", mr: "Marathi",
+  gu: "Gujarati", kn: "Kannada", ml: "Malayalam", pa: "Punjabi", si: "Sinhala",
+  my: "Burmese", km: "Khmer", lo: "Lao", ka: "Georgian", hy: "Armenian",
+  az: "Azerbaijani", kk: "Kazakh", uz: "Uzbek", mn: "Mongolian", sw: "Swahili",
+  af: "Afrikaans", zu: "Zulu", xh: "Xhosa", am: "Amharic", yo: "Yoruba",
+  ig: "Igbo", ha: "Hausa", ne: "Nepali"
+}
 
 export default function NarrationSettingsPage() {
-  const { availableVoices, speak } = useTextToSpeech()
-  const [narrationSpeed, setNarrationSpeed] = useState(1)
+  const { voices, isLoading: voicesLoading, isSpeaking, speak, stop, error } = useElevenLabs()
   const [selectedVoice, setSelectedVoice] = useState<string>("")
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("all")
   const [autoNarrate, setAutoNarrate] = useState(true)
-  const [showPreview, setShowPreview] = useState(false)
-  const [analysisFrequency, setAnalysisFrequency] = useState(2)
+  const [isTesting, setIsTesting] = useState(false)
+
+  // ElevenLabs voices are multilingual, but we can filter by language preference
+  // Get languages that actually have voices available (from voice labels)
+  const availableLanguageCodes = Array.from(
+    new Set(voices.map(v => v.language || "en").filter(Boolean))
+  ).sort()
+  
+  // Filter voices: if a language is selected, prefer voices tagged with that language
+  // If no tagged voices exist, show all (since they're multilingual)
+  const filteredVoices = selectedLanguage === "all" 
+    ? voices 
+    : (() => {
+        const languageTaggedVoices = voices.filter(v => (v.language || "en") === selectedLanguage)
+        // If we have voices tagged with this language, use them
+        // Otherwise, all voices are multilingual and can speak this language
+        return languageTaggedVoices.length > 0 ? languageTaggedVoices : voices
+      })()
+  
+  // Auto-select first voice when language changes (if no voice is selected or current voice doesn't match)
+  useEffect(() => {
+    if (selectedLanguage !== "all" && filteredVoices.length > 0) {
+      const currentVoice = voices.find(v => v.id === selectedVoice)
+      // If no voice selected, or current voice doesn't match the language filter, auto-select first
+      if (!selectedVoice || !currentVoice || !filteredVoices.find(v => v.id === selectedVoice)) {
+        const firstVoice = filteredVoices[0]
+        if (firstVoice) {
+          setSelectedVoice(firstVoice.id)
+          localStorage.setItem("selectedVoice", firstVoice.id)
+          // Dispatch event for instant update
+          window.dispatchEvent(new CustomEvent("localStorageChange", {
+            detail: { key: "selectedVoice", newValue: firstVoice.id }
+          }))
+        }
+      }
+    }
+  }, [selectedLanguage, filteredVoices, voices, selectedVoice])
 
   // Load saved preferences from localStorage
   useEffect(() => {
-    const savedSpeed = localStorage.getItem("narrationSpeed")
     const savedVoice = localStorage.getItem("selectedVoice")
     const savedAutoNarrate = localStorage.getItem("autoNarrate")
-    const savedShowPreview = localStorage.getItem("showPreview")
-    const savedFrequency = localStorage.getItem("analysisFrequency")
+    const savedLanguage = localStorage.getItem("selectedLanguage")
 
-    if (savedSpeed) setNarrationSpeed(parseFloat(savedSpeed))
     if (savedVoice) setSelectedVoice(savedVoice)
     if (savedAutoNarrate) setAutoNarrate(savedAutoNarrate === "true")
-    if (savedShowPreview) setShowPreview(savedShowPreview === "true")
-    if (savedFrequency) setAnalysisFrequency(parseInt(savedFrequency, 10))
+    if (savedLanguage) setSelectedLanguage(savedLanguage)
   }, [])
 
-  // Save preferences to localStorage
-  useEffect(() => {
-    localStorage.setItem("narrationSpeed", narrationSpeed.toString())
-  }, [narrationSpeed])
+  // Helper function to dispatch custom storage event for same-tab updates
+  const dispatchStorageEvent = (key: string, newValue: string | null) => {
+    // Dispatch custom event for same-tab listeners
+    window.dispatchEvent(new CustomEvent("localStorageChange", {
+      detail: { key, newValue }
+    }))
+  }
 
+  // Save preferences to localStorage and dispatch events
   useEffect(() => {
     if (selectedVoice) {
       localStorage.setItem("selectedVoice", selectedVoice)
+      dispatchStorageEvent("selectedVoice", selectedVoice)
     }
   }, [selectedVoice])
 
   useEffect(() => {
     localStorage.setItem("autoNarrate", autoNarrate.toString())
+    dispatchStorageEvent("autoNarrate", autoNarrate.toString())
   }, [autoNarrate])
 
   useEffect(() => {
-    localStorage.setItem("showPreview", showPreview.toString())
-  }, [showPreview])
+    localStorage.setItem("selectedLanguage", selectedLanguage)
+    dispatchStorageEvent("selectedLanguage", selectedLanguage)
+  }, [selectedLanguage])
 
-  useEffect(() => {
-    localStorage.setItem("analysisFrequency", analysisFrequency.toString())
-  }, [analysisFrequency])
+  const handleTestVoice = async () => {
+    if (voices.length === 0) {
+      alert("No voices available. Please wait for voices to load.")
+      return
+    }
 
-  const handleTestVoice = () => {
-    const voice = availableVoices.find((v) => v.name === selectedVoice)
-    speak("This is a test of the text to speech voice.", {
-      rate: narrationSpeed,
-      voice: voice || null,
-    })
+    // Stop any current speech
+    if (isSpeaking) {
+      stop()
+      return
+    }
+
+    setIsTesting(true)
+    try {
+      const voiceId = selectedVoice || filteredVoices[0]?.id || voices[0]?.id
+      if (!voiceId) {
+        alert("Please select a voice first.")
+        return
+      }
+
+      // Always use the selected language for testing (or "en" if "all" is selected)
+      const testLanguage = selectedLanguage !== "all" ? selectedLanguage : "en"
+      
+      await speak("This is a test of the ElevenLabs text to speech voice.", {
+        voiceId: voiceId,
+        stability: 0.5,
+        similarityBoost: 0.75,
+        language: testLanguage,
+      })
+    } catch (error: any) {
+      console.error("Test voice error:", error)
+      alert(error.message || "Failed to test voice. Please check your API key configuration.")
+    } finally {
+      setIsTesting(false)
+    }
   }
 
   return (
@@ -70,51 +160,116 @@ export default function NarrationSettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Narration Speed</CardTitle>
-            <CardDescription>Adjust the speed of text-to-speech narration</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Slider
-                min={0.5}
-                max={2}
-                step={0.1}
-                value={[narrationSpeed]}
-                onValueChange={([value]) => setNarrationSpeed(value)}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Slow (0.5x)</span>
-                <span>{narrationSpeed.toFixed(1)}x</span>
-                <span>Fast (2x)</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
             <CardTitle>Voice</CardTitle>
             <CardDescription>Select a voice for text-to-speech</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="voice-select">Voice</Label>
-              <Select value={selectedVoice} onValueChange={setSelectedVoice}>
-                <SelectTrigger id="voice-select">
-                  <SelectValue placeholder="Select a voice" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableVoices.map((voice) => (
-                    <SelectItem key={voice.name} value={voice.name}>
-                      {voice.name} ({voice.lang})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleTestVoice} variant="outline" size="sm" className="w-full">
-                Test Voice
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="language-filter">Filter by Language</Label>
+                <Select 
+                  value={selectedLanguage} 
+                  onValueChange={(lang) => {
+                    setSelectedLanguage(lang)
+                    // Voice will be auto-selected by useEffect when language changes
+                  }}
+                >
+                  <SelectTrigger id="language-filter" className="w-full">
+                    <SelectValue placeholder="All languages" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px] overflow-y-auto">
+                    <SelectItem value="all">All Languages (Auto-detect)</SelectItem>
+                    {ELEVENLABS_LANGUAGES.map((langCode) => {
+                      const langName = LANGUAGE_NAMES[langCode] || langCode.toUpperCase()
+                      const hasTaggedVoices = availableLanguageCodes.includes(langCode)
+                      const voiceCount = selectedLanguage === langCode 
+                        ? filteredVoices.length 
+                        : voices.filter(v => (v.language || "en") === langCode).length
+                      return (
+                        <SelectItem 
+                          key={langCode} 
+                          value={langCode}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span>{langName} ({langCode.toUpperCase()})</span>
+                            {hasTaggedVoices && voiceCount > 0 && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {voiceCount} {voiceCount === 1 ? "voice" : "voices"}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="voice-select">
+                  Voice {selectedLanguage !== "all" && `(${LANGUAGE_NAMES[selectedLanguage] || selectedLanguage.toUpperCase()})`}
+                </Label>
+                {voicesLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading voices...</div>
+                ) : filteredVoices.length === 0 ? (
+                  <div className="text-sm text-destructive">
+                    {voices.length === 0 
+                      ? "No voices available. Please check your API key configuration."
+                      : `No voices available for ${selectedLanguage === "all" ? "selected language" : selectedLanguage.toUpperCase()}.`}
+                  </div>
+                ) : (
+                  <Select 
+                    value={selectedVoice || undefined} 
+                    onValueChange={(value) => {
+                      setSelectedVoice(value)
+                      localStorage.setItem("selectedVoice", value)
+                    }}
+                  >
+                    <SelectTrigger id="voice-select" className="w-full">
+                      <SelectValue placeholder="Select a voice" />
+                    </SelectTrigger>
+                  <SelectContent>
+                    {filteredVoices.length === 0 ? (
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                        No voices available for this language filter. Try "All Languages".
+                      </div>
+                    ) : (
+                      filteredVoices.map((voice) => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>
+                              {voice.name} {voice.category && `(${voice.category})`}
+                            </span>
+                            {voice.language && voice.language !== selectedLanguage && selectedLanguage !== "all" && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                [{voice.language.toUpperCase()}]
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <Button 
+                onClick={handleTestVoice} 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                disabled={voicesLoading || filteredVoices.length === 0 || isTesting}
+              >
+                {voicesLoading 
+                  ? "Loading voices..." 
+                  : isSpeaking 
+                    ? "Stop Test" 
+                    : isTesting
+                      ? "Testing..."
+                      : "Test Voice"}
               </Button>
+              {error && (
+                <div className="text-sm text-destructive mt-2">{error}</div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -137,52 +292,6 @@ export default function NarrationSettingsPage() {
                 checked={autoNarrate}
                 onCheckedChange={setAutoNarrate}
               />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Camera Preview</CardTitle>
-            <CardDescription>Display settings for camera feed</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="show-preview">Show Camera Preview</Label>
-                <p className="text-sm text-muted-foreground">
-                  Display camera feed (for low vision users)
-                </p>
-              </div>
-              <Switch
-                id="show-preview"
-                checked={showPreview}
-                onCheckedChange={setShowPreview}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Analysis Frequency</CardTitle>
-            <CardDescription>How often to analyze the camera feed</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Slider
-                min={1}
-                max={5}
-                step={0.5}
-                value={[analysisFrequency]}
-                onValueChange={([value]) => setAnalysisFrequency(value)}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-muted-foreground">
-                <span>1s</span>
-                <span>{analysisFrequency.toFixed(1)}s</span>
-                <span>5s</span>
-              </div>
             </div>
           </CardContent>
         </Card>
