@@ -205,7 +205,7 @@ export default function NotificationsSettingsPage() {
             )}
 
             {!isPermissionGranted && !isPermissionDenied && (
-              <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
                   Permission required
                 </p>

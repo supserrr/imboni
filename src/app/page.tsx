@@ -1,36 +1,5 @@
-"use client"
-
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/contexts/AuthProvider"
 import LandingPage from "./(marketing)/page"
 
 export default function HomePage() {
-  const { user, isLoading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      router.push("/dashboard")
-    }
-  }, [user, isLoading, router])
-
-  if (isLoading) {
-  return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mx-auto" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-    </div>
-  )
-  }
-
-  // Show landing page if not authenticated
-  if (!user) {
-    return <LandingPage />
-  }
-
-  // This should not render, but just in case
-  return null
+  return <LandingPage />
 }

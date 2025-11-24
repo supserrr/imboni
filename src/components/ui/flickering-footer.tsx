@@ -448,7 +448,7 @@ export const FlickeringFooter = () => {
           </p>
           <div className="flex items-center gap-2 hidden md:flex">
             <p className="text-xs text-muted-foreground">
-              © {new Date().getFullYear()} Imboni. All rights reserved.
+              © {typeof window !== "undefined" ? new Date().getFullYear() : 2024} Imboni. All rights reserved.
             </p>
           </div>
         </div>

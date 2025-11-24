@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, User, Bell, Globe, Palette } from "lucide-react"
+import { LogOut, User, Bell, Globe, Palette, Volume2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -40,6 +40,12 @@ export default function SettingsPage() {
       description: "Change language settings",
       icon: Globe,
       href: "/dashboard/settings/languages",
+    },
+    {
+      title: "Narration",
+      description: "Configure narration and analysis preferences",
+      icon: Volume2,
+      href: "/dashboard/settings/narration",
     },
   ]
 

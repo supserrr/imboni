@@ -27,10 +27,10 @@ function VerifyEmailContent() {
         const supabase = createClient()
         if (supabase) {
           supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
-            if (session?.user?.email) {
-              setEmail(session.user.email)
-            }
-          })
+          if (session?.user?.email) {
+            setEmail(session.user.email)
+          }
+        })
         }
       } catch (error) {
         console.error("Failed to create Supabase client:", error)
