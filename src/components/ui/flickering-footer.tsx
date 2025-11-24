@@ -8,6 +8,7 @@ import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { Logo } from "@/components/Logo";
+import { useTheme } from "@/contexts/ThemeProvider";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -86,6 +87,8 @@ interface FlickeringGridProps extends React.HTMLAttributes<HTMLDivElement> {
   textColor?: string;
   fontSize?: number;
   fontWeight?: number | string;
+  imageSrc?: string; // Path to image to use as mask
+  imageScale?: number; // Scale factor for image (0-1, default: 0.6)
 }
 
 export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
@@ -100,17 +103,41 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
   text = "",
   fontSize = 140,
   fontWeight = 600,
+  imageSrc,
+  imageScale = 0.6,
   ...props
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInView, setIsInView] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
 
   // Convert any CSS color to rgba for optimal canvas performance
   const memoizedColor = useMemo(() => {
     return getRGBA(color);
   }, [color]);
+
+  // Load image if imageSrc is provided
+  useEffect(() => {
+    if (!imageSrc) {
+      setImageLoaded(false);
+      return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      imageRef.current = img;
+      setImageLoaded(true);
+    };
+    img.onerror = () => {
+      console.error("Failed to load image for flickering grid:", imageSrc);
+      setImageLoaded(false);
+    };
+    img.src = imageSrc;
+  }, [imageSrc]);
 
   const drawGrid = useCallback(
     (
@@ -143,6 +170,29 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
         maskCtx.restore();
       }
 
+      // Draw image on mask canvas
+      if (imageLoaded && imageRef.current) {
+        const img = imageRef.current;
+        const canvasWidth = width / dpr;
+        const canvasHeight = height / dpr;
+        
+        // Calculate scale to fit image within canvas while maintaining aspect ratio
+        const scaleX = (canvasWidth * imageScale) / img.width;
+        const scaleY = (canvasHeight * imageScale) / img.height;
+        const scale = Math.min(scaleX, scaleY);
+        
+        const imgWidth = img.width * scale;
+        const imgHeight = img.height * scale;
+        const x = (canvasWidth - imgWidth) / 2;
+        const y = (canvasHeight - imgHeight) / 2;
+
+        maskCtx.save();
+        maskCtx.scale(dpr, dpr);
+        maskCtx.globalCompositeOperation = "source-over";
+        maskCtx.drawImage(img, x, y, imgWidth, imgHeight);
+        maskCtx.restore();
+      }
+
       // Draw flickering squares with optimized RGBA colors
       for (let i = 0; i < cols; i++) {
         for (let j = 0; j < rows; j++) {
@@ -157,12 +207,12 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
             squareWidth,
             squareHeight,
           ).data;
-          const hasText = maskData.some(
+          const hasMask = maskData.some(
             (value, index) => index % 4 === 0 && value > 0,
           );
 
           const opacity = squares[i * rows + j];
-          const finalOpacity = hasText
+          const finalOpacity = hasMask
             ? Math.min(1, opacity * 3 + 0.4)
             : opacity;
 
@@ -171,7 +221,7 @@ export const FlickeringGrid: React.FC<FlickeringGridProps> = ({
         }
       }
     },
-    [memoizedColor, squareSize, gridGap, text, fontSize, fontWeight],
+    [memoizedColor, squareSize, gridGap, text, fontSize, fontWeight, imageLoaded],
   );
 
   const setupCanvas = useCallback(
@@ -354,6 +404,36 @@ const footerLinks = [
  */
 export const FlickeringFooter = () => {
   const tablet = useMediaQuery("(max-width: 1024px)");
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  // Determine logo path based on theme
+  useEffect(() => {
+    setMounted(true);
+    const checkDarkTheme = () => {
+      if (theme === "system") {
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        setIsDark(mediaQuery.matches);
+      } else {
+        setIsDark(theme === "dark");
+      }
+    };
+    checkDarkTheme();
+
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => setIsDark(mediaQuery.matches);
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [theme]);
+
+  const logoPath = mounted
+    ? isDark
+      ? "/logos/imboni-logo-full-white.png"
+      : "/logos/imboni-logo-full-black.png"
+    : "/logos/imboni-logo-full-black.png";
 
   return (
     <footer id="footer" className="w-full pb-0">
@@ -393,10 +473,10 @@ export const FlickeringFooter = () => {
       </div>
       <div className="w-full h-48 md:h-64 relative mt-24 z-0">
         <div className="absolute inset-0 bg-gradient-to-t from-transparent to-background z-10 from-40%" />
-        <div className="absolute inset-0 mx-6">
+        <div className="absolute inset-0">
           <FlickeringGrid
-            text={tablet ? "Imboni" : "AI Vision Assistant"}
-            fontSize={tablet ? 70 : 90}
+            imageSrc={logoPath}
+            imageScale={tablet ? 0.7 : 0.8}
             className="h-full w-full"
             squareSize={2}
             gridGap={tablet ? 2 : 3}
