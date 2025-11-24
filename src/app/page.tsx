@@ -1,5 +1,7 @@
+"use cache"
+
 import LandingPage from "./(marketing)/page"
 
-export default function HomePage() {
+export default async function HomePage() {
     return <LandingPage />
 }

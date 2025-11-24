@@ -1,3 +1,5 @@
+"use cache"
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -19,7 +21,7 @@ export const metadata: Metadata = {
   description: "An AI assistant designed to help blind and low vision users understand their surroundings with real-time visual descriptions",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

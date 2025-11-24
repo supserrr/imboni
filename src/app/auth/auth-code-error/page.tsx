@@ -1,8 +1,10 @@
+"use cache"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default function AuthCodeErrorPage() {
+export default async function AuthCodeErrorPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-8">
       <Card className="w-full max-w-md">

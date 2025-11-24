@@ -1,3 +1,5 @@
+"use cache"
+
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
@@ -5,7 +7,7 @@ export const metadata: Metadata = {
   description: "An AI assistant designed to help blind and low vision users understand their surroundings with real-time visual descriptions",
 }
 
-export default function MarketingLayout({
+export default async function MarketingLayout({
   children,
 }: {
   children: React.ReactNode
