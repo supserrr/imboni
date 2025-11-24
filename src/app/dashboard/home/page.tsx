@@ -133,6 +133,12 @@ export default function HomePage() {
       return
     }
 
+    // Prevent processing if already answering
+    if (isAnsweringQuestionRef.current) {
+      console.log("Already processing a question, ignoring:", questionText)
+      return
+    }
+
     // Cancel any ongoing speech when new question comes in (interruption support)
     if (isSpeaking && synthesisRef.current) {
       synthesisRef.current.cancel()
@@ -173,7 +179,10 @@ export default function HomePage() {
       setError(err.message || "Failed to answer question")
       playErrorSound() // Play error sound
     } finally {
-      isAnsweringQuestionRef.current = false
+      // Reset answering flag after a short delay to allow speech to start
+      setTimeout(() => {
+        isAnsweringQuestionRef.current = false
+      }, 500)
     }
   }
 
@@ -237,13 +246,16 @@ export default function HomePage() {
           // Ignore empty transcripts
           if (!transcript) return
           
+          // Don't process if already answering a question
+          if (isAnsweringQuestionRef.current) return
+          
           // If user is speaking while AI is speaking, interrupt the AI
           if (isSpeaking && synthesisRef.current) {
             synthesisRef.current.cancel()
             setIsSpeaking(false)
           }
           
-          setQuestion(transcript)
+          // Process the question
           handleQuestion(transcript)
         }
 
@@ -275,8 +287,9 @@ export default function HomePage() {
         recognition.onend = () => {
           // Auto-restart if still in voice mode (continuous listening)
           // This enables natural conversation flow - user can speak anytime
+          // But don't restart if we're currently answering a question
           setTimeout(() => {
-            if (inputModeRef.current === "voice" && recognitionRef.current) {
+            if (inputModeRef.current === "voice" && recognitionRef.current && !isAnsweringQuestionRef.current) {
               try {
                 recognitionRef.current.start()
               } catch (err) {
@@ -286,7 +299,7 @@ export default function HomePage() {
             } else {
               setIsListening(false)
             }
-          }, 300) // Shorter delay for more responsive conversation
+          }, 500) // Slightly longer delay to avoid interference
         }
 
         recognitionRef.current = recognition

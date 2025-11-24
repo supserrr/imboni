@@ -25,11 +25,13 @@ function VerifyEmailContent() {
       // Try to get email from session
       try {
         const supabase = createClient()
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user?.email) {
-            setEmail(session.user.email)
-          }
-        })
+        if (supabase) {
+          supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
+            if (session?.user?.email) {
+              setEmail(session.user.email)
+            }
+          })
+        }
       } catch (error) {
         console.error("Failed to create Supabase client:", error)
       }
@@ -45,6 +47,9 @@ function VerifyEmailContent() {
     setIsResending(true)
     try {
       const supabase = createClient()
+      if (!supabase) {
+        throw new Error("Supabase client not available")
+      }
       const { error } = await supabase.auth.resend({
         type: "signup",
         email: email,

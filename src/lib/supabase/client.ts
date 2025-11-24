@@ -3,10 +3,10 @@ import { Database } from "@/types/database"
 
 export function createClient() {
   // Only create client in browser environment
+  // With Cache Components, client components may be prerendered
+  // Return null during SSR instead of throwing
   if (typeof window === "undefined") {
-    throw new Error(
-      "Supabase client can only be created in browser environment. This function should not be called during SSR or static generation."
-    )
+    return null as any
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

@@ -10,22 +10,30 @@ export class UserService {
   private get supabase() {
     if (!this._supabase) {
       // Only create client in browser environment
+      // With Cache Components, this may be called during SSR
       if (typeof window === "undefined") {
-        throw new Error("Supabase client can only be created in browser environment")
+        return null as any
       }
       try {
         this._supabase = createClient()
+        if (!this._supabase) {
+          return null as any
+        }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Unknown error"
         console.error("Failed to create Supabase client:", errorMessage)
-        throw new Error(`Supabase client is not available: ${errorMessage}`)
+        return null as any
       }
     }
     return this._supabase
   }
 
   async getProfile(userId: string): Promise<User | null> {
-    const { data, error } = await this.supabase
+    const supabase = this.supabase
+    if (!supabase) {
+      throw new Error("Supabase client is not available")
+    }
+    const { data, error } = await supabase
       .from("users")
       .select("*")
       .eq("id", userId)
@@ -44,7 +52,11 @@ export class UserService {
     userId: string,
     updates: Partial<TablesUpdate<"users">>
   ): Promise<void> {
-    const { error } = await this.supabase
+    const supabase = this.supabase
+    if (!supabase) {
+      throw new Error("Supabase client is not available")
+    }
+    const { error } = await supabase
       .from("users")
       .update({
         ...updates,
@@ -56,7 +68,11 @@ export class UserService {
   }
 
   async setAvailability(userId: string, isAvailable: boolean): Promise<void> {
-    const { error } = await this.supabase
+    const supabase = this.supabase
+    if (!supabase) {
+      throw new Error("Supabase client is not available")
+    }
+    const { error } = await supabase
       .from("users")
       .update({
         availability: isAvailable,
@@ -71,7 +87,11 @@ export class UserService {
     userId: string,
     token: string | null
   ): Promise<void> {
-    const { error } = await this.supabase
+    const supabase = this.supabase
+    if (!supabase) {
+      throw new Error("Supabase client is not available")
+    }
+    const { error } = await supabase
       .from("users")
       .update({
         notification_token: token,

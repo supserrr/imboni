@@ -171,6 +171,33 @@ export class AuthService {
 
     if (error) throw error
   }
+
+  async updateEmail(newEmail: string) {
+    const { error } = await this.supabase.auth.updateUser({
+      email: newEmail,
+    })
+    if (error) throw error
+  }
+
+  async updatePassword(newPassword: string) {
+    const { error } = await this.supabase.auth.updateUser({
+      password: newPassword,
+    })
+    if (error) throw error
+  }
+
+  async deleteAccount(userId: string) {
+    // Delete user profile from users table
+    const { error: deleteError } = await this.supabase
+      .from("users")
+      .delete()
+      .eq("id", userId)
+
+    if (deleteError) throw deleteError
+
+    // Sign out the user
+    await this.signOut()
+  }
 }
 
 // Export service instance - will be created lazily when accessed in browser
