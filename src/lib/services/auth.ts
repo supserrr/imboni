@@ -119,15 +119,15 @@ export class AuthService {
 
     if (data.user) {
       // Default to "blind" user type
-      const { error: profileError } = await this.supabase
-        .from("users")
-        .upsert({
-          id: data.user.id,
+        const { error: profileError } = await this.supabase
+          .from("users")
+          .upsert({
+            id: data.user.id,
           type: "blind",
           full_name: data.user.user_metadata?.full_name || data.user.email || "User",
         }, {
           onConflict: "id"
-        })
+          })
 
       if (profileError && !profileError.message.includes("duplicate key")) {
         throw profileError

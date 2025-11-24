@@ -10,19 +10,19 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error && data.user) {
-      const { error: profileError } = await supabase
-        .from("users")
-        .upsert({
-          id: data.user.id,
+        const { error: profileError } = await supabase
+          .from("users")
+          .upsert({
+            id: data.user.id,
           type: "blind",
           full_name: data.user.user_metadata?.full_name || data.user.email || "User",
-        }, {
-          onConflict: "id"
-        })
+          }, {
+            onConflict: "id"
+          })
 
-      if (profileError && !profileError.message.includes("duplicate key")) {
-        console.error("Profile creation error:", profileError)
-      }
+        if (profileError && !profileError.message.includes("duplicate key")) {
+          console.error("Profile creation error:", profileError)
+        }
 
       // Always redirect to dashboard
       const redirectPath = "/dashboard"
