@@ -777,6 +777,19 @@ export function HomePageClient() {
       console.log("[startCamera] Stream obtained:", !!stream)
       streamRef.current = stream
       
+      // Re-check video element after getting stream (it might have been unmounted)
+      if (!videoRef.current) {
+        console.log("[startCamera] Video element became unavailable after getting stream, waiting...")
+        let attempts = 0
+        const maxAttempts = 10
+        const delayMs = 100
+        
+        while (!videoRef.current && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, delayMs))
+          attempts++
+        }
+      }
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream
         try {
@@ -797,8 +810,9 @@ export function HomePageClient() {
           setIsStreaming(false)
         }
       } else {
-        console.error("[startCamera] videoRef.current is null!")
+        console.error("[startCamera] videoRef.current is null after waiting!")
         stream.getTracks().forEach(track => track.stop())
+        streamRef.current = null
         setError("Video element not ready")
         setIsStreaming(false)
       }
