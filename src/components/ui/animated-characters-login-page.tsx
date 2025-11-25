@@ -347,9 +347,8 @@ function LoginPage() {
 
   return (
     <div 
-      className="min-h-[100dvh] h-screen grid lg:grid-cols-2"
+      className="h-screen grid lg:grid-cols-2 overflow-hidden"
       style={{
-        minHeight: '100dvh',
         height: '100dvh',
       }}
     >
@@ -527,7 +526,7 @@ function LoginPage() {
       </div>
 
       <div 
-        className={`flex items-center justify-center p-8 min-h-[100dvh] h-screen lg:bg-gradient-to-br lg:from-primary/90 lg:via-primary lg:to-primary/80 lg:text-primary-foreground ${isDarkMode ? 'bg-background text-foreground' : 'bg-background text-foreground'}`}
+        className={`flex items-center justify-center p-8 h-full overflow-y-auto lg:bg-gradient-to-br lg:from-primary/90 lg:via-primary lg:to-primary/80 lg:text-primary-foreground ${isDarkMode ? 'bg-background text-foreground' : 'bg-background text-foreground'}`}
         style={{
           paddingTop: `max(2rem, env(safe-area-inset-top))`,
           paddingBottom: `max(2rem, env(safe-area-inset-bottom))`,
