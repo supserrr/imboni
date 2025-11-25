@@ -301,7 +301,7 @@ function VerifyEmailContent() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="relative hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary/90 via-primary to-primary/80 p-12 text-primary-foreground">
+      <div className="relative hidden lg:flex flex-col justify-between bg-background p-12 text-foreground">
         <div className="relative z-20">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold font-mono">
             <Logo variant="full" className="h-8 w-auto" />
@@ -398,7 +398,7 @@ function VerifyEmailContent() {
                 width: '240px',
                 height: '200px',
                 zIndex: 3,
-                backgroundColor: '#FF9B6B',
+                backgroundColor: 'var(--primary)',
                 borderRadius: '120px 120px 0 0',
                 transform: `skewX(${orangePos.bodySkew || 0}deg)`,
                 transformOrigin: 'bottom center',
@@ -451,12 +451,12 @@ function VerifyEmailContent() {
           </div>
         </div>
 
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
-        <div className="absolute top-1/4 right-1/4 size-64 bg-primary-foreground/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 size-96 bg-primary-foreground/5 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-grid-foreground/[0.05] bg-[size:20px_20px]" />
+        <div className="absolute top-1/4 right-1/4 size-64 bg-foreground/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/4 size-96 bg-foreground/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-background">
+      <div className="flex items-center justify-center p-8 bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground">
         <div className="w-full max-w-[420px]">
           <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12 font-mono">
             <Link href="/" className="flex items-center gap-2">
@@ -464,55 +464,56 @@ function VerifyEmailContent() {
             </Link>
           </div>
 
-          <div className="text-center mb-10">
-            <div className="flex justify-center mb-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                <Mail className="h-8 w-8 text-primary" />
+          <div className="bg-white/95 dark:bg-card border border-white/40 dark:border-primary-foreground/20 dark:border-border p-8 rounded-none">
+            <div className="text-center mb-10">
+              <div className="flex justify-center mb-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Mail className="h-8 w-8 text-primary" />
+                </div>
               </div>
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono">Verify your email</h1>
-            <p className="text-muted-foreground text-sm font-mono">
-              We've sent a verification link to your email address. We're here to help you get started on your journey.
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            {email && (
-              <div className="rounded-lg border bg-muted p-3 text-sm">
-                <p className="text-muted-foreground font-mono">Email sent to:</p>
-                <p className="font-medium font-mono">{email}</p>
-              </div>
-            )}
-            
-            <div className="space-y-3 text-sm text-muted-foreground">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <p className="font-mono">Check your inbox for the verification email</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <p className="font-mono">Click the link in the email to verify your account</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <p className="font-mono">Check your spam folder if you don't see it</p>
-              </div>
+              <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono text-black dark:text-primary-foreground">Verify your email</h1>
+              <p className="text-black/80 dark:text-primary-foreground/80 text-sm font-mono">
+                We've sent a verification link to your email address. We're here to help you get started on your journey.
+              </p>
             </div>
 
-            <Button
-              variant="outline"
-              onClick={handleResend}
-              disabled={isResending || !email}
-              className="w-full h-12 text-base font-medium font-mono"
-              size="lg"
-            >
-              {isResending ? "Sending..." : "Resend verification email"}
-            </Button>
+            <div className="space-y-5">
+              {email && (
+                <div className="rounded-lg border border-black/20 dark:border-primary-foreground/20 bg-background/50 dark:bg-background/50 p-3 text-sm">
+                  <p className="text-black/80 dark:text-primary-foreground/80 font-mono">Email sent to:</p>
+                  <p className="font-medium font-mono text-black dark:text-primary-foreground">{email}</p>
+                </div>
+              )}
+              
+              <div className="space-y-3 text-sm text-black/80 dark:text-primary-foreground/80">
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-black dark:text-primary-foreground mt-0.5 flex-shrink-0" />
+                  <p className="font-mono">Check your inbox for the verification email</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-black dark:text-primary-foreground mt-0.5 flex-shrink-0" />
+                  <p className="font-mono">Click the link in the email to verify your account</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-black dark:text-primary-foreground mt-0.5 flex-shrink-0" />
+                  <p className="font-mono">Check your spam folder if you don't see it</p>
+                </div>
+              </div>
 
-            <div className="text-center text-sm text-muted-foreground mt-8 font-mono">
-              <Link href="/login" className="text-foreground font-medium hover:underline">
-                Back to login
-              </Link>
+              <Button
+                onClick={handleResend}
+                disabled={isResending || !email}
+                className="w-full h-12 text-base font-medium font-mono bg-primary hover:bg-primary/90 text-black dark:text-primary-foreground"
+                size="lg"
+              >
+                {isResending ? "Sending..." : "Resend verification email"}
+              </Button>
+
+              <div className="text-center text-sm text-black/80 dark:text-primary-foreground/80 mt-8 font-mono">
+                <Link href="/login" className="text-primary dark:text-primary font-medium hover:underline">
+                  Back to login
+                </Link>
+              </div>
             </div>
           </div>
         </div>

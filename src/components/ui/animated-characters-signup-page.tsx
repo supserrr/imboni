@@ -327,7 +327,7 @@ function SignupPage() {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="relative hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary/90 via-primary to-primary/80 p-12 text-primary-foreground">
+      <div className="relative hidden lg:flex flex-col justify-between bg-background p-12 text-foreground">
         <div className="relative z-20">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold font-mono">
             <Logo variant="full" className="h-8 w-auto" />
@@ -442,7 +442,7 @@ function SignupPage() {
                 width: '240px',
                 height: '200px',
                 zIndex: 3,
-                backgroundColor: '#FF9B6B',
+                backgroundColor: 'var(--primary)',
                 borderRadius: '120px 120px 0 0',
                 transform: (password.length > 0 && showPassword) ? `skewX(0deg)` : `skewX(${orangePos.bodySkew || 0}deg)`,
                 transformOrigin: 'bottom center',
@@ -495,12 +495,12 @@ function SignupPage() {
           </div>
         </div>
 
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
-        <div className="absolute top-1/4 right-1/4 size-64 bg-primary-foreground/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 size-96 bg-primary-foreground/5 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-grid-foreground/[0.05] bg-[size:20px_20px]" />
+        <div className="absolute top-1/4 right-1/4 size-64 bg-foreground/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-1/4 size-96 bg-foreground/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-background">
+      <div className="flex items-center justify-center p-8 bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground">
         <div className="w-full max-w-[420px]">
           <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12 font-mono">
             <Link href="/" className="flex items-center gap-2">
@@ -509,13 +509,13 @@ function SignupPage() {
           </div>
 
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono">Create your account</h1>
-            <p className="text-muted-foreground text-sm font-mono">Sign up to get AI-powered visual assistance</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono text-primary-foreground">Create your account</h1>
+            <p className="text-primary-foreground/80 text-sm font-mono">Sign up to get AI-powered visual assistance</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="fullName" className="text-sm font-medium font-mono">Full Name</Label>
+              <Label htmlFor="fullName" className="text-sm font-medium font-mono text-primary-foreground">Full Name</Label>
               <Input
                 id="fullName"
                 type="text"
@@ -526,13 +526,13 @@ function SignupPage() {
                 onFocus={() => setIsTyping(true)}
                 onBlur={() => setIsTyping(false)}
                 required
-                className="h-12 bg-background border border-input focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="h-12 bg-background border border-input focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-black dark:text-foreground"
                 disabled={isLoading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium font-mono">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium font-mono text-primary-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -543,13 +543,13 @@ function SignupPage() {
                 onFocus={() => setIsTyping(true)}
                 onBlur={() => setIsTyping(false)}
                 required
-                className="h-12 bg-background border border-input focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="h-12 bg-background border border-input focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-black dark:text-foreground"
                 disabled={isLoading}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium font-mono">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium font-mono text-primary-foreground">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -558,13 +558,13 @@ function SignupPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="h-12 pr-10 bg-background border-border/60 focus:border-primary"
+                  className="h-12 pr-10 bg-background border-border/60 focus:border-primary text-black dark:text-foreground"
                   disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
                   disabled={isLoading}
                 >
                   {showPassword ? (
@@ -577,14 +577,14 @@ function SignupPage() {
             </div>
 
             {error && (
-              <div className="p-3 text-sm text-red-400 bg-red-950/20 border border-red-900/30 rounded-none font-mono">
+              <div className="p-3 text-sm text-red-200 bg-red-950/40 border border-red-800/50 rounded-none font-mono">
                 {error}
               </div>
             )}
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium font-mono" 
+              className="w-full h-12 text-base font-medium font-mono bg-black dark:bg-primary-foreground text-primary hover:bg-black/90 dark:hover:bg-primary-foreground/90" 
               size="lg" 
               disabled={isLoading}
             >
@@ -595,7 +595,7 @@ function SignupPage() {
           <div className="mt-6">
             <Button 
               variant="outline" 
-              className="w-full h-12 bg-background hover:bg-accent font-mono"
+              className="w-full h-12 bg-white/90 dark:bg-background hover:bg-white dark:hover:bg-background/90 border-white/30 dark:border-primary-foreground/20 text-black dark:text-primary-foreground font-mono"
               type="button"
               onClick={handleGoogleSignUp}
               disabled={isLoading}
@@ -605,9 +605,9 @@ function SignupPage() {
             </Button>
           </div>
 
-          <div className="text-center text-sm text-muted-foreground mt-8 font-mono">
+          <div className="text-center text-sm text-primary-foreground/80 mt-8 font-mono">
             Already have an account?{" "}
-            <Link href="/login" className="text-foreground font-medium hover:underline">
+            <Link href="/login" className="text-black dark:text-black font-medium hover:underline">
               Log in
             </Link>
           </div>
