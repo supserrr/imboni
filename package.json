@@ -1,7 +1,24 @@
 {
   "name": "imboni-app",
   "version": "0.1.0",
+  "description": "An AI-powered vision assistant designed to help blind and low vision users understand their surroundings through real-time visual analysis and audio descriptions",
+  "author": "Shima Serein",
+  "license": "MIT",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/imboni-app.git"
+  },
+  "keywords": [
+    "accessibility",
+    "vision-assistant",
+    "ai",
+    "nextjs",
+    "react",
+    "typescript",
+    "supabase",
+    "assistive-technology"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
