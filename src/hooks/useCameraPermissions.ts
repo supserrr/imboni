@@ -17,7 +17,17 @@ const PERMISSION_STORAGE_KEY = "camera-permission-status"
  * Stores permission status in localStorage to avoid repeated checks
  */
 export function useCameraPermissions(): UseCameraPermissionsReturn {
-  const [permissionStatus, setPermissionStatus] = useState<CameraPermissionStatus>("checking")
+  // Initialize from localStorage immediately to avoid delay on refresh
+  const getInitialStatus = (): CameraPermissionStatus => {
+    if (typeof window === "undefined") return "checking"
+    const stored = localStorage.getItem(PERMISSION_STORAGE_KEY)
+    if (stored === "granted" || stored === "denied") {
+      return stored as CameraPermissionStatus
+    }
+    return "checking"
+  }
+  
+  const [permissionStatus, setPermissionStatus] = useState<CameraPermissionStatus>(getInitialStatus())
 
   const checkPermission = useCallback(async () => {
     // Check if browser supports permissions API
@@ -27,8 +37,13 @@ export function useCameraPermissions(): UseCameraPermissionsReturn {
         setPermissionStatus("not-supported")
         return
       }
-      // If getUserMedia is available but permissions API is not, assume prompt state
-      setPermissionStatus("prompt")
+      // If getUserMedia is available but permissions API is not, check localStorage
+      const stored = localStorage.getItem(PERMISSION_STORAGE_KEY)
+      if (stored === "granted" || stored === "denied") {
+        setPermissionStatus(stored as CameraPermissionStatus)
+      } else {
+        setPermissionStatus("prompt")
+      }
       return
     }
 
@@ -42,10 +57,13 @@ export function useCameraPermissions(): UseCameraPermissionsReturn {
         status = "denied"
       }
 
-      setPermissionStatus(status)
-      
-      // Store in localStorage
-      localStorage.setItem(PERMISSION_STORAGE_KEY, status)
+      // Only update if stored status isn't already "granted" (to prevent overriding on refresh)
+      const stored = localStorage.getItem(PERMISSION_STORAGE_KEY)
+      if (stored !== "granted" || status === "granted") {
+        setPermissionStatus(status)
+        // Store in localStorage
+        localStorage.setItem(PERMISSION_STORAGE_KEY, status)
+      }
 
       // Listen for permission changes
       result.onchange = () => {
@@ -62,8 +80,11 @@ export function useCameraPermissions(): UseCameraPermissionsReturn {
       }
     } catch (error) {
       console.error("Error checking camera permission:", error)
-      // Fallback: try to check via getUserMedia
-      if (typeof navigator !== "undefined" && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
+      // Fallback: check localStorage if permission API fails
+      const stored = localStorage.getItem(PERMISSION_STORAGE_KEY)
+      if (stored === "granted" || stored === "denied") {
+        setPermissionStatus(stored as CameraPermissionStatus)
+      } else if (typeof navigator !== "undefined" && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === "function") {
         setPermissionStatus("prompt")
       } else {
         setPermissionStatus("not-supported")
@@ -106,12 +127,38 @@ export function useCameraPermissions(): UseCameraPermissionsReturn {
   useEffect(() => {
     // Check stored permission status first
     const stored = localStorage.getItem(PERMISSION_STORAGE_KEY)
-    if (stored && (stored === "granted" || stored === "denied")) {
-      setPermissionStatus(stored as CameraPermissionStatus)
+    if (stored === "granted") {
+      // If we have a stored "granted" status, use it immediately
+      // This prevents re-prompting on refresh
+      setPermissionStatus("granted")
+      // Still check actual permission in background to keep it in sync
+      // but don't override if stored says granted
+      checkPermission().then(() => {
+        // Only update if the actual check confirms it's still granted
+        // If it changed to denied, update it
+        const currentStored = localStorage.getItem(PERMISSION_STORAGE_KEY)
+        if (currentStored !== "granted") {
+          // Permission was revoked, update state
+          const result = navigator.permissions?.query({ name: "camera" as PermissionName }).catch(() => null)
+          if (result) {
+            result.then(perm => {
+              if (perm?.state === "denied") {
+                setPermissionStatus("denied")
+              }
+            })
+          }
+        }
+      }).catch(() => {
+        // If check fails, keep the stored granted status
+      })
+    } else if (stored === "denied") {
+      setPermissionStatus("denied")
+      // Still check to see if user changed it in browser settings
+      checkPermission()
+    } else {
+      // No stored status or it's "prompt", check actual permission
+      checkPermission()
     }
-    
-    // Then check actual permission status
-    checkPermission()
   }, [checkPermission])
 
   return {

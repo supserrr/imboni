@@ -16,6 +16,7 @@ export function HomePageClient() {
   const { permissionStatus, requestPermission, checkPermission } = useCameraPermissions()
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [isUsingFrontCamera, setIsUsingFrontCamera] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
@@ -675,7 +676,13 @@ export function HomePageClient() {
   // Start camera automatically when component mounts and permissions are granted
   useEffect(() => {
     const startCameraAuto = async () => {
-      if (permissionStatus === "granted" && !isStreaming && !streamRef.current) {
+      // Check both permissionStatus and localStorage for granted status
+      // This ensures it works even if permissionStatus hasn't updated yet after refresh
+      const storedPermission = localStorage.getItem("camera-permission-status")
+      const isGranted = permissionStatus === "granted" || storedPermission === "granted"
+      
+      if (isGranted && !isStreaming && !streamRef.current) {
+        console.log("[startCameraAuto] Permission granted (from state or localStorage), starting camera automatically")
         // Wait for video element to be available (max 2 seconds)
         let attempts = 0
         const maxAttempts = 20
@@ -694,8 +701,13 @@ export function HomePageClient() {
       }
     }
     
-    startCameraAuto()
-  }, [permissionStatus])
+    // Small delay to ensure everything is initialized
+    const timeoutId = setTimeout(() => {
+      startCameraAuto()
+    }, 200)
+    
+    return () => clearTimeout(timeoutId)
+  }, [permissionStatus, isStreaming])
 
   const startCamera = async () => {
     try {
@@ -742,17 +754,24 @@ export function HomePageClient() {
         }
       }
       
-      if (permissionStatus !== "granted") {
+      // Check both permissionStatus and localStorage for granted status
+      // This ensures it works even if permissionStatus hasn't updated yet after refresh
+      const storedPermission = localStorage.getItem("camera-permission-status")
+      const isGranted = permissionStatus === "granted" || storedPermission === "granted"
+      
+      if (!isGranted) {
         console.log("[startCamera] Permission not granted, checking permission status...")
         // Re-check permission status before showing prompt
         const currentPermission = await navigator.permissions.query({ name: 'camera' as PermissionName }).catch(() => null)
         if (currentPermission?.state === 'granted') {
           console.log("[startCamera] Permission actually granted, proceeding...")
+          // Update localStorage to persist this
+          localStorage.setItem("camera-permission-status", "granted")
           // Permission is granted, continue
         } else {
           console.log("[startCamera] Permission not granted, showing prompt")
-        setShowPermissionPrompt(true)
-        return
+          setShowPermissionPrompt(true)
+          return
         }
       }
 
@@ -765,12 +784,88 @@ export function HomePageClient() {
         }
       }
 
+      // Detect if device is mobile or desktop
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                       (typeof window !== 'undefined' && 'ontouchstart' in window) ||
+                       (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0)
+
+      // Use front camera (webcam) for desktop, back camera for mobile
+      const defaultFacingMode = isMobile ? "environment" : "user"
+      
+      // Track if we're using front camera (for mirroring)
+      setIsUsingFrontCamera(!isMobile)
+      
+      let videoConstraints: MediaTrackConstraints = {
+        facingMode: defaultFacingMode,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      }
+
+      try {
+        // Enumerate devices to find ultrawide camera (only for mobile devices)
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const videoDevices = devices.filter(device => device.kind === 'videoinput')
+        
+        if (isMobile) {
+          // For mobile: Look for ultrawide camera (works for both iOS and Android)
+          // iOS: "Ultra Wide Camera", "Wide Angle Camera"
+          // Android: "Ultra Wide", "UltraWide", "Wide Angle", "Back Camera 2", etc.
+          // Note: On iOS/Android, labels may be empty until a device is accessed
+          const ultrawideDevice = videoDevices.find(device => {
+            if (!device.label) return false
+            const label = device.label.toLowerCase()
+            return label.includes('ultrawide') || 
+                   label.includes('ultra wide') ||
+                   label.includes('ultra-wide') ||
+                   label.includes('wide angle') ||
+                   label.includes('wide-angle') ||
+                   label.includes('wideangle')
+          })
+          
+          if (ultrawideDevice && ultrawideDevice.deviceId && ultrawideDevice.deviceId !== 'default') {
+            console.log("[startCamera] Found ultrawide camera:", ultrawideDevice.label || 'unnamed device')
+            videoConstraints = {
+              deviceId: { exact: ultrawideDevice.deviceId },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            }
+            setIsUsingFrontCamera(false) // Back camera, no mirroring
+          } else {
+            // Fallback: Try to find any back/rear camera explicitly (for Android)
+            // This helps when ultrawide isn't labeled clearly
+            const backCamera = videoDevices.find(device => {
+              if (!device.label) return false
+              const label = device.label.toLowerCase()
+              return (label.includes('back') || 
+                     label.includes('rear') ||
+                     label.includes('main')) &&
+                     !label.includes('front')
+            })
+            
+            if (backCamera && backCamera.deviceId && backCamera.deviceId !== 'default') {
+              console.log("[startCamera] Found back camera:", backCamera.label || 'unnamed device')
+              videoConstraints = {
+                deviceId: { exact: backCamera.deviceId },
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+              }
+              setIsUsingFrontCamera(false) // Back camera, no mirroring
+            } else {
+              console.log("[startCamera] No specific camera found, using back camera with facingMode: environment")
+              setIsUsingFrontCamera(false) // Back camera, no mirroring
+            }
+          }
+        } else {
+          // For desktop: Use front-facing webcam (user facingMode is already set)
+          console.log("[startCamera] Desktop device detected, using front camera (webcam)")
+        }
+      } catch (err) {
+        console.warn("[startCamera] Could not enumerate devices, using facingMode:", err)
+        // Fall back to facingMode if device enumeration fails
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user",
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
+        video: videoConstraints,
         audio: false,
       })
 
@@ -1189,8 +1284,8 @@ export function HomePageClient() {
         autoPlay
         playsInline
         muted
-        className="w-full h-full object-contain"
-        style={{ transform: "scaleX(-1)" }}
+        className="w-full h-full object-cover"
+        style={isUsingFrontCamera ? { transform: "scaleX(-1)" } : undefined}
       />
 
       {/* Status Indicator - Top Center (single centered dot for all states) */}

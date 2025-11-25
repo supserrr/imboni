@@ -89,12 +89,31 @@ export class AuthService {
     return data
   }
 
+  /**
+   * Signs in the user with Google OAuth.
+   * 
+   * Requests basic scopes: email, profile, and openid (non-sensitive scopes).
+   * These scopes do not require app verification by Google.
+   * 
+   * To request sensitive or restricted scopes (e.g., Gmail, Contacts),
+   * you must:
+   * 1. Add the scopes to the queryParams.scopes array
+   * 2. Configure them in Google Cloud Console OAuth consent screen
+   * 3. Submit your app for Google verification
+   * 
+   * Learn more: https://developers.google.com/identity/protocols/oauth2/policies
+   */
   async signInWithGoogle() {
     const redirectUrl = `${window.location.origin}/auth/callback`
     const { data, error } = await this.supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: redirectUrl,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+          scope: "email profile openid",
+        },
       },
     })
 

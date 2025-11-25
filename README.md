@@ -302,6 +302,70 @@ Before the app can work, you need to set up API keys. These are like passwords t
    - Click **Run** (or press Ctrl/Cmd + Enter)
    - You should see "Success. No rows returned"
 
+6. Configure Google OAuth (Optional but Recommended):
+   
+   **Step 6a: Set Up Google OAuth in Google Cloud Console**
+   
+   1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+   2. Create a new project or select an existing one
+   3. Enable the Google+ API:
+      - Navigate to **APIs & Services** → **Library**
+      - Search for "Google+ API" or "Google Identity Services"
+      - Click **Enable**
+   4. Create OAuth 2.0 credentials:
+      - Go to **APIs & Services** → **Credentials**
+      - Click **Create Credentials** → **OAuth client ID**
+      - If prompted, configure the OAuth consent screen first:
+        - Choose **External** (unless you have a Google Workspace)
+        - Fill in the required fields (App name, User support email, Developer contact)
+        - Add scopes: `email`, `profile`, `openid`
+          - **Note:** These are non-sensitive scopes that do not require app verification
+          - If you add sensitive or restricted scopes (marked with lock icons), you will need to submit your app for Google verification
+          - Learn more about scope verification: [Google OAuth Policies](https://developers.google.com/identity/protocols/oauth2/policies)
+        - Add test users if needed (for development)
+        - Save and continue
+      - Application type: Select **Web application**
+      - Name: Give it a name (e.g., "Imboni App")
+      - Authorized JavaScript origins:
+        - For development: `http://localhost:3000`
+        - For production: `https://your-domain.com` (replace with your actual domain)
+      - Authorized redirect URIs:
+        - For development: `http://localhost:3000/auth/callback`
+        - For production: `https://your-domain.com/auth/callback` (replace with your actual domain)
+        - Also add: `https://your-project-id.supabase.co/auth/v1/callback` (replace with your Supabase project ID)
+      - Click **Create**
+   5. Copy your credentials:
+      - **Client ID**: Copy this value (you'll need it for Supabase)
+      - **Client Secret**: Copy this value (you'll need it for Supabase)
+      - ⚠️ **Important:** Keep these secure! Don't share them publicly.
+
+   **Step 6b: Configure Google OAuth in Supabase**
+   
+   1. In your Supabase dashboard, go to **Authentication** → **Providers**
+   2. Find **Google** in the list of providers and click on it
+   3. Toggle **Enable Google provider** to ON
+   4. Enter your Google OAuth credentials:
+      - **Client ID (for OAuth)**: Paste your Google Client ID
+      - **Client Secret (for OAuth)**: Paste your Google Client Secret
+   5. Click **Save**
+   
+   **Step 6c: Configure Auth Callback URL in Supabase**
+   
+   1. In your Supabase dashboard, go to **Authentication** → **URL Configuration**
+   2. Under **Redirect URLs**, add your callback URLs:
+      - For development: `http://localhost:3000/auth/callback`
+      - For production: `https://your-domain.com/auth/callback` (replace with your actual domain)
+   3. Under **Site URL**, set:
+      - For development: `http://localhost:3000`
+      - For production: `https://your-domain.com` (replace with your actual domain)
+   4. Click **Save**
+   
+   **Important Notes:**
+   - The callback URL `/auth/callback` is already configured in the app code
+   - Make sure the callback URLs in Google Cloud Console, Supabase, and your app all match
+   - For production, replace `your-domain.com` with your actual domain name
+   - The callback URL format is: `{your-domain}/auth/callback`
+
 ##### 3c. Get ElevenLabs API Key (Optional)
 
 Only needed if you want to use ElevenLabs for text-to-speech instead of the browser's built-in TTS.
@@ -491,6 +555,20 @@ After completing all steps, verify everything works:
 - Make sure you copied the **anon/public** key, not the service role key
 - Verify the database migration ran successfully
 
+#### Problem: Google OAuth not working or redirect errors
+
+**Solution:**
+- Verify Google OAuth is enabled in Supabase (Authentication → Providers → Google)
+- Check that Client ID and Client Secret are correctly entered in Supabase
+- Ensure callback URLs match in all three places:
+  - Google Cloud Console: Authorized redirect URIs must include `http://localhost:3000/auth/callback` (dev) or `https://your-domain.com/auth/callback` (prod)
+  - Supabase Dashboard: Authentication → URL Configuration → Redirect URLs must include the same callback URL
+  - The callback URL in Google Cloud Console must also include: `https://your-project-id.supabase.co/auth/v1/callback`
+- Verify the Site URL in Supabase matches your app URL (Authentication → URL Configuration)
+- Check that your OAuth consent screen is properly configured in Google Cloud Console
+- For production, ensure you've added your production domain to authorized domains in Google Cloud Console
+- Check browser console for specific error messages (F12 → Console tab)
+
 #### Problem: Camera not working
 
 **Solution:**
@@ -574,6 +652,59 @@ imboni/
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key for TTS |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | No | VAPID public key for push notifications |
+
+### Authentication Configuration
+
+The application supports email/password authentication and Google OAuth authentication through Supabase.
+
+**Google OAuth Setup:**
+- See [Step 3b.6](#3b-set-up-supabase-required) in the installation guide for detailed instructions on configuring Google OAuth
+- The callback URL is configured at `/auth/callback` in the application
+- Ensure the callback URL is properly configured in:
+  1. Google Cloud Console (Authorized redirect URIs)
+  2. Supabase Dashboard (Authentication → URL Configuration → Redirect URLs)
+
+**Callback URL Format:**
+- Development: `http://localhost:3000/auth/callback`
+- Production: `https://your-domain.com/auth/callback`
+
+**OAuth Scopes:**
+
+The application requests the following Google OAuth scopes (configured in `src/lib/services/auth.ts`):
+
+- `email` - Access to user's email address
+- `profile` - Access to basic profile information
+- `openid` - OpenID Connect authentication
+
+These are **non-sensitive scopes** and do not require Google app verification. The app will work immediately after OAuth configuration without needing to submit for verification.
+
+**Adding Additional Scopes:**
+
+If you need to request sensitive or restricted scopes (e.g., Gmail API, Contacts, Calendar):
+
+1. **Update the code** - Modify `signInWithGoogle()` in `src/lib/services/auth.ts` to include additional scopes in the `queryParams.scope` field:
+   ```typescript
+   scope: "email profile openid https://www.googleapis.com/auth/gmail.readonly",
+   ```
+
+2. **Configure in Google Cloud Console**:
+   - Go to **APIs & Services** → **OAuth consent screen**
+   - Add the new scopes to the consent screen configuration
+   - Sensitive and restricted scopes are marked with lock icons
+
+3. **Submit for verification** (required for sensitive/restricted scopes):
+   - Sensitive scopes (e.g., Gmail, Contacts, Calendar) require app verification
+   - Prepare documentation explaining why each scope is needed
+   - Create a demo video showing how the app uses the requested permissions
+   - Submit your app for review in Google Cloud Console
+   - Verification can take several days
+
+**Scope Types:**
+- **Non-sensitive**: Basic profile info, email (no verification needed)
+- **Sensitive**: Access to private user data like emails, contacts (verification required)
+- **Restricted**: Highly sensitive scopes requiring additional security measures (verification required)
+
+For more information, see [Google's OAuth scope verification guide](https://developers.google.com/identity/protocols/oauth2/policies).
 
 ### Database Schema
 
