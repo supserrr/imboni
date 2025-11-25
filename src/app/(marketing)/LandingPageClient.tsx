@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
 import { MynaHero } from "@/components/ui/myna-hero";
 import { FlickeringFooter } from "@/components/ui/flickering-footer";
+import { PlusIcon } from "lucide-react";
 
 export function LandingPageClient() {
   const supportRef = React.useRef(null);
@@ -41,8 +42,12 @@ export function LandingPageClient() {
               stiffness: 100,
               damping: 10,
             }}
-            className="mx-auto max-w-6xl border p-8 md:p-12 text-center"
+            className="mx-auto max-w-6xl border p-8 md:p-12 text-center relative"
           >
+            <PlusIcon className="absolute -top-3 -left-3 h-6 w-6 text-accent" />
+            <PlusIcon className="absolute -top-3 -right-3 h-6 w-6 text-accent" />
+            <PlusIcon className="absolute -bottom-3 -left-3 h-6 w-6 text-accent" />
+            <PlusIcon className="absolute -right-3 -bottom-3 h-6 w-6 text-accent" />
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={isSupportInView && canAnimateSupport ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}

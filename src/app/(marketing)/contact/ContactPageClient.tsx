@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowRight, Menu } from "@/components/ui/animated-icons"
-import { Mail, Phone, MapPin } from "lucide-react"
+import { Mail, Phone } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/Logo"
@@ -146,12 +146,6 @@ export function ContactPageClient() {
                   icon: Phone,
                   label: 'Phone',
                   value: '+1 (555) 123-4567',
-                },
-                {
-                  icon: MapPin,
-                  label: 'Address',
-                  value: 'Available Worldwide',
-                  className: 'col-span-2',
                 }
               ]}
             >
@@ -162,17 +156,20 @@ export function ContactPageClient() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Email</Label>
-                  <Input type="email" placeholder="your.email@example.com" />
+                  <Input type="email" placeholder="you@example.com" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Phone</Label>
-                  <Input type="tel" placeholder="+1 (555) 123-4567" />
+                  <Input type="tel" placeholder="+250 788 123 456" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Message</Label>
                   <Textarea placeholder="Your message here..." rows={4} />
                 </div>
-                <Button className="w-full" type="submit">
+                <Button 
+                  className="w-full !bg-black dark:!bg-white !text-white dark:!text-black hover:!bg-black/90 dark:hover:!bg-white/90" 
+                  type="submit"
+                >
                   Submit
                 </Button>
               </form>

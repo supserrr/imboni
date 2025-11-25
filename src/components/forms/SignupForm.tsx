@@ -89,7 +89,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
               <FormLabel>Full Name</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="John Doe"
+                  placeholder="Your name"
                   {...field}
                   disabled={isLoading}
                 />

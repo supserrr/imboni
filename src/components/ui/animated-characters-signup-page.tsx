@@ -519,7 +519,7 @@ function SignupPage() {
               <Input
                 id="fullName"
                 type="text"
-                placeholder="John Doe"
+                placeholder="Your name"
                 value={fullName}
                 autoComplete="off"
                 onChange={(e) => setFullName(e.target.value)}

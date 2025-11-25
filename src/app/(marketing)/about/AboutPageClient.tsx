@@ -15,6 +15,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from 
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/Logo"
 import { FlickeringFooter } from "@/components/ui/flickering-footer"
+import { PlusIcon } from "lucide-react"
 
 const navigationItems = [
   { title: "HOME", href: "/" },
@@ -237,8 +238,12 @@ export function AboutPageClient() {
                 stiffness: 100,
                 damping: 10,
               }}
-              className="p-8 bg-background border"
+              className="p-8 bg-background border relative"
             >
+              <PlusIcon className="absolute -top-3 -left-3 h-6 w-6 text-accent" />
+              <PlusIcon className="absolute -top-3 -right-3 h-6 w-6 text-accent" />
+              <PlusIcon className="absolute -bottom-3 -left-3 h-6 w-6 text-accent" />
+              <PlusIcon className="absolute -right-3 -bottom-3 h-6 w-6 text-accent" />
               <motion.h2
                 initial={{ opacity: 0, y: 20 }}
                 animate={storyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}

@@ -64,7 +64,7 @@ export function ContactCard({
 
 			className={cn(
 
-				'bg-card border relative grid h-full w-full shadow md:grid-cols-2 lg:grid-cols-3',
+				'bg-transparent border relative grid h-full w-full shadow md:grid-cols-2 lg:grid-cols-3',
 
 				className,
 
@@ -74,19 +74,19 @@ export function ContactCard({
 
 		>
 
-			<PlusIcon className="absolute -top-3 -left-3 h-6 w-6" />
+			<PlusIcon className="absolute -top-3 -left-3 h-6 w-6 text-accent" />
 
-			<PlusIcon className="absolute -top-3 -right-3 h-6 w-6" />
+			<PlusIcon className="absolute -top-3 -right-3 h-6 w-6 text-accent" />
 
-			<PlusIcon className="absolute -bottom-3 -left-3 h-6 w-6" />
+			<PlusIcon className="absolute -bottom-3 -left-3 h-6 w-6 text-accent" />
 
-			<PlusIcon className="absolute -right-3 -bottom-3 h-6 w-6" />
+			<PlusIcon className="absolute -right-3 -bottom-3 h-6 w-6 text-accent" />
 
-			<div className="flex flex-col justify-between lg:col-span-2">
+			<div className="flex flex-col justify-center items-start lg:col-span-2">
 
-				<div className="relative h-full space-y-4 px-4 py-8 md:p-8">
+				<div className="relative w-full max-w-2xl space-y-8 px-4 py-8 md:p-8 flex flex-col justify-center">
 
-					<h1 className="text-3xl font-bold md:text-4xl lg:text-5xl">
+					<h1 className="text-accent text-3xl font-bold md:text-4xl lg:text-5xl">
 
 						{title}
 
@@ -98,7 +98,7 @@ export function ContactCard({
 
 					</p>
 
-					<div className="grid gap-4 md:grid md:grid-cols-2 lg:grid-cols-3">
+					<div className="grid gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 w-full">
 
 						{contactInfo?.map((info, index) => (
 
@@ -116,7 +116,7 @@ export function ContactCard({
 
 				className={cn(
 
-					'bg-muted/40 flex h-full w-full items-center border-t p-5 md:col-span-1 md:border-t-0 md:border-l',
+					'bg-accent/40 flex h-full w-full items-center border-t p-5 md:col-span-1 md:border-t-0 md:border-l',
 
 					formSectionClassName,
 
@@ -154,7 +154,7 @@ function ContactInfo({
 
 		<div className={cn('flex items-center gap-3 py-3', className)} {...props}>
 
-			<div className="bg-muted/40 rounded-lg p-3">
+			<div className="bg-accent/40 rounded-lg p-3">
 
 				<Icon className="h-5 w-5" />
 
