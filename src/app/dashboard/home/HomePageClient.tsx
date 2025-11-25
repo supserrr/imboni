@@ -842,6 +842,13 @@ export function HomePageClient() {
     if (granted) {
       setShowPermissionPrompt(false)
       await startCamera()
+      // Wait a bit for camera to be ready and state to update
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Check if stream is actually active (more reliable than state)
+      const hasActiveStream = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
+      if (hasActiveStream || isStreaming) {
+        setShowModeSelection(true)
+      }
     } else {
       await checkPermission()
     }
@@ -1046,7 +1053,15 @@ export function HomePageClient() {
   }
 
   const handleStartAI = async () => {
-    console.log("[handleStartAI] Called, isStreaming:", isStreaming)
+    console.log("[handleStartAI] Called, isStreaming:", isStreaming, "permissionStatus:", permissionStatus)
+    
+    // Check permissions first - if not granted, show permission prompt
+    if (permissionStatus !== "granted") {
+      console.log("[handleStartAI] Permission not granted, showing permission prompt")
+      setShowPermissionPrompt(true)
+      return
+    }
+    
     if (!isStreaming) {
       console.log("[handleStartAI] Camera not streaming, starting camera...")
       await startCamera()
@@ -1054,8 +1069,11 @@ export function HomePageClient() {
       await new Promise(resolve => setTimeout(resolve, 1000))
       console.log("[handleStartAI] After camera start, isStreaming:", isStreaming)
     }
-    // Show input mode selection (text/voice buttons)
-    setShowModeSelection(true)
+    
+    // Only show mode selection if camera is streaming
+    if (isStreaming) {
+      setShowModeSelection(true)
+    }
   }
 
   const handleSelectTextMode = async () => {
@@ -1318,7 +1336,7 @@ export function HomePageClient() {
               onClick={handleStartAI}
               size="lg"
               className="px-24 py-11 text-2xl font-semibold rounded-none shadow-2xl font-mono"
-              disabled={!isStreaming}
+              disabled={permissionStatus === "denied" || permissionStatus === "not-supported"}
             >
               START IMBONI
             </Button>
