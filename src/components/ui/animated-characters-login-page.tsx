@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Mail } from "@/components/ui/animated-icons";
+import { Eye, EyeOff, Google } from "@/components/ui/animated-icons";
 import { authService } from "@/lib/services/auth";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -640,7 +640,7 @@ function LoginPage() {
               onClick={handleGoogleSignIn}
               disabled={isLoading}
             >
-              <Mail className="mr-2 size-5" />
+              <Google className="mr-2 size-5" />
               Log in with Google
             </Button>
           </div>

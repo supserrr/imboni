@@ -71,6 +71,12 @@ export async function middleware(request: NextRequest) {
     
     // Handle refresh token errors
     if (error) {
+      // Check if it's a missing session error (normal for public routes)
+      const isMissingSessionError = 
+        error.message?.includes("Auth session missing") ||
+        error.message?.includes("AuthSessionMissingError") ||
+        error.name === "AuthSessionMissingError"
+      
       if (
         error.message?.includes("Refresh Token Not Found") ||
         error.message?.includes("Invalid Refresh Token") ||
@@ -86,15 +92,21 @@ export async function middleware(request: NextRequest) {
         })
         // Continue without user
         user = null
-      } else {
-        // For other errors, log but continue
+      } else if (!isMissingSessionError) {
+        // For other errors (excluding missing session), log but continue
         console.error("Auth error in middleware:", error)
       }
+      // Missing session errors are expected for public routes, so we silently continue
     } else {
       user = authUser
     }
   } catch (error: any) {
     // Handle any unexpected errors
+    const isMissingSessionError = 
+      error?.message?.includes("Auth session missing") ||
+      error?.message?.includes("AuthSessionMissingError") ||
+      error?.name === "AuthSessionMissingError"
+    
     if (
       error?.message?.includes("Refresh Token Not Found") ||
       error?.message?.includes("Invalid Refresh Token") ||
@@ -107,7 +119,8 @@ export async function middleware(request: NextRequest) {
       authCookies.forEach((cookie) => {
         supabaseResponse.cookies.delete(cookie.name)
       })
-    } else {
+    } else if (!isMissingSessionError) {
+      // Only log unexpected errors that aren't missing session errors
       console.error("Unexpected auth error in middleware:", error)
     }
     user = null

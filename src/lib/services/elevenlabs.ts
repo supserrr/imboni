@@ -137,27 +137,41 @@ export class ElevenLabsService {
         throw new Error(errorMessage)
       }
 
+      // Get content type from response headers first
+      const contentType = response.headers.get("content-type") || "audio/mpeg"
+      
       // Get audio blob
-      const blob = await response.blob()
+      let blob = await response.blob()
       
       // Check if blob is valid and has content
       if (!blob || blob.size === 0) {
         throw new Error("Received empty audio blob from server")
       }
       
-      // Check content type to ensure it's audio
-      const contentType = blob.type || response.headers.get("content-type") || ""
+      // Ensure blob has the correct MIME type
+      // Sometimes response.blob() doesn't preserve the Content-Type header
+      let needsRecreate = !blob.type || blob.type === "application/octet-stream"
       
       // Validate blob is actually audio data by checking first few bytes
-      const arrayBuffer = await blob.slice(0, 12).arrayBuffer()
-      const uint8Array = new Uint8Array(arrayBuffer)
+      const headerArrayBuffer = await blob.slice(0, 12).arrayBuffer()
+      const uint8Array = new Uint8Array(headerArrayBuffer)
+      
+      // If blob type is wrong, recreate it with correct MIME type
+      if (needsRecreate) {
+        const fullArrayBuffer = await blob.arrayBuffer()
+        blob = new Blob([fullArrayBuffer], { type: contentType })
+      }
       
       // Check for common audio file signatures
-      const isMP3 = uint8Array[0] === 0xFF && (uint8Array[1] & 0xE0) === 0xE0 // MP3 header
+      // MP3 can start with ID3 tag (0x49 0x44 0x33 = "ID3") or MP3 frame sync (0xFF 0xFB/0xFA/0xF2/0xF3)
+      const hasID3Tag = uint8Array[0] === 0x49 && uint8Array[1] === 0x44 && uint8Array[2] === 0x33 // ID3 tag
+      const hasMP3Sync = uint8Array[0] === 0xFF && (uint8Array[1] & 0xE0) === 0xE0 // MP3 frame sync
+      const isMP3 = hasID3Tag || hasMP3Sync
       const isWAV = uint8Array[0] === 0x52 && uint8Array[1] === 0x49 && uint8Array[2] === 0x46 && uint8Array[3] === 0x46 // RIFF (WAV)
       const isOGG = uint8Array[0] === 0x4F && uint8Array[1] === 0x67 && uint8Array[2] === 0x67 && uint8Array[3] === 0x53 // OGG
       
-      if (!isMP3 && !isWAV && !isOGG && blob.size > 12) {
+      // Only warn if we really don't recognize the format and it's not empty
+      if (!isMP3 && !isWAV && !isOGG && blob.size > 12 && !contentType.includes("audio")) {
         console.warn("[ElevenLabs] Blob doesn't appear to be valid audio data. First bytes:", 
           Array.from(uint8Array.slice(0, 8)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '))
       }
@@ -177,6 +191,7 @@ export class ElevenLabsService {
         })
       }
       
+      // Create blob URL with explicit type
       const audioUrl = URL.createObjectURL(blob)
 
       // Play audio
@@ -184,14 +199,85 @@ export class ElevenLabsService {
       // HTMLAudioElement doesn't have a type property, the browser detects it from the blob URL
       const audio = new Audio(audioUrl)
       
-      // Add canplaythrough event to verify audio can be loaded
-      audio.addEventListener('canplaythrough', () => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log("[ElevenLabs] Audio can play through, ready to play")
-        }
-      }, { once: true })
+      // Optimized: Start playing as soon as we have metadata (fastest possible)
+      // Only wait if absolutely necessary
+      let audioReady = false
       
-      // Add loadedmetadata event to verify audio metadata loaded
+      // Try immediate play if already ready
+      if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        audioReady = true
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[ElevenLabs] Audio already has metadata, proceeding immediately")
+        }
+      } else {
+        // Wait for metadata with a very short timeout (500ms)
+        // This is much faster than waiting for full data
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            // If timeout but we have metadata, proceed anyway
+            if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+              if (process.env.NODE_ENV === 'development') {
+                console.log("[ElevenLabs] Timeout but have metadata - proceeding")
+              }
+              cleanup()
+              audioReady = true
+              resolve()
+            } else {
+              cleanup()
+              // Last resort: try to play anyway
+              audioReady = true
+              resolve()
+            }
+          }, 500) // Very short timeout - 500ms max wait
+          
+          const cleanup = () => {
+            clearTimeout(timeout)
+            audio.removeEventListener('loadedmetadata', onMetadata)
+            audio.removeEventListener('canplay', onCanPlay)
+            audio.removeEventListener('error', onError)
+          }
+          
+          const onMetadata = () => {
+            if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) {
+              cleanup()
+              audioReady = true
+              if (process.env.NODE_ENV === 'development') {
+                console.log("[ElevenLabs] Metadata loaded, ready to play")
+              }
+              resolve()
+            }
+          }
+          
+          const onCanPlay = () => {
+            cleanup()
+            audioReady = true
+            if (process.env.NODE_ENV === 'development') {
+              console.log("[ElevenLabs] Audio can play")
+            }
+            resolve()
+          }
+          
+          const onError = (error: Event) => {
+            cleanup()
+            const target = error.target as HTMLAudioElement
+            const mediaError = target?.error
+            if (mediaError && mediaError.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+              reject(new Error(`Audio format not supported by browser. Content-Type: ${contentType}, Blob size: ${blob.size} bytes`))
+            } else {
+              // Don't reject on other errors - try to play anyway
+              audioReady = true
+              resolve()
+            }
+          }
+          
+          audio.addEventListener('loadedmetadata', onMetadata, { once: true })
+          audio.addEventListener('canplay', onCanPlay, { once: true })
+          audio.addEventListener('error', onError, { once: true })
+          audio.preload = 'auto'
+        })
+      }
+      
+      // Add additional event listeners for debugging
       audio.addEventListener('loadedmetadata', () => {
         if (process.env.NODE_ENV === 'development') {
           console.log("[ElevenLabs] Audio metadata loaded:", {
@@ -218,9 +304,12 @@ export class ElevenLabsService {
           console.log("[ElevenLabs] Audio playback ended")
         }
         this.isPlaying = false
-        if (audio.src === audioUrl) {
-          URL.revokeObjectURL(audioUrl)
-        }
+        // Don't revoke URL immediately - wait a bit to ensure cleanup is complete
+        setTimeout(() => {
+          if (audio.src === audioUrl && (audio.ended || audio.paused)) {
+            URL.revokeObjectURL(audioUrl)
+          }
+        }, 100)
         if (this.currentAudio === audio) {
           this.currentAudio = null
         }
@@ -340,9 +429,12 @@ export class ElevenLabsService {
         }
         
         this.isPlaying = false
-        if (audio.src === audioUrl) {
-          URL.revokeObjectURL(audioUrl)
-        }
+        // Don't revoke URL immediately on error - wait a bit
+        setTimeout(() => {
+          if (audio.src === audioUrl) {
+            URL.revokeObjectURL(audioUrl)
+          }
+        }, 100)
         if (this.currentAudio === audio) {
           this.currentAudio = null
         }
@@ -365,31 +457,28 @@ export class ElevenLabsService {
       this.currentAudio = audio
       this.isPlaying = true
 
-      try {
+        try {
         // Check if audio element is still valid before playing
         if (!audio || !this.currentAudio || this.currentAudio !== audio) {
           // Audio was replaced or cleaned up before play() could execute
           this.isPlaying = false
-          URL.revokeObjectURL(audioUrl)
+          setTimeout(() => URL.revokeObjectURL(audioUrl), 100)
           return
         }
 
         // Check if audio context needs to be resumed (browser autoplay policy)
-        if (this.audioContext && this.audioContext.state === "suspended") {
-          try {
-            await this.audioContext.resume()
-            if (process.env.NODE_ENV === 'development') {
-              console.log("[ElevenLabs] Audio context resumed from suspended state")
-            }
-          } catch (ctxError) {
-            console.warn("[ElevenLabs] Failed to resume audio context:", ctxError)
-          }
-        }
+        // Do this in parallel with audio loading for faster response
+        const contextResumePromise = this.audioContext && this.audioContext.state === "suspended"
+          ? this.audioContext.resume().catch(err => {
+              console.warn("[ElevenLabs] Failed to resume audio context:", err)
+            })
+          : Promise.resolve()
         
+        // Start playing immediately - don't wait for context resume
         const playPromise = audio.play()
         
-        // Handle the promise with proper error handling
-        await playPromise
+        // Wait for both in parallel
+        await Promise.all([playPromise, contextResumePromise])
         
         // Verify audio actually started playing
         if (audio.paused) {
@@ -409,7 +498,8 @@ export class ElevenLabsService {
           if (this.currentAudio === audio) {
             this.currentAudio = null
           }
-          URL.revokeObjectURL(audioUrl)
+          // Delay URL revocation to prevent ERR_FILE_NOT_FOUND
+          setTimeout(() => URL.revokeObjectURL(audioUrl), 100)
           // Don't throw - this is expected when interrupting playback
           return
         }
@@ -465,9 +555,20 @@ export class ElevenLabsService {
         // This will abort any pending play() promises
         audioToStop.load()
         
-        // Clean up the object URL if it exists
+        // Don't revoke blob URL immediately - delay it to prevent ERR_FILE_NOT_FOUND
+        // The audio element might still be accessing it during the load() call
         if (audioUrl && audioUrl.startsWith('blob:')) {
-          URL.revokeObjectURL(audioUrl)
+          setTimeout(() => {
+            try {
+              // Only revoke if the audio element is no longer using this URL or element is gone
+              if (!audioToStop || !audioToStop.src || audioToStop.src !== audioUrl) {
+                URL.revokeObjectURL(audioUrl)
+              }
+            } catch (err) {
+              // If element is gone or inaccessible, safe to revoke
+              URL.revokeObjectURL(audioUrl)
+            }
+          }, 500) // Longer delay to ensure audio element is done
         }
       } catch (error) {
         // Silently handle errors during cleanup

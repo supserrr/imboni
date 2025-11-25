@@ -24,7 +24,7 @@ export function HomePageClient() {
   const [inputMode, setInputMode] = useState<"none" | "text" | "voice">("none")
   const [showModeSelection, setShowModeSelection] = useState(false)
   const [question, setQuestion] = useState<string>("")
-  const [answer, setAnswer] = useState<string>("")
+  const [resultHistory, setResultHistory] = useState<Array<{ id: number; text: string; isNotification?: boolean }>>([])
   const [textQuery, setTextQuery] = useState<string>("")
   const [customQuery, setCustomQuery] = useState<string>("")
   const [latestBackgroundAnalysis, setLatestBackgroundAnalysis] = useState<string>("")
@@ -44,6 +44,7 @@ export function HomePageClient() {
   const recognitionRestartTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastSpeechEndTimeRef = useRef<number>(0)
   const pendingVoiceModeRef = useRef<boolean>(false)
+  const recentAIResponsesRef = useRef<string[]>([]) // Track recent AI responses to filter them out
 
   useEffect(() => {
     checkPermission()
@@ -128,10 +129,18 @@ export function HomePageClient() {
       if (recognitionRef.current && isListening) {
         console.log("[isSpeaking] AI started speaking, stopping recognition to prevent feedback")
         try {
+          // Stop and abort to ensure recognition is fully stopped
           recognitionRef.current.stop()
+          try {
+            recognitionRef.current.abort() // Abort to clear any pending results
+          } catch (abortErr) {
+            // Abort might fail if already stopped, that's okay
+          }
           setIsListening(false)
         } catch (err) {
           console.error("[isSpeaking] Error stopping recognition:", err)
+          // Even if stop fails, try to set listening to false
+          setIsListening(false)
         }
       }
     } else {
@@ -150,9 +159,10 @@ export function HomePageClient() {
         recognitionRestartTimeoutRef.current = setTimeout(() => {
           // Double-check we're still in voice mode
           if (inputModeRef.current === "voice" && recognitionRef.current) {
-            // Ensure at least 2.5 seconds have passed since speech ended
+            // Ensure at least 4 seconds have passed since speech ended
+            // Increased from 2.5s to 4s to prevent picking up AI voice
             const timeSinceSpeechEnd = Date.now() - lastSpeechEndTimeRef.current
-            if (timeSinceSpeechEnd >= 2500) {
+            if (timeSinceSpeechEnd >= 4000) {
               // Don't check isAnsweringQuestionRef here - allow recognition to restart
               // The flag will prevent processing if a question is already being handled
               // Check microphone permission before restarting
@@ -193,7 +203,7 @@ export function HomePageClient() {
             } else {
               console.log("[isSpeaking] Too soon after speech ended, waiting more...")
               // Reschedule if too soon
-              const remainingTime = 2500 - timeSinceSpeechEnd
+              const remainingTime = 4000 - timeSinceSpeechEnd
               recognitionRestartTimeoutRef.current = setTimeout(() => {
                 if (inputModeRef.current === "voice" && recognitionRef.current) {
                   // Check microphone permission before restarting
@@ -475,25 +485,57 @@ export function HomePageClient() {
       // Query Moondream API with the user's question
       const response = await queryMoondream(frameDataUrl, questionText, MOONDREAM_API_URL)
       console.log("[handleQuestion] Got response from Moondream:", response?.substring(0, 100))
-      setAnswer(response)
+      
+      // Add to result history (original implementation style)
+      if (response) {
+        setResultHistory(prev => [
+          { id: Date.now(), text: response },
+          ...prev.slice(0, 2) // Keep last 3 results (current + 2 previous)
+        ])
+        
+        // Store recent AI responses to filter them out from recognition
+        // Keep last 5 responses, each truncated to first 50 chars for comparison
+        recentAIResponsesRef.current = [
+          response.substring(0, 100), // Store first 100 chars for better matching
+          ...recentAIResponsesRef.current.slice(0, 4) // Keep last 5 responses
+        ]
+        
+        // Clear old responses after 10 seconds
+        setTimeout(() => {
+          recentAIResponsesRef.current = recentAIResponsesRef.current.slice(1)
+        }, 10000)
+      }
       
       playAnswerReadySound() // Play sound when answer is ready
       
       // Stop recognition BEFORE speaking to prevent it from hearing the AI's voice
-      if (recognitionRef.current && isListening) {
+      if (recognitionRef.current) {
         console.log("[handleQuestion] Stopping recognition before speaking to prevent feedback")
         try {
-          recognitionRef.current.stop()
+          // Stop recognition more aggressively - try both stop and abort
+          if (isListening) {
+            recognitionRef.current.stop()
+          }
+          // Abort will stop it even if it's in a different state
+          try {
+            recognitionRef.current.abort()
+          } catch (abortErr) {
+            // Abort might fail if already stopped, that's okay
+          }
           setIsListening(false)
         } catch (err) {
           console.error("[handleQuestion] Error stopping recognition before speech:", err)
+          // Even if stop fails, try to set listening to false
+          setIsListening(false)
         }
       }
       
-      // Small delay to ensure recognition has stopped, then speak the answer if auto-narrate is enabled
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Delay to ensure recognition has fully stopped, then speak the answer if auto-narrate is enabled
+      // Increased to 500ms to ensure recognition is fully stopped (prevents picking up AI voice)
       if (autoNarrate) {
         console.log("[handleQuestion] Speaking answer...")
+        // Wait longer to ensure recognition is fully stopped and any pending results are cleared
+        await new Promise(resolve => setTimeout(resolve, 500))
         await speak(response)
         console.log("[handleQuestion] Answer spoken")
       } else {
@@ -661,6 +703,23 @@ export function HomePageClient() {
           // Don't process if already answering a question
           if (isAnsweringQuestionRef.current) {
             console.log("[onresult] Already processing question, ignoring:", transcript)
+            return
+          }
+          
+          // Filter out transcripts that match recent AI responses (prevent feedback loop)
+          const transcriptLower = transcript.toLowerCase()
+          const isAIVoice = recentAIResponsesRef.current.some(aiResponse => {
+            const aiLower = aiResponse.toLowerCase()
+            // Check if transcript contains significant portion of AI response or vice versa
+            const similarity = transcriptLower.length > 10 && aiLower.length > 10
+              ? (transcriptLower.includes(aiLower.substring(0, 20)) || 
+                 aiLower.includes(transcriptLower.substring(0, 20)))
+              : false
+            return similarity
+          })
+          
+          if (isAIVoice) {
+            console.log("[onresult] Transcript matches recent AI response, ignoring:", transcript)
             return
           }
           
@@ -1414,6 +1473,14 @@ export function HomePageClient() {
   const handleStartAI = async () => {
     console.log("[handleStartAI] Called, isStreaming:", isStreaming, "permissionStatus:", permissionStatus)
     
+    // If permissions are denied or not-supported, show permission prompt immediately
+    if (permissionStatus === "denied" || permissionStatus === "not-supported") {
+      console.log("[handleStartAI] Permission status is denied/not-supported, showing camera permission prompt")
+      setPermissionType("camera")
+      setShowPermissionPrompt(true)
+      return
+    }
+    
     // Check camera permission first
     const hasCameraPermission = await checkCameraPermission()
     if (!hasCameraPermission) {
@@ -1571,7 +1638,7 @@ export function HomePageClient() {
     inputModeRef.current = "none"
     setShowModeSelection(false)
     setQuestion("")
-    setAnswer("")
+    setResultHistory([])
     setTextQuery("")
     setLatestBackgroundAnalysis("")
     isAnsweringQuestionRef.current = false
@@ -1634,6 +1701,43 @@ export function HomePageClient() {
           <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse" />
         )}
       </div>
+
+      {/* Result Overlay - Bottom of screen (original implementation style) */}
+      {resultHistory.length > 0 && (
+        <div
+          className="absolute left-4 right-4 bottom-32 z-30 pointer-events-none"
+          style={{
+            display: 'flex',
+            flexDirection: 'column-reverse',
+            gap: '8px',
+            maxWidth: '800px',
+            margin: '0 auto',
+          }}
+        >
+          {resultHistory.map((result, index) => {
+            const opacityLevels = [1, 0.5, 0.25];
+            return (
+              <div
+                key={result.id}
+                className="text-white shadow-lg leading-snug text-sm sm:text-base md:text-lg"
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  background: result.isNotification ? 'rgba(34, 197, 94, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                  opacity: opacityLevels[index] || 0.25,
+                  animation: index === 0 ? 'slideUp 0.3s ease-out' : 'none',
+                  transition: 'opacity 0.3s ease-out',
+                  borderRadius: '16px',
+                }}
+              >
+                {result.text}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Query Input and Controls - Floating above bottom navbar */}
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
@@ -1720,7 +1824,6 @@ export function HomePageClient() {
               onClick={handleStartAI}
               size="lg"
               className="px-24 py-11 text-2xl font-semibold rounded-none shadow-2xl font-mono"
-              disabled={permissionStatus === "denied" || permissionStatus === "not-supported"}
             >
               START IMBONI
             </Button>
