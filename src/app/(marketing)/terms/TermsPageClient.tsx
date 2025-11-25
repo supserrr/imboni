@@ -117,7 +117,7 @@ export function TermsPageClient() {
             transition={{ duration: 0.6 }}
             className="max-w-4xl mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-mono font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-mono font-bold mb-4 text-primary">
               Terms of Service
             </h1>
             
@@ -127,7 +127,7 @@ export function TermsPageClient() {
 
             <div className="space-y-8 font-mono text-sm leading-relaxed">
               <section>
-                <h2 className="text-2xl font-bold mb-4">1. Agreement to Terms</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">1. Agreement to Terms</h2>
                 <p className="mb-4">
                   By accessing or using Imboni ("the Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, then you may not access the Service.
                 </p>
@@ -137,7 +137,7 @@ export function TermsPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">2. Description of Service</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">2. Description of Service</h2>
                 <p className="mb-4">
                   Imboni is an AI-powered vision assistance platform designed to help blind and low vision users understand their surroundings through real-time video analysis and audio descriptions. The Service includes:
                 </p>
@@ -151,9 +151,9 @@ export function TermsPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">3. User Accounts</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">3. User Accounts</h2>
                 
-                <h3 className="text-xl font-semibold mb-3">3.1 Account Creation</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">3.1 Account Creation</h3>
                 <p className="mb-4">
                   To use certain features of the Service, you must create an account. You agree to:
                 </p>
@@ -164,14 +164,14 @@ export function TermsPageClient() {
                   <li>Accept responsibility for all activities under your account</li>
                 </ul>
 
-                <h3 className="text-xl font-semibold mb-3">3.2 Account Security</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">3.2 Account Security</h3>
                 <p className="mb-4">
                   You are responsible for maintaining the confidentiality of your account password and for all activities that occur under your account. You must immediately notify us of any unauthorized use of your account.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">4. Acceptable Use Policy</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">4. Acceptable Use Policy</h2>
                 <p className="mb-4">
                   You agree not to use the Service:
                 </p>
@@ -187,7 +187,7 @@ export function TermsPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">5. User Responsibilities</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">5. User Responsibilities</h2>
                 <p className="mb-4">
                   You are responsible for:
                 </p>
@@ -201,40 +201,40 @@ export function TermsPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">6. Intellectual Property Rights</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">6. Intellectual Property Rights</h2>
                 
-                <h3 className="text-xl font-semibold mb-3">6.1 Service Ownership</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">6.1 Service Ownership</h3>
                 <p className="mb-4">
                   The Service and its original content, features, and functionality are owned by the creators and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">6.2 User Content</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">6.2 User Content</h3>
                 <p className="mb-4">
                   You retain ownership of any content you create or upload through the Service. By using the Service, you grant us a license to use, process, and store your content as necessary to provide the Service.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">7. AI Accuracy and Disclaimers</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">7. AI Accuracy and Disclaimers</h2>
                 
-                <h3 className="text-xl font-semibold mb-3">7.1 AI Limitations</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">7.1 AI Limitations</h3>
                 <p className="mb-4">
                   The Service uses artificial intelligence and machine learning technologies that may not always be accurate. Descriptions, analyses, and recommendations provided by the Service are generated by AI systems and may contain errors, inaccuracies, or omissions.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">7.2 No Guarantee of Accuracy</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">7.2 No Guarantee of Accuracy</h3>
                 <p className="mb-4">
                   We do not guarantee the accuracy, completeness, or reliability of any information provided by the Service. You should not rely solely on the Service for critical decisions, especially those related to safety, navigation, or medical matters.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">7.3 Accessibility Disclaimer</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">7.3 Accessibility Disclaimer</h3>
                 <p className="mb-4">
                   While we strive to make the Service accessible, we cannot guarantee that it will work perfectly with all assistive technologies or in all situations. The Service is provided "as is" without warranties of any kind.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">8. Limitation of Liability</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">8. Limitation of Liability</h2>
                 <p className="mb-4">
                   To the maximum extent permitted by law:
                 </p>
@@ -248,49 +248,49 @@ export function TermsPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">9. Indemnification</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">9. Indemnification</h2>
                 <p className="mb-4">
                   You agree to indemnify, defend, and hold harmless the Service and its creators from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from your use of the Service, violation of these Terms, or infringement of any rights of another.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">10. Service Modifications and Termination</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">10. Service Modifications and Termination</h2>
                 
-                <h3 className="text-xl font-semibold mb-3">10.1 Service Changes</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">10.1 Service Changes</h3>
                 <p className="mb-4">
                   We reserve the right to modify, suspend, or discontinue the Service at any time, with or without notice. We may also impose limits on certain features or restrict access to parts of the Service without notice.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">10.2 Account Termination</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">10.2 Account Termination</h3>
                 <p className="mb-4">
                   We may terminate or suspend your account immediately, without prior notice, for conduct that we believe violates these Terms or is harmful to other users, us, or third parties. You may also terminate your account at any time through your account settings.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">11. Changes to Terms</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">11. Changes to Terms</h2>
                 <p className="mb-4">
                   We reserve the right to modify these Terms at any time. We will notify users of any material changes by posting the new Terms on this page and updating the "Last updated" date. Your continued use of the Service after such modifications constitutes acceptance of the updated Terms.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">12. Governing Law</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">12. Governing Law</h2>
                 <p className="mb-4">
                   These Terms shall be governed by and construed in accordance with applicable laws, without regard to conflict of law provisions. Any disputes arising from these Terms or the Service shall be resolved through appropriate legal channels.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">13. Severability</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">13. Severability</h2>
                 <p className="mb-4">
                   If any provision of these Terms is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary, and the remaining provisions shall remain in full force and effect.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">14. Contact Information</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">14. Contact Information</h2>
                 <p className="mb-4">
                   If you have any questions about these Terms of Service, please contact us through the support channels available in the application.
                 </p>

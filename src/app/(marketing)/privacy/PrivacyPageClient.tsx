@@ -117,7 +117,7 @@ export function PrivacyPageClient() {
             transition={{ duration: 0.6 }}
             className="max-w-4xl mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-mono font-bold mb-4">
+            <h1 className="text-4xl md:text-5xl font-mono font-bold mb-4 text-primary">
               Privacy Policy
             </h1>
             
@@ -127,7 +127,7 @@ export function PrivacyPageClient() {
 
             <div className="space-y-8 font-mono text-sm leading-relaxed">
               <section>
-                <h2 className="text-2xl font-bold mb-4">1. Introduction</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">1. Introduction</h2>
                 <p className="mb-4">
                   Welcome to Imboni ("we," "our," or "us"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI vision assistance platform designed to help blind and low vision users understand their surroundings.
                 </p>
@@ -137,9 +137,9 @@ export function PrivacyPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">2. Information We Collect</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">2. Information We Collect</h2>
                 
-                <h3 className="text-xl font-semibold mb-3">2.1 Personal Information</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">2.1 Personal Information</h3>
                 <p className="mb-4">
                   We collect information that you provide directly to us, including:
                 </p>
@@ -150,7 +150,7 @@ export function PrivacyPageClient() {
                   <li>Communication preferences</li>
                 </ul>
 
-                <h3 className="text-xl font-semibold mb-3">2.2 Camera and Video Data</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">2.2 Camera and Video Data</h3>
                 <p className="mb-4">
                   When you use our live video analysis features:
                 </p>
@@ -161,7 +161,7 @@ export function PrivacyPageClient() {
                   <li>Analysis results and descriptions are stored in your account history</li>
                 </ul>
 
-                <h3 className="text-xl font-semibold mb-3">2.3 Usage Data</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">2.3 Usage Data</h3>
                 <p className="mb-4">
                   We automatically collect certain information about your use of the service:
                 </p>
@@ -174,7 +174,7 @@ export function PrivacyPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">3. How We Use Your Information</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">3. How We Use Your Information</h2>
                 <p className="mb-4">
                   We use the collected information for the following purposes:
                 </p>
@@ -190,29 +190,29 @@ export function PrivacyPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">4. Third-Party Services</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">4. Third-Party Services</h2>
                 <p className="mb-4">
                   We use the following third-party services that may process your data:
                 </p>
                 
-                <h3 className="text-xl font-semibold mb-3">4.1 Supabase</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">4.1 Supabase</h3>
                 <p className="mb-4">
                   We use Supabase for user authentication, database storage, and backend services. Your account information and preferences are stored securely in Supabase's infrastructure. Please review Supabase's privacy policy for more information.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">4.2 ElevenLabs</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">4.2 ElevenLabs</h3>
                 <p className="mb-4">
                   We use ElevenLabs for text-to-speech functionality. When you use narration features, your text may be sent to ElevenLabs for voice synthesis. Audio data is processed according to ElevenLabs' privacy policy.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">4.3 Moondream AI</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">4.3 Moondream AI</h3>
                 <p className="mb-4">
                   We use Moondream AI for image and video analysis. Video frames may be processed by Moondream AI to generate descriptions. Processing occurs according to Moondream's data handling practices.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">5. Data Storage and Security</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">5. Data Storage and Security</h2>
                 <p className="mb-4">
                   We implement appropriate technical and organizational measures to protect your personal information:
                 </p>
@@ -228,60 +228,60 @@ export function PrivacyPageClient() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">6. Your Rights and Choices</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">6. Your Rights and Choices</h2>
                 <p className="mb-4">
                   Depending on your location, you may have certain rights regarding your personal information:
                 </p>
                 
-                <h3 className="text-xl font-semibold mb-3">6.1 Access and Portability</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">6.1 Access and Portability</h3>
                 <p className="mb-4">
                   You have the right to access and receive a copy of your personal data that we hold.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">6.2 Correction</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">6.2 Correction</h3>
                 <p className="mb-4">
                   You can update or correct your personal information through your account settings.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">6.3 Deletion</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">6.3 Deletion</h3>
                 <p className="mb-4">
                   You can request deletion of your account and associated data by contacting us or using account deletion features.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">6.4 Data Processing Controls</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">6.4 Data Processing Controls</h3>
                 <p className="mb-4">
                   You can control camera permissions, video recording, and data processing through your device settings and application preferences.
                 </p>
 
-                <h3 className="text-xl font-semibold mb-3">6.5 Opt-Out</h3>
+                <h3 className="text-xl font-semibold mb-3 text-primary">6.5 Opt-Out</h3>
                 <p className="mb-4">
                   You can opt out of non-essential communications and certain data processing activities through your account settings.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">7. Data Retention</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">7. Data Retention</h2>
                 <p className="mb-4">
                   We retain your personal information for as long as necessary to provide our services and fulfill the purposes outlined in this policy. When you delete your account, we will delete or anonymize your personal data, except where we are required to retain it for legal or regulatory purposes.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">8. Children's Privacy</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">8. Children's Privacy</h2>
                 <p className="mb-4">
                   Our service is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">9. Changes to This Privacy Policy</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">9. Changes to This Privacy Policy</h2>
                 <p className="mb-4">
                   We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. You are advised to review this Privacy Policy periodically for any changes.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-bold mb-4">10. Contact Us</h2>
+                <h2 className="text-2xl font-bold mb-4 text-primary">10. Contact Us</h2>
                 <p className="mb-4">
                   If you have any questions about this Privacy Policy or our data practices, please contact us through the support channels available in the application.
                 </p>
