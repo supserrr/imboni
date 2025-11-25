@@ -1317,10 +1317,10 @@ export function HomePageClient() {
             <Button
               onClick={handleStartAI}
               size="lg"
-              className="px-24 py-11 text-2xl font-semibold rounded-none shadow-2xl"
+              className="px-24 py-11 text-2xl font-semibold rounded-none shadow-2xl font-mono"
               disabled={!isStreaming}
             >
-              Start Imboni
+              START IMBONI
             </Button>
           </div>
         )}
