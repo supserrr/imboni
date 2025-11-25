@@ -96,8 +96,8 @@ If you're familiar with Node.js and Next.js, here's the condensed setup:
 
 ```bash
 # Clone and install
-git clone <repository-url>
-cd imboni-app
+git clone https://github.com/supserrr/imboni
+cd imboni
 npm install
 
 # Set up environment variables
@@ -201,13 +201,12 @@ Follow these steps in order. If you get stuck, check the [Troubleshooting](#-tro
 
 3. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/supserrr/imboni
    ```
-   Replace `<repository-url>` with the actual repository URL (e.g., `https://github.com/username/imboni-app.git`)
 
 4. Navigate into the project folder:
    ```bash
-   cd imboni-app
+   cd imboni
    ```
 
 **Option B: Download as ZIP**
@@ -216,11 +215,11 @@ Follow these steps in order. If you get stuck, check the [Troubleshooting](#-tro
 2. Extract the ZIP file to your desired location
 3. Open terminal/command prompt and navigate to the extracted folder:
    ```bash
-   cd path/to/imboni-app
+   cd path/to/imboni
    ```
 
 **Verify Step 1:**
-You should now be in the `imboni-app` folder. Check by running:
+You should now be in the `imboni` folder. Check by running:
 ```bash
 ls
 ```
@@ -238,7 +237,7 @@ You should see files like `package.json`, `README.md`, and a `src` folder.
 
 **What are dependencies?** These are external libraries and tools the project needs to run. Think of them as ingredients for a recipe.
 
-1. Make sure you're in the `imboni-app` folder (from Step 1)
+1. Make sure you're in the `imboni` folder (from Step 1)
 
 2. Install all dependencies:
    ```bash
@@ -319,7 +318,7 @@ Only needed if you want to use ElevenLabs for text-to-speech instead of the brow
 
 **What are environment variables?** These are configuration settings stored in a file that the app reads when it starts. They're like a settings file.
 
-1. In the `imboni-app` folder, you'll find a file called `.env.example` - this is a template!
+1. In the `imboni` folder, you'll find a file called `.env.example` - this is a template!
 
 2. **Easy way (Recommended):**
    - Copy the `.env.example` file and rename it to `.env.local`
@@ -370,11 +369,11 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 **Verify Step 4:**
-Make sure the file is in the root of `imboni-app` folder (same level as `package.json`):
+Make sure the file is in the root of `imboni` folder (same level as `package.json`):
 ```bash
 ls -la .env.local
 ```
-(Mac/Linux) or check in your file explorer that `.env.local` exists in the `imboni-app` folder.
+(Mac/Linux) or check in your file explorer that `.env.local` exists in the `imboni` folder.
 
 ---
 
@@ -382,7 +381,7 @@ ls -la .env.local
 
 **What is a development server?** This runs your app locally on your computer so you can test it before deploying it online.
 
-1. Make sure you're in the `imboni-app` folder
+1. Make sure you're in the `imboni` folder
 
 2. Start the development server:
    ```bash
@@ -534,7 +533,7 @@ Once your app is running:
 ## 📁 Project Structure
 
 ```
-imboni-app/
+imboni/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── (auth)/            # Authentication routes
