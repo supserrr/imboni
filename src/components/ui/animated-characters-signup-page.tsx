@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail } from "lucide-react";
+import { Eye, EyeOff, Mail } from "@/components/ui/animated-icons";
 import { authService } from "@/lib/services/auth";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

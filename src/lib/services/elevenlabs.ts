@@ -129,8 +129,13 @@ export class ElevenLabsService {
         }
       }
 
-      audio.onerror = (error) => {
+      audio.onerror = (error: Event | string) => {
         // Only log non-AbortError errors
+        if (typeof error === 'string') {
+          console.error("[ElevenLabs] Audio playback error:", error)
+          this.isPlaying = false
+          return
+        }
         const target = error.target as HTMLAudioElement
         if (target?.error?.code !== MediaError.MEDIA_ERR_ABORTED) {
           console.error("[ElevenLabs] Audio playback error:", error)

@@ -3,7 +3,7 @@
 import { useState, KeyboardEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Send, Mic } from "lucide-react"
+import { Send, Mic } from "@/components/ui/animated-icons"
 
 interface QueryInputProps {
   onQuery: (query: string) => void

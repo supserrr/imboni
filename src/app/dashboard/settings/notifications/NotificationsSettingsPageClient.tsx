@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
-import { AlertCircle, CheckCircle2, Bell, BellOff, Volume2, VolumeX } from "lucide-react"
+import { AlertCircle, CheckCircle2, Bell, BellOff, Volume2, VolumeX } from "@/components/ui/animated-icons"
 import type { User } from "@/types/user"
 
 export function NotificationsSettingsPageClient() {

@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { Loader2 } from "lucide-react"
+import { Loader2 } from "@/components/ui/animated-icons"
 import type { AnalysisResult } from "@/hooks/useMoondreamAnalysis"
 
 interface AnalysisOverlayProps {

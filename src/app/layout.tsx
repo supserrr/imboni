@@ -1,4 +1,3 @@
-"use cache"
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -19,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Imboni - AI Vision Assistant",
   description: "An AI assistant designed to help blind and low vision users understand their surroundings with real-time visual descriptions",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default async function RootLayout({

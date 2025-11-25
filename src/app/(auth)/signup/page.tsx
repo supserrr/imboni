@@ -1,4 +1,3 @@
-"use cache"
 
 import { SignupPageClient } from "./SignupPageClient"
 

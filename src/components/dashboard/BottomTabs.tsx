@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, Settings } from "lucide-react"
+import { Home, Settings } from "@/components/ui/animated-icons"
 import { cn } from "@/lib/utils"
 
 /**

@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LogOut, User, Bell, Globe, Palette, Volume2 } from "lucide-react"
+import { LogOut, User, Bell, Globe, Palette, Volume2 } from "@/components/ui/animated-icons"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 

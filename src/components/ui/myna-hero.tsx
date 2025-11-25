@@ -12,7 +12,7 @@ import {
   Plug,
   Sparkles,
   Zap,
-} from "lucide-react";
+} from "@/components/ui/animated-icons";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils";
 
 const navigationItems = [
   { title: "HOME", href: "/" },
-  { title: "ABOUT", href: "#about" },
-  { title: "CONTACT", href: "#contact" },
+  { title: "ABOUT", href: "/about" },
+  { title: "CONTACT", href: "/contact" },
 ];
 
 const labels = [

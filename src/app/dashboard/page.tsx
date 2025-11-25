@@ -1,4 +1,3 @@
-"use cache"
 
 import { redirect } from "next/navigation"
 

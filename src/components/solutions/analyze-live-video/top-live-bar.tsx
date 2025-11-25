@@ -1,6 +1,6 @@
 "use client"
 
-import { Github, Maximize2, X } from 'lucide-react';
+import { Github, Maximize2, X } from '@/components/ui/animated-icons';
 import type { CSSProperties } from 'react';
 
 interface TopLiveBarProps {

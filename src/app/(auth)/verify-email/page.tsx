@@ -1,4 +1,3 @@
-"use cache"
 
 import { VerifyEmailPageClient } from "./VerifyEmailPageClient"
 

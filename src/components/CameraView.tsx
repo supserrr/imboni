@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { Camera, CameraOff } from "lucide-react"
+import { Camera, CameraOff } from "@/components/ui/animated-icons"
 
 interface CameraViewProps {
   videoRef: React.RefObject<HTMLVideoElement | null>

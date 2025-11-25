@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   Home,
   Settings,
-} from "lucide-react";
+} from "@/components/ui/animated-icons";
 import { cn } from "@/lib/utils";
 
 const MOBILE_LABEL_WIDTH = 72;

@@ -6,7 +6,7 @@ import { Database } from "@/types/database"
  * Gets the remember me preference from cookies.
  * Returns true if remember me is enabled (30 days), false otherwise (12 hours).
  */
-function getRememberMePreference(cookieStore: ReturnType<typeof cookies>): boolean {
+function getRememberMePreference(cookieStore: Awaited<ReturnType<typeof cookies>>): boolean {
   const rememberMeCookie = cookieStore.get("remember_me")
   return rememberMeCookie?.value === "true"
 }

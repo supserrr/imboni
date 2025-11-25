@@ -1,6 +1,6 @@
 "use client"
 
-import { Square } from 'lucide-react';
+import { Square } from '@/components/ui/animated-icons';
 import {
   Select,
   SelectContent,

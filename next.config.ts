@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Enable Cache Components (moved to root level in 16.0.3)
-  cacheComponents: true,
-  
   // Optimize for Vercel deployment
   output: undefined, // Let Vercel handle the output
   

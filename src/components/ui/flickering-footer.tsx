@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRightIcon } from "@radix-ui/react-icons";
+import { ChevronRightIcon as AnimatedChevronRight } from "@/components/ui/animated-icons";
 import { ClassValue, clsx } from "clsx";
 import * as Color from "color-bits";
 import { motion, useInView } from "framer-motion";
@@ -391,10 +392,10 @@ export const BLUR_FADE_DELAY = 0.15;
 
 const footerLinks = [
   { id: 1, title: "HOME", url: "/" },
-  { id: 2, title: "ABOUT", url: "#about" },
-  { id: 3, title: "CONTACT", url: "#contact" },
-  { id: 4, title: "PRIVACY", url: "/privacy-terms" },
-  { id: 5, title: "TERMS", url: "/privacy-terms" },
+  { id: 2, title: "ABOUT", url: "/about" },
+  { id: 3, title: "CONTACT", url: "/contact" },
+  { id: 4, title: "PRIVACY", url: "/privacy" },
+  { id: 5, title: "TERMS", url: "/terms" },
 ];
 
 /**

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { Mail, CheckCircle2 } from "lucide-react";
+import { Mail, CheckCircle2 } from "@/components/ui/animated-icons";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";

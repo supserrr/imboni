@@ -1,4 +1,3 @@
-"use cache"
 
 import { LandingPageClient } from "./LandingPageClient"
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Settings, Play, Pause, RotateCcw, Camera } from "lucide-react"
+import { Settings, Play, Pause, RotateCcw, Camera } from "@/components/ui/animated-icons"
 import { QueryInput } from "./QueryInput"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { SettingsDialog } from "./SettingsDialog"

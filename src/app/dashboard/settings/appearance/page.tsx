@@ -1,4 +1,3 @@
-"use cache"
 
 import { AppearanceSettingsPageClient } from "./AppearanceSettingsPageClient"
 

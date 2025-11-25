@@ -71,7 +71,7 @@ export function LandingPageClient() {
                 variant="default"
                 className="rounded-none font-mono"
               >
-                <Link href="#support">GET IN TOUCH</Link>
+                <Link href="/contact">GET IN TOUCH</Link>
               </Button>
             </motion.div>
           </motion.div>

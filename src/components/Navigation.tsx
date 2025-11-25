@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useAuth } from "@/contexts/AuthProvider"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/Logo"
-import { LogIn, LogOut } from "lucide-react"
+import { LogIn, LogOut } from "@/components/ui/animated-icons"
 import { useRouter } from "next/navigation"
 
 /**
