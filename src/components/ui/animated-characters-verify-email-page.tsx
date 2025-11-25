@@ -350,7 +350,13 @@ function VerifyEmailContent() {
   };
 
   return (
-    <div className="min-h-[100dvh] h-screen grid lg:grid-cols-2">
+    <div 
+      className="min-h-[100dvh] h-screen grid lg:grid-cols-2"
+      style={{
+        minHeight: '100dvh',
+        height: '100dvh',
+      }}
+    >
       <div className="relative hidden lg:flex flex-col justify-between bg-background p-12 text-foreground">
         <div className="relative z-20">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold font-mono">
@@ -506,11 +512,19 @@ function VerifyEmailContent() {
         <div className="absolute bottom-1/4 left-1/4 size-96 bg-foreground/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground min-h-[100dvh] h-screen">
+      <div 
+        className={`flex items-center justify-center p-8 min-h-[100dvh] h-screen lg:bg-gradient-to-br lg:from-primary/90 lg:via-primary lg:to-primary/80 lg:text-primary-foreground ${isDarkMode ? 'bg-background text-foreground' : 'bg-background text-foreground'}`}
+        style={{
+          paddingTop: `max(2rem, env(safe-area-inset-top))`,
+          paddingBottom: `max(2rem, env(safe-area-inset-bottom))`,
+          paddingLeft: `max(2rem, env(safe-area-inset-left))`,
+          paddingRight: `max(2rem, env(safe-area-inset-right))`,
+        }}
+      >
         <div className="w-full max-w-[420px]">
           <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12 font-mono">
             <Link href="/" className="flex items-center gap-2">
-              <Logo variant="full" color={isDarkMode ? "black" : "white"} className="h-8 w-auto" />
+              <Logo variant="full" color="orange" className="h-8 w-auto" />
             </Link>
           </div>
 

@@ -346,7 +346,13 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] h-screen grid lg:grid-cols-2">
+    <div 
+      className="min-h-[100dvh] h-screen grid lg:grid-cols-2"
+      style={{
+        minHeight: '100dvh',
+        height: '100dvh',
+      }}
+    >
       <div className="relative hidden lg:flex flex-col justify-between bg-background p-12 text-foreground">
         <div className="relative z-20">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold font-mono">
@@ -520,22 +526,30 @@ function LoginPage() {
         <div className="absolute bottom-1/4 left-1/4 size-96 bg-foreground/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground min-h-[100dvh] h-screen">
+      <div 
+        className={`flex items-center justify-center p-8 min-h-[100dvh] h-screen lg:bg-gradient-to-br lg:from-primary/90 lg:via-primary lg:to-primary/80 lg:text-primary-foreground ${isDarkMode ? 'bg-background text-foreground' : 'bg-background text-foreground'}`}
+        style={{
+          paddingTop: `max(2rem, env(safe-area-inset-top))`,
+          paddingBottom: `max(2rem, env(safe-area-inset-bottom))`,
+          paddingLeft: `max(2rem, env(safe-area-inset-left))`,
+          paddingRight: `max(2rem, env(safe-area-inset-right))`,
+        }}
+      >
         <div className="w-full max-w-[420px]">
           <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12 font-mono">
             <Link href="/" className="flex items-center gap-2">
-              <Logo variant="full" color={isDarkMode ? "black" : "white"} className="h-8 w-auto" />
+              <Logo variant="full" color="orange" className="h-8 w-auto" />
             </Link>
           </div>
 
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono text-primary-foreground">Welcome back!</h1>
-            <p className="text-primary-foreground/80 text-sm font-mono">Please enter your details</p>
+            <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono text-foreground lg:text-primary-foreground">Welcome back!</h1>
+            <p className="text-foreground/80 lg:text-primary-foreground/80 text-sm font-mono">Please enter your details</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium font-mono text-primary-foreground">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium font-mono text-foreground lg:text-primary-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -552,7 +566,7 @@ function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium font-mono text-primary-foreground">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium font-mono text-foreground lg:text-primary-foreground">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -567,7 +581,7 @@ function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/70 hover:text-foreground lg:text-primary-foreground/70 lg:hover:text-primary-foreground transition-colors"
                   disabled={isLoading}
                 >
                   {showPassword ? (
@@ -586,17 +600,18 @@ function LoginPage() {
                   checked={rememberMe}
                   onCheckedChange={(checked) => setRememberMe(checked === true)}
                   disabled={isLoading}
+                  className="border-primary dark:border-primary data-[state=checked]:bg-primary dark:data-[state=checked]:bg-primary data-[state=checked]:border-primary dark:data-[state=checked]:border-primary data-[state=checked]:text-white dark:data-[state=checked]:text-white focus-visible:border-primary dark:focus-visible:border-primary"
                 />
                 <Label
                   htmlFor="remember"
-                  className="text-sm font-normal cursor-pointer text-black dark:text-black"
+                  className="text-sm font-normal cursor-pointer text-primary"
                 >
                   Remember for 30 days
                 </Label>
               </div>
               <Link
                 href="#"
-                className="text-sm text-black dark:text-black hover:underline font-medium"
+                className="text-sm text-foreground hover:underline font-medium"
               >
                 Forgot password?
               </Link>
@@ -610,7 +625,7 @@ function LoginPage() {
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium font-mono bg-black dark:bg-primary-foreground text-primary hover:bg-black/90 dark:hover:bg-primary-foreground/90" 
+              className="w-full h-12 text-base font-medium font-mono bg-primary text-primary-foreground hover:bg-primary/90" 
               size="lg" 
               disabled={isLoading}
             >
@@ -621,7 +636,7 @@ function LoginPage() {
           <div className="mt-6">
             <Button 
               variant="outline" 
-              className="w-full h-12 bg-white/90 dark:bg-background hover:bg-white dark:hover:bg-background/90 border-white/30 dark:border-primary-foreground/20 text-black dark:text-primary-foreground font-mono"
+              className="w-full h-12 bg-white/90 dark:bg-background hover:bg-white dark:hover:bg-background/90 border-black dark:border-primary-foreground/20 text-black dark:text-primary-foreground font-mono"
               type="button"
               onClick={handleGoogleSignIn}
               disabled={isLoading}
@@ -631,9 +646,9 @@ function LoginPage() {
             </Button>
           </div>
 
-          <div className="text-center text-sm text-primary-foreground/80 mt-8 font-mono">
+          <div className="text-center text-sm text-foreground/80 lg:text-primary-foreground/80 mt-8 font-mono">
             Don't have an account?{" "}
-            <Link href="/signup" className="text-black dark:text-black font-medium hover:underline">
+            <Link href="/signup" className="text-primary font-medium hover:underline">
               Sign Up
             </Link>
           </div>
