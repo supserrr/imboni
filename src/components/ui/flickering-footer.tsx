@@ -8,7 +8,6 @@ import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { Logo } from "@/components/Logo";
-import { useTheme } from "@/contexts/ThemeProvider";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -404,9 +403,6 @@ const footerLinks = [
  */
 export const FlickeringFooter = () => {
   const tablet = useMediaQuery("(max-width: 1024px)");
-  const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(false);
   const [currentYear, setCurrentYear] = useState(2025);
   const footerRef = useRef(null);
   const isFooterInView = useInView(footerRef, { once: true, amount: 0.1 });
@@ -421,33 +417,12 @@ export const FlickeringFooter = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Determine logo path based on theme
+  // Set current year on mount
   useEffect(() => {
-    setMounted(true);
     setCurrentYear(new Date().getFullYear());
-    const checkDarkTheme = () => {
-      if (theme === "system") {
-        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-        setIsDark(mediaQuery.matches);
-      } else {
-        setIsDark(theme === "dark");
-      }
-    };
-    checkDarkTheme();
+  }, []);
 
-    if (theme === "system") {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const handleChange = () => setIsDark(mediaQuery.matches);
-      mediaQuery.addEventListener("change", handleChange);
-      return () => mediaQuery.removeEventListener("change", handleChange);
-    }
-  }, [theme]);
-
-  const logoPath = mounted
-    ? isDark
-      ? "/logos/imboni-logo-full-white.png"
-      : "/logos/imboni-logo-full-black.png"
-    : "/logos/imboni-logo-full-black.png";
+  const logoPath = "/logos/imboni-logo-full-orange.png";
 
   return (
     <footer id="footer" className="w-full pb-0" ref={footerRef}>
@@ -544,7 +519,7 @@ export const FlickeringFooter = () => {
             className="h-full w-full"
             squareSize={2}
             gridGap={tablet ? 2 : 3}
-            color="#6B7280"
+            color="#ff5925"
             maxOpacity={0.3}
             flickerChance={0.1}
           />
