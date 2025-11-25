@@ -1,10 +1,9 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  // Get base URL from environment variable or use a default
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 
-                  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 
-                  'https://imboni.app' // Update with your actual domain
+  // Get base URL from environment variable or use production domain
+  // Always use imboni.app for production sitemap
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://imboni.app'
 
   // Define all public routes that should be indexed
   const routes = [
