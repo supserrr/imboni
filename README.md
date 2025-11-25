@@ -21,7 +21,6 @@
 - [Configuration](#configuration)
 - [Development](#development)
 - [Deployment](#deployment)
-- [Accessibility](#accessibility)
 - [Contributing](#contributing)
 - [License](#license)
 - [Author](#author)
@@ -646,17 +645,6 @@ Ensure all required environment variables are set in your Vercel project setting
 - Development
 
 See the [deployment checklist](./docs/deployment/deployment-checklist.md) for a complete guide.
-
-## ♿ Accessibility
-
-This application is designed with accessibility as a core principle:
-
-- **WCAG 2.1 AA Compliance** - Meets international accessibility standards
-- **Screen Reader Support** - Comprehensive ARIA labels and live regions
-- **Keyboard Navigation** - All functionality accessible via keyboard
-- **High Contrast** - Respects system accessibility preferences
-- **Reduced Motion** - Honors user motion preferences
-- **Semantic HTML** - Proper HTML structure for assistive technologies
 
 ## 🤝 Contributing
 
