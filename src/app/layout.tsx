@@ -19,7 +19,10 @@ export const metadata: Metadata = {
   title: "Imboni - AI Vision Assistant",
   description: "An AI assistant designed to help blind and low vision users understand their surroundings with real-time visual descriptions",
   icons: {
-    icon: "/favicon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.png", type: "image/png", sizes: "32x32" },
+    ],
     apple: "/favicon.png",
   },
 };
