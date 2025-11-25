@@ -18,14 +18,17 @@ CREATE INDEX IF NOT EXISTS idx_analysis_history_created_at ON analysis_history(c
 ALTER TABLE analysis_history ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can only see their own history
+-- Using subquery pattern (select auth.uid()) to prevent re-evaluation for each row
+-- See: https://supabase.com/docs/guides/database/postgres/row-level-security#call-functions-with-select
 CREATE POLICY "Users can view their own analysis history"
   ON analysis_history
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id);
 
 -- Policy: Users can insert their own history
+-- Using subquery pattern (select auth.uid()) to prevent re-evaluation for each row
 CREATE POLICY "Users can insert their own analysis history"
   ON analysis_history
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK ((select auth.uid()) = user_id);
 
