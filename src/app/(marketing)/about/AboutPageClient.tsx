@@ -312,7 +312,10 @@ export function AboutPageClient() {
         </section>
       </main>
 
-      <FlickeringFooter />
+      <FlickeringFooter 
+        initialDelay={1400}
+        animationDuration={0.3}
+      />
     </div>
   )
 }

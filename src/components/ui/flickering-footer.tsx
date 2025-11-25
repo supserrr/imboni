@@ -402,21 +402,32 @@ const footerLinks = [
  * Flickering Footer component with animated grid background
  * Adapted for Imboni - AI Vision Assistant
  */
-export const FlickeringFooter = () => {
+export const FlickeringFooter = ({ 
+  initialDelay = 5600,
+  animationDuration = 0.6,
+  forceAnimate = false
+}: { 
+  initialDelay?: number;
+  animationDuration?: number;
+  forceAnimate?: boolean;
+} = {}) => {
   const tablet = useMediaQuery("(max-width: 1024px)");
   const [currentYear, setCurrentYear] = useState(2025);
   const footerRef = useRef(null);
   const isFooterInView = useInView(footerRef, { once: true, amount: 0.1 });
   const [canAnimateFooter, setCanAnimateFooter] = useState(false);
 
-  // Wait for support section to finish animating before allowing footer to animate
-  // Support section: 4.5s (canAnimateSupport) + 0.4s (button delay) + 0.6s (duration) = 5.5s
+  // Wait for content animations to finish before allowing footer to animate
   useEffect(() => {
+    if (forceAnimate) {
+      setCanAnimateFooter(true);
+      return;
+    }
     const timer = setTimeout(() => {
       setCanAnimateFooter(true);
-    }, 5600); // Slightly after support section completes
+    }, initialDelay);
     return () => clearTimeout(timer);
-  }, []);
+  }, [initialDelay, forceAnimate]);
 
   // Set current year on mount
   useEffect(() => {
@@ -430,9 +441,9 @@ export const FlickeringFooter = () => {
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
-          animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          animate={(isFooterInView || forceAnimate) && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
           transition={{
-            duration: 0.6,
+            duration: animationDuration,
             type: "spring",
             stiffness: 100,
             damping: 10,
@@ -442,10 +453,10 @@ export const FlickeringFooter = () => {
         <div className="flex flex-col items-start justify-start gap-y-5 max-w-xs mx-0 pl-4 md:pl-0">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            animate={(isFooterInView || forceAnimate) && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{
-              delay: 0.2,
-              duration: 0.6,
+              delay: animationDuration * 0.3,
+              duration: animationDuration,
             }}
           >
           <Link href="/" className="flex items-center gap-2">
@@ -454,10 +465,10 @@ export const FlickeringFooter = () => {
           </motion.div>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
-            animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            animate={(isFooterInView || forceAnimate) && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{
-              delay: 0.3,
-              duration: 0.6,
+              delay: animationDuration * 0.5,
+              duration: animationDuration,
             }}
             className="tracking-tight text-muted-foreground font-mono text-sm"
           >
@@ -465,10 +476,10 @@ export const FlickeringFooter = () => {
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            animate={(isFooterInView || forceAnimate) && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
             transition={{
-              delay: 0.4,
-              duration: 0.6,
+              delay: animationDuration * 0.7,
+              duration: animationDuration,
             }}
             className="flex items-center gap-2 hidden md:flex"
           >
@@ -479,10 +490,10 @@ export const FlickeringFooter = () => {
         </div>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+          animate={(isFooterInView || forceAnimate) && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{
-            delay: 0.5,
-            duration: 0.6,
+            delay: animationDuration * 0.8,
+            duration: animationDuration,
           }}
           className="pt-5 md:ml-auto"
         >
@@ -491,10 +502,10 @@ export const FlickeringFooter = () => {
               <motion.li
                 key={link.id}
                 initial={{ opacity: 0, y: 20 }}
-                animate={isFooterInView && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                animate={(isFooterInView || forceAnimate) && canAnimateFooter ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 transition={{
-                  delay: 0.5 + index * 0.1,
-                  duration: 0.6,
+                  delay: animationDuration * 0.8 + index * (animationDuration * 0.15),
+                  duration: animationDuration,
                   type: "spring",
                   stiffness: 100,
                   damping: 10,

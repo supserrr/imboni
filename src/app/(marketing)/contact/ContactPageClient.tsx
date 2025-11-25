@@ -4,10 +4,15 @@ import * as React from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowRight, Menu } from "@/components/ui/animated-icons"
+import { Mail, Phone, MapPin } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/Logo"
 import { FlickeringFooter } from "@/components/ui/flickering-footer"
+import { ContactCard } from "@/components/ui/contact-card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 
 const navigationItems = [
   { title: "HOME", href: "/" },
@@ -21,9 +26,24 @@ const navigationItems = [
  */
 export function ContactPageClient() {
   const [mounted, setMounted] = React.useState(false)
+  const [showFooter, setShowFooter] = React.useState(false)
 
   React.useEffect(() => {
     setMounted(true)
+  }, [])
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      // Show footer when user scrolls down more than 100px
+      const scrollY = window.scrollY || window.pageYOffset
+      setShowFooter(scrollY > 100)
+    }
+
+    // Check initial scroll position
+    handleScroll()
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   return (
@@ -103,62 +123,82 @@ export function ContactPageClient() {
         </div>
       </header>
       
-      <main className="flex-1">
-        <div className="container mx-auto px-4 py-12 md:py-16">
+      <main 
+        className="flex-1 flex items-center justify-center min-h-[calc(100vh-8rem)]"
+      >
+        <div className="container mx-auto px-4 w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="max-w-4xl mx-auto"
+            className="max-w-5xl mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-mono font-bold mb-8">
-              Contact Us
-            </h1>
-
-            <div className="space-y-8 font-mono text-sm md:text-base leading-relaxed">
-              <section>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.6 }}
-                  className="border p-8 md:p-12 text-center"
-                >
-                  <p className="text-2xl md:text-4xl font-mono text-foreground mb-8">
-                    We're here for you. Reach out with any questions or support you need. Our team is ready to help you every step of the way.
-                  </p>
-                  <div className="mt-8">
-                    <p className="text-muted-foreground mb-4">
-                      For support, questions, or feedback, please use the support channels available in the application.
-                    </p>
-                    <p className="text-muted-foreground">
-                      This platform was created by Shima Serein for summative assessment purposes.
-                    </p>
-                  </div>
-                </motion.div>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-bold mb-4">Get Support</h2>
-                <p className="mb-4">
-                  If you need assistance with Imboni, have questions about features, or want to provide feedback, we're here to help.
-                </p>
-                <p className="mb-4">
-                  Support is available through the application's built-in support channels. Our team is committed to ensuring you have the best possible experience with Imboni.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-bold mb-4">Feedback</h2>
-                <p className="mb-4">
-                  Your feedback helps us improve Imboni. If you have suggestions, feature requests, or encounter any issues, please don't hesitate to reach out.
-                </p>
-              </section>
-            </div>
+            <ContactCard
+              title="Get in touch"
+              description="If you have any questions regarding our Services or need help, please fill out the form here. We do our best to respond within 1 business day."
+              contactInfo={[
+                {
+                  icon: Mail,
+                  label: 'Email',
+                  value: 'contact@imboni.app',
+                },
+                {
+                  icon: Phone,
+                  label: 'Phone',
+                  value: '+1 (555) 123-4567',
+                },
+                {
+                  icon: MapPin,
+                  label: 'Address',
+                  value: 'Available Worldwide',
+                  className: 'col-span-2',
+                }
+              ]}
+            >
+              <form action="" className="w-full space-y-4">
+                <div className="flex flex-col gap-2">
+                  <Label>Name</Label>
+                  <Input type="text" placeholder="Your name" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Email</Label>
+                  <Input type="email" placeholder="your.email@example.com" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Phone</Label>
+                  <Input type="tel" placeholder="+1 (555) 123-4567" />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label>Message</Label>
+                  <Textarea placeholder="Your message here..." rows={4} />
+                </div>
+                <Button className="w-full" type="submit">
+                  Submit
+                </Button>
+              </form>
+            </ContactCard>
           </motion.div>
         </div>
       </main>
 
-      <FlickeringFooter />
+      <motion.div
+        initial={false}
+        animate={{
+          opacity: showFooter ? 1 : 0,
+          y: showFooter ? 0 : 20,
+          pointerEvents: showFooter ? 'auto' : 'none',
+        }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        style={{ 
+          visibility: showFooter ? 'visible' : 'hidden',
+        }}
+      >
+        <FlickeringFooter 
+          initialDelay={0}
+          animationDuration={0.3}
+          forceAnimate={showFooter}
+        />
+      </motion.div>
     </div>
   )
 }
