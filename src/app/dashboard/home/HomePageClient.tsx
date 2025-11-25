@@ -44,6 +44,7 @@ export function HomePageClient() {
   const audioContextRef = useRef<AudioContext | null>(null)
   const recognitionRestartTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const lastSpeechEndTimeRef = useRef<number>(0)
+  const pendingVoiceModeRef = useRef<boolean>(false)
 
   useEffect(() => {
     checkPermission()
@@ -155,34 +156,74 @@ export function HomePageClient() {
             if (timeSinceSpeechEnd >= 2500) {
               // Don't check isAnsweringQuestionRef here - allow recognition to restart
               // The flag will prevent processing if a question is already being handled
-              try {
-                console.log("[isSpeaking] AI finished speaking, restarting recognition after delay")
-                recognitionRef.current.start()
-                setIsListening(true)
-              } catch (err: any) {
-                // If already started, that's fine
-                if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
-                  console.log("[isSpeaking] Recognition already active")
-                  setIsListening(true)
-                } else {
-                  console.error("[isSpeaking] Error restarting recognition:", err)
+              // Check microphone permission before restarting
+              checkMicrophonePermission().then(hasMicPermission => {
+                if (!hasMicPermission) {
+                  console.log("[isSpeaking] Microphone permission not granted, exiting voice mode")
+                  setInputMode("none")
+                  inputModeRef.current = "none"
+                  setIsListening(false)
+                  setError("Microphone permission is required for voice mode")
+                  setShowPermissionPrompt(true)
+                  return
                 }
-              }
+                
+                try {
+                  console.log("[isSpeaking] AI finished speaking, restarting recognition after delay")
+                  recognitionRef.current.start()
+                  setIsListening(true)
+                } catch (err: any) {
+                  // Handle permission errors
+                  if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
+                    console.log("[isSpeaking] Microphone permission denied during restart")
+                    setInputMode("none")
+                    inputModeRef.current = "none"
+                    setIsListening(false)
+                    setError("Microphone permission is required for voice mode")
+                    setShowPermissionPrompt(true)
+                  } else if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+                    console.log("[isSpeaking] Recognition already active")
+                    setIsListening(true)
+                  } else {
+                    console.error("[isSpeaking] Error restarting recognition:", err)
+                  }
+                }
+              })
             } else {
               console.log("[isSpeaking] Too soon after speech ended, waiting more...")
               // Reschedule if too soon
               const remainingTime = 2500 - timeSinceSpeechEnd
               recognitionRestartTimeoutRef.current = setTimeout(() => {
                 if (inputModeRef.current === "voice" && recognitionRef.current) {
-                  try {
-                    console.log("[isSpeaking] Restarting recognition after additional wait")
-                    recognitionRef.current.start()
-                    setIsListening(true)
-                  } catch (err: any) {
-                    if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
-                      setIsListening(true)
+                  // Check microphone permission before restarting
+                  checkMicrophonePermission().then(hasMicPermission => {
+                    if (!hasMicPermission) {
+                      console.log("[isSpeaking] Microphone permission not granted, exiting voice mode")
+                      setInputMode("none")
+                      inputModeRef.current = "none"
+                      setIsListening(false)
+                      setError("Microphone permission is required for voice mode")
+                      setShowPermissionPrompt(true)
+                      return
                     }
-                  }
+                    
+                    try {
+                      console.log("[isSpeaking] Restarting recognition after additional wait")
+                      recognitionRef.current.start()
+                      setIsListening(true)
+                    } catch (err: any) {
+                      if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
+                        console.log("[isSpeaking] Microphone permission denied during restart")
+                        setInputMode("none")
+                        inputModeRef.current = "none"
+                        setIsListening(false)
+                        setError("Microphone permission is required for voice mode")
+                        setShowPermissionPrompt(true)
+                      } else if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+                        setIsListening(true)
+                      }
+                    }
+                  })
                 }
                 recognitionRestartTimeoutRef.current = null
               }, remainingTime)
@@ -365,15 +406,33 @@ export function HomePageClient() {
       setError("Camera is not ready. Please ensure camera permissions are granted and try again.")
       // Try to restart listening if in voice mode
       if (inputModeRef.current === "voice" && recognitionRef.current) {
-        setTimeout(() => {
+        setTimeout(async () => {
+          // Check microphone permission before restarting
+          const hasMicPermission = await checkMicrophonePermission()
+          if (!hasMicPermission) {
+            console.log("[handleQuestion] Microphone permission not granted, exiting voice mode")
+            setInputMode("none")
+            inputModeRef.current = "none"
+            setIsListening(false)
+            setError("Microphone permission is required for voice mode")
+            setShowPermissionPrompt(true)
+            return
+          }
+          
           try {
             if (recognitionRef.current) {
               recognitionRef.current.start()
               setIsListening(true)
             }
           } catch (err: any) {
-            // If already started, that's fine
-            if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+            if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
+              console.log("[handleQuestion] Microphone permission denied during restart")
+              setInputMode("none")
+              inputModeRef.current = "none"
+              setIsListening(false)
+              setError("Microphone permission is required for voice mode")
+              setShowPermissionPrompt(true)
+            } else if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
               console.log("[handleQuestion] Recognition already active, setting listening state")
               setIsListening(true)
             } else {
@@ -448,14 +507,33 @@ export function HomePageClient() {
         console.log("[handleQuestion] Auto-narrate disabled, skipping speech")
         // If not speaking, restart recognition immediately
         if (inputModeRef.current === "voice" && recognitionRef.current) {
-          setTimeout(() => {
+          setTimeout(async () => {
+            // Check microphone permission before restarting
+            const hasMicPermission = await checkMicrophonePermission()
+            if (!hasMicPermission) {
+              console.log("[handleQuestion] Microphone permission not granted, exiting voice mode")
+              setInputMode("none")
+              inputModeRef.current = "none"
+              setIsListening(false)
+              setError("Microphone permission is required for voice mode")
+              setShowPermissionPrompt(true)
+              return
+            }
+            
             try {
               if (recognitionRef.current && !isAnsweringQuestionRef.current) {
                 recognitionRef.current.start()
                 setIsListening(true)
               }
             } catch (err: any) {
-              if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
+              if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
+                console.log("[handleQuestion] Microphone permission denied during restart")
+                setInputMode("none")
+                inputModeRef.current = "none"
+                setIsListening(false)
+                setError("Microphone permission is required for voice mode")
+                setShowPermissionPrompt(true)
+              } else if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
                 setIsListening(true)
               }
             }
@@ -641,6 +719,11 @@ export function HomePageClient() {
           // Only show critical errors to user
           if (errorType === "not-allowed") {
             setError("Microphone permission denied")
+            // Exit voice mode if permission is denied
+            setInputMode("none")
+            inputModeRef.current = "none"
+            setIsListening(false)
+            setShowPermissionPrompt(true)
           } else if (errorType === "service-not-allowed") {
             setError("Speech recognition service not available")
           }
@@ -650,15 +733,37 @@ export function HomePageClient() {
           // Auto-restart if still in voice mode (continuous listening)
           // This enables natural conversation flow - user can speak anytime
           // But don't restart if we're currently answering a question
-          setTimeout(() => {
+          setTimeout(async () => {
             if (inputModeRef.current === "voice" && recognitionRef.current && !isAnsweringQuestionRef.current) {
+              // Check microphone permission before restarting
+              const hasMicPermission = await checkMicrophonePermission()
+              if (!hasMicPermission) {
+                console.log("[onend] Microphone permission not granted, exiting voice mode")
+                setInputMode("none")
+                inputModeRef.current = "none"
+                setIsListening(false)
+                setError("Microphone permission is required for voice mode")
+                setShowPermissionPrompt(true)
+                return
+              }
+              
               try {
                 recognitionRef.current.start()
                 setIsListening(true)
-              } catch (err) {
-                // Ignore restart errors (might already be starting)
-                // This is normal - recognition might already be active
-                setIsListening(false)
+              } catch (err: any) {
+                // Handle permission errors
+                if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
+                  console.log("[onend] Microphone permission denied during restart")
+                  setInputMode("none")
+                  inputModeRef.current = "none"
+                  setIsListening(false)
+                  setError("Microphone permission is required for voice mode")
+                  setShowPermissionPrompt(true)
+                } else {
+                  // Ignore other restart errors (might already be starting)
+                  // This is normal - recognition might already be active
+                  setIsListening(false)
+                }
               }
             } else {
               setIsListening(false)
@@ -679,7 +784,9 @@ export function HomePageClient() {
       // Check both permissionStatus and localStorage for granted status
       // This ensures it works even if permissionStatus hasn't updated yet after refresh
       const storedPermission = localStorage.getItem("camera-permission-status")
-      const isGranted = permissionStatus === "granted" || storedPermission === "granted"
+      const storedMicPermission = localStorage.getItem("microphone-permission-status")
+      const isGranted = (permissionStatus === "granted" || storedPermission === "granted") && 
+                       (storedMicPermission === "granted")
       
       if (isGranted && !isStreaming && !streamRef.current) {
         console.log("[startCameraAuto] Permission granted (from state or localStorage), starting camera automatically")
@@ -757,19 +864,25 @@ export function HomePageClient() {
       // Check both permissionStatus and localStorage for granted status
       // This ensures it works even if permissionStatus hasn't updated yet after refresh
       const storedPermission = localStorage.getItem("camera-permission-status")
-      const isGranted = permissionStatus === "granted" || storedPermission === "granted"
+      const storedMicPermission = localStorage.getItem("microphone-permission-status")
+      const isGranted = (permissionStatus === "granted" || storedPermission === "granted") && 
+                       (storedMicPermission === "granted")
       
       if (!isGranted) {
         console.log("[startCamera] Permission not granted, checking permission status...")
         // Re-check permission status before showing prompt
-        const currentPermission = await navigator.permissions.query({ name: 'camera' as PermissionName }).catch(() => null)
-        if (currentPermission?.state === 'granted') {
-          console.log("[startCamera] Permission actually granted, proceeding...")
+        const [currentCameraPermission, currentMicPermission] = await Promise.all([
+          navigator.permissions.query({ name: 'camera' as PermissionName }).catch(() => null),
+          navigator.permissions.query({ name: 'microphone' as PermissionName }).catch(() => null),
+        ])
+        if (currentCameraPermission?.state === 'granted' && currentMicPermission?.state === 'granted') {
+          console.log("[startCamera] Permissions actually granted, proceeding...")
           // Update localStorage to persist this
           localStorage.setItem("camera-permission-status", "granted")
-          // Permission is granted, continue
+          localStorage.setItem("microphone-permission-status", "granted")
+          // Permissions are granted, continue
         } else {
-          console.log("[startCamera] Permission not granted, showing prompt")
+          console.log("[startCamera] Permissions not granted, showing prompt")
           setShowPermissionPrompt(true)
           return
         }
@@ -880,7 +993,7 @@ export function HomePageClient() {
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: videoConstraints,
-        audio: false,
+        audio: true,
       })
 
       console.log("[startCamera] Stream obtained:", !!stream)
@@ -956,20 +1069,54 @@ export function HomePageClient() {
       // Check if stream is actually active (more reliable than state)
       const hasActiveStream = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
       if (hasActiveStream || isStreaming) {
-        setShowModeSelection(true)
+        // If user was trying to enable voice mode, do it now
+        if (pendingVoiceModeRef.current) {
+          pendingVoiceModeRef.current = false
+          // Enable voice mode automatically
+          setInputMode("voice")
+          inputModeRef.current = "voice"
+          setShowModeSelection(false)
+          startContinuousAnalysis()
+          setTimeout(() => {
+            console.log("[handleRequestPermission] Starting voice recognition after permission granted...")
+            startListening()
+          }, 100)
+        } else {
+          setShowModeSelection(true)
+        }
       }
     } else {
+      pendingVoiceModeRef.current = false // Reset on denial
       await checkPermission()
     }
   }
 
-  const startListening = () => {
+  const startListening = async () => {
+    // Check microphone permission before starting
+    const hasMicPermission = await checkMicrophonePermission()
+    if (!hasMicPermission) {
+      console.log("[startListening] Microphone permission not granted")
+      setError("Microphone permission is required for voice mode")
+      setShowPermissionPrompt(true)
+      // Exit voice mode if permission is denied
+      setInputMode("none")
+      inputModeRef.current = "none"
+      return
+    }
+    
     if (recognitionRef.current && !isListening) {
       try {
         recognitionRef.current.start()
         playListeningSound() // Play sound when listening starts
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error starting speech recognition:", err)
+        // If error is due to permission, show prompt
+        if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
+          setError("Microphone permission is required for voice mode")
+          setShowPermissionPrompt(true)
+          setInputMode("none")
+          inputModeRef.current = "none"
+        }
       }
     }
   }
@@ -1201,8 +1348,62 @@ export function HomePageClient() {
     stopListening()
   }
 
+  const checkMicrophonePermission = async (): Promise<boolean> => {
+    try {
+      // Check if browser supports permissions API
+      if (navigator.permissions && navigator.permissions.query) {
+        const micPermission = await navigator.permissions.query({ name: "microphone" as PermissionName })
+        if (micPermission.state === "granted") {
+          return true
+        } else if (micPermission.state === "denied") {
+          return false
+        }
+      }
+      
+      // Fallback: check localStorage
+      const storedMicPermission = localStorage.getItem("microphone-permission-status")
+      if (storedMicPermission === "granted") {
+        return true
+      } else if (storedMicPermission === "denied") {
+        return false
+      }
+      
+      // If no stored status, check by attempting to access microphone
+      // This will trigger the permission prompt
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach(track => track.stop())
+        localStorage.setItem("microphone-permission-status", "granted")
+        return true
+      } catch (error: any) {
+        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+          localStorage.setItem("microphone-permission-status", "denied")
+          return false
+        }
+        // Other errors might be temporary, allow to proceed
+        return true
+      }
+    } catch (error) {
+      console.error("Error checking microphone permission:", error)
+      return false
+    }
+  }
+
   const handleSelectVoiceMode = async () => {
     console.log("[handleSelectVoiceMode] Called, isStreaming:", isStreaming)
+    
+    // Check microphone permission first
+    const hasMicPermission = await checkMicrophonePermission()
+    if (!hasMicPermission) {
+      console.log("[handleSelectVoiceMode] Microphone permission not granted, showing prompt")
+      pendingVoiceModeRef.current = true // Track that user wants to use voice mode
+      setError("Microphone permission is required for voice mode")
+      setShowPermissionPrompt(true)
+      return
+    }
+    
+    pendingVoiceModeRef.current = false // Reset since permission is granted
+    
     playVoiceModeSound() // Play sound when voice mode is selected
     if (!isStreaming) {
       console.log("[handleSelectVoiceMode] Camera not streaming, starting camera...")
