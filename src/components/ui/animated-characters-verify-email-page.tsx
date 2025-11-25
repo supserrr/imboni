@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Mail, CheckCircle2 } from "@/components/ui/animated-icons";
+import { PlusIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -520,14 +521,18 @@ function VerifyEmailContent() {
           paddingRight: `max(2rem, env(safe-area-inset-right))`,
         }}
       >
-        <div className="w-full max-w-[420px]">
+        <div className="w-full max-w-[420px] flex flex-col">
           <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12 font-mono">
             <Link href="/" className="flex items-center gap-2">
               <Logo variant="full" color="orange" className="h-8 w-auto" />
             </Link>
           </div>
 
-          <div className="bg-white/95 dark:bg-card border border-white/40 dark:border-primary-foreground/20 dark:border-border p-8 rounded-none">
+          <div className="relative lg:bg-white/95 lg:dark:bg-card border border-foreground/20 lg:border-white/40 lg:dark:border-primary-foreground/20 lg:dark:border-border p-6 lg:p-8 rounded-none flex-shrink-0">
+            <PlusIcon className="absolute -top-3 -left-3 h-6 w-6 text-primary lg:hidden" />
+            <PlusIcon className="absolute -top-3 -right-3 h-6 w-6 text-primary lg:hidden" />
+            <PlusIcon className="absolute -bottom-3 -left-3 h-6 w-6 text-primary lg:hidden" />
+            <PlusIcon className="absolute -right-3 -bottom-3 h-6 w-6 text-primary lg:hidden" />
             <div className="text-center mb-10">
               <div className="flex justify-center mb-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -536,7 +541,7 @@ function VerifyEmailContent() {
               </div>
               <h1 className="text-3xl font-bold tracking-tight mb-2 font-mono text-black dark:text-primary-foreground">Verify your email</h1>
               <p className="text-black/80 dark:text-primary-foreground/80 text-sm font-mono">
-                We've sent a verification link to your email address. We're here to help you get started on your journey.
+                We've sent a verification link to your email address.
               </p>
             </div>
 
