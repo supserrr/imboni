@@ -192,10 +192,34 @@ function VerifyEmailContent() {
       try {
         const supabase = createClient();
         if (supabase) {
-          supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
+          supabase.auth.getSession().then(({ data: { session }, error }) => {
+            // Handle refresh token errors gracefully
+            if (error) {
+              if (
+                error.message?.includes("Refresh Token Not Found") ||
+                error.message?.includes("Invalid Refresh Token") ||
+                error.message?.includes("refresh_token_not_found")
+              ) {
+                // Silently handle invalid token - user will need to sign in again
+                return;
+              }
+              console.error("Failed to get session:", error);
+              return;
+            }
             if (session?.user?.email) {
               setEmail(session.user.email);
             }
+          }).catch((error) => {
+            // Handle any unexpected errors
+            if (
+              error?.message?.includes("Refresh Token Not Found") ||
+              error?.message?.includes("Invalid Refresh Token") ||
+              error?.message?.includes("refresh_token_not_found")
+            ) {
+              // Silently handle invalid token
+              return;
+            }
+            console.error("Failed to get session:", error);
           });
         }
       } catch (error) {

@@ -62,9 +62,56 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const {
+      data: { user: authUser },
+      error,
+    } = await supabase.auth.getUser()
+    
+    // Handle refresh token errors
+    if (error) {
+      if (
+        error.message?.includes("Refresh Token Not Found") ||
+        error.message?.includes("Invalid Refresh Token") ||
+        error.message?.includes("refresh_token_not_found") ||
+        error.status === 401
+      ) {
+        // Clear invalid session by removing auth cookies
+        const authCookies = request.cookies.getAll().filter(
+          (cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth")
+        )
+        authCookies.forEach((cookie) => {
+          supabaseResponse.cookies.delete(cookie.name)
+        })
+        // Continue without user
+        user = null
+      } else {
+        // For other errors, log but continue
+        console.error("Auth error in middleware:", error)
+      }
+    } else {
+      user = authUser
+    }
+  } catch (error: any) {
+    // Handle any unexpected errors
+    if (
+      error?.message?.includes("Refresh Token Not Found") ||
+      error?.message?.includes("Invalid Refresh Token") ||
+      error?.message?.includes("refresh_token_not_found")
+    ) {
+      // Clear invalid session
+      const authCookies = request.cookies.getAll().filter(
+        (cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth")
+      )
+      authCookies.forEach((cookie) => {
+        supabaseResponse.cookies.delete(cookie.name)
+      })
+    } else {
+      console.error("Unexpected auth error in middleware:", error)
+    }
+    user = null
+  }
 
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup") ||

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   description: "An AI assistant designed to help blind and low vision users understand their surroundings with real-time visual descriptions",
   icons: {
     icon: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 

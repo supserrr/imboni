@@ -38,7 +38,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const {
           data: { session },
+          error,
         } = await supabase.auth.getSession()
+        
+        // Handle refresh token errors
+        if (error) {
+          // Check if it's a refresh token error
+          if (
+            error.message?.includes("Refresh Token Not Found") ||
+            error.message?.includes("Invalid Refresh Token") ||
+            error.message?.includes("refresh_token_not_found") ||
+            error.status === 401
+          ) {
+            // Clear invalid session
+            console.warn("Invalid refresh token detected, clearing session")
+            await supabase.auth.signOut()
+            setSession(null)
+            setUser(null)
+            setIsLoading(false)
+            return
+          }
+          // For other errors, log and continue
+          console.error("Auth session error:", error)
+        }
+        
         setSession(session)
         setUser(session?.user ?? null)
 
@@ -49,8 +72,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error("Failed to initialize notifications:", error)
           }
         }
-      } catch (error) {
-        console.error("Failed to initialize auth:", error)
+      } catch (error: any) {
+        // Handle any unexpected errors
+        if (
+          error?.message?.includes("Refresh Token Not Found") ||
+          error?.message?.includes("Invalid Refresh Token") ||
+          error?.message?.includes("refresh_token_not_found")
+        ) {
+          console.warn("Invalid refresh token detected, clearing session")
+          await supabase.auth.signOut()
+          setSession(null)
+          setUser(null)
+        } else {
+          console.error("Failed to initialize auth:", error)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -61,6 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      // Handle token refresh errors
+      if (event === "TOKEN_REFRESHED" && !session) {
+        // Token refresh failed, clear session
+        console.warn("Token refresh failed, clearing session")
+        setSession(null)
+        setUser(null)
+        return
+      }
+      
       setSession(session)
       setUser(session?.user ?? null)
 
