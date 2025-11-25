@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Logo } from "@/components/Logo";
 import Link from "next/link";
+import { useTheme } from "@/contexts/ThemeProvider";
 
 interface PupilProps {
   size?: number;
@@ -190,6 +191,31 @@ function SignupPage() {
   const yellowRef = useRef<HTMLDivElement>(null);
   const orangeRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const { theme } = useTheme();
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Determine if we're in dark mode (handling system theme)
+  useEffect(() => {
+    const checkDarkMode = () => {
+      if (theme === "dark") {
+        setIsDarkMode(true);
+      } else if (theme === "light") {
+        setIsDarkMode(false);
+      } else {
+        // System theme - check media query
+        setIsDarkMode(window.matchMedia("(prefers-color-scheme: dark)").matches);
+      }
+    };
+
+    checkDarkMode();
+
+    if (theme === "system") {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      const handleChange = () => setIsDarkMode(mediaQuery.matches);
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+  }, [theme]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -326,7 +352,7 @@ function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
+    <div className="min-h-[100dvh] h-screen grid lg:grid-cols-2">
       <div className="relative hidden lg:flex flex-col justify-between bg-background p-12 text-foreground">
         <div className="relative z-20">
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold font-mono">
@@ -500,11 +526,11 @@ function SignupPage() {
         <div className="absolute bottom-1/4 left-1/4 size-96 bg-foreground/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground">
+      <div className="flex items-center justify-center p-8 bg-gradient-to-br from-primary/90 via-primary to-primary/80 text-primary-foreground min-h-[100dvh] h-screen">
         <div className="w-full max-w-[420px]">
           <div className="lg:hidden flex items-center justify-center gap-2 text-lg font-semibold mb-12 font-mono">
             <Link href="/" className="flex items-center gap-2">
-              <Logo variant="full" className="h-8 w-auto" />
+              <Logo variant="full" color={isDarkMode ? "black" : "white"} className="h-8 w-auto" />
             </Link>
           </div>
 
