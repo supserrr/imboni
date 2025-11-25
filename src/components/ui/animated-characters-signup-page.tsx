@@ -624,7 +624,7 @@ function SignupPage() {
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium font-mono bg-primary text-primary-foreground hover:bg-primary/90" 
+              className="w-full h-12 text-base font-medium font-mono bg-primary text-primary-foreground hover:bg-primary/90 lg:bg-foreground lg:text-primary lg:hover:bg-foreground/90" 
               size="lg" 
               disabled={isLoading}
             >
@@ -647,7 +647,7 @@ function SignupPage() {
 
           <div className="text-center text-sm text-foreground/80 lg:text-primary-foreground/80 mt-8 font-mono">
             Already have an account?{" "}
-            <Link href="/login" className="text-primary font-medium hover:underline">
+            <Link href="/login" className="text-primary lg:text-foreground font-medium hover:underline">
               Log in
             </Link>
           </div>

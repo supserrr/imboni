@@ -625,7 +625,7 @@ function LoginPage() {
 
             <Button 
               type="submit" 
-              className="w-full h-12 text-base font-medium font-mono bg-primary text-primary-foreground hover:bg-primary/90" 
+              className="w-full h-12 text-base font-medium font-mono bg-primary text-primary-foreground hover:bg-primary/90 lg:bg-foreground lg:text-primary lg:hover:bg-foreground/90" 
               size="lg" 
               disabled={isLoading}
             >
