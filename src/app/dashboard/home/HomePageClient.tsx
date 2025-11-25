@@ -15,6 +15,7 @@ const MOONDREAM_API_URL = process.env.NEXT_PUBLIC_MOONDREAM_API_URL || "https://
 export function HomePageClient() {
   const { permissionStatus, requestPermission, checkPermission } = useCameraPermissions()
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
+  const [permissionType, setPermissionType] = useState<"camera" | "microphone">("camera")
   const [isStreaming, setIsStreaming] = useState(false)
   const [isUsingFrontCamera, setIsUsingFrontCamera] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -164,6 +165,7 @@ export function HomePageClient() {
                   inputModeRef.current = "none"
                   setIsListening(false)
                   setError("Microphone permission is required for voice mode")
+                  setPermissionType("microphone")
                   setShowPermissionPrompt(true)
                   return
                 }
@@ -180,6 +182,7 @@ export function HomePageClient() {
                     inputModeRef.current = "none"
                     setIsListening(false)
                     setError("Microphone permission is required for voice mode")
+                    setPermissionType("microphone")
                     setShowPermissionPrompt(true)
                   } else if (err.name === "InvalidStateError" || err.message?.includes("already started")) {
                     console.log("[isSpeaking] Recognition already active")
@@ -723,6 +726,7 @@ export function HomePageClient() {
             setInputMode("none")
             inputModeRef.current = "none"
             setIsListening(false)
+            setPermissionType("microphone")
             setShowPermissionPrompt(true)
           } else if (errorType === "service-not-allowed") {
             setError("Speech recognition service not available")
@@ -883,6 +887,7 @@ export function HomePageClient() {
           // Permissions are granted, continue
         } else {
           console.log("[startCamera] Permissions not granted, showing prompt")
+          setPermissionType("camera")
           setShowPermissionPrompt(true)
           return
         }
@@ -1060,34 +1065,88 @@ export function HomePageClient() {
   }
 
   const handleRequestPermission = async () => {
-    const granted = await requestPermission()
-    if (granted) {
-      setShowPermissionPrompt(false)
-      await startCamera()
-      // Wait a bit for camera to be ready and state to update
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      // Check if stream is actually active (more reliable than state)
-      const hasActiveStream = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
-      if (hasActiveStream || isStreaming) {
-        // If user was trying to enable voice mode, do it now
-        if (pendingVoiceModeRef.current) {
-          pendingVoiceModeRef.current = false
-          // Enable voice mode automatically
-          setInputMode("voice")
-          inputModeRef.current = "voice"
-          setShowModeSelection(false)
-          startContinuousAnalysis()
-          setTimeout(() => {
-            console.log("[handleRequestPermission] Starting voice recognition after permission granted...")
-            startListening()
-          }, 100)
-        } else {
-          setShowModeSelection(true)
+    let granted = false
+    
+    if (permissionType === "camera") {
+      granted = await requestCameraPermission()
+      if (granted) {
+        // Close camera prompt and check microphone permission
+        setShowPermissionPrompt(false)
+        const hasMicPermission = await checkMicrophonePermission()
+        if (!hasMicPermission) {
+          // Show microphone permission prompt
+          setPermissionType("microphone")
+          setShowPermissionPrompt(true)
+          return
         }
+        // Both permissions granted, proceed
+        await checkPermission()
+        await startCamera()
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        const hasActiveStream = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
+        if (hasActiveStream || isStreaming) {
+          if (pendingVoiceModeRef.current) {
+            pendingVoiceModeRef.current = false
+            setInputMode("voice")
+            inputModeRef.current = "voice"
+            setShowModeSelection(false)
+            startContinuousAnalysis()
+            setTimeout(() => {
+              console.log("[handleRequestPermission] Starting voice recognition after permission granted...")
+              startListening()
+            }, 100)
+          } else {
+            setShowModeSelection(true)
+          }
+        }
+      } else {
+        await checkPermission()
       }
-    } else {
-      pendingVoiceModeRef.current = false // Reset on denial
-      await checkPermission()
+    } else if (permissionType === "microphone") {
+      granted = await requestMicrophonePermission()
+      if (granted) {
+        // Close microphone prompt
+        setShowPermissionPrompt(false)
+        await checkPermission()
+        // If camera is already streaming, show mode selection
+        if (isStreaming) {
+          if (pendingVoiceModeRef.current) {
+            pendingVoiceModeRef.current = false
+            setInputMode("voice")
+            inputModeRef.current = "voice"
+            setShowModeSelection(false)
+            startContinuousAnalysis()
+            setTimeout(() => {
+              console.log("[handleRequestPermission] Starting voice recognition after microphone permission granted...")
+              startListening()
+            }, 100)
+          } else {
+            setShowModeSelection(true)
+          }
+        } else {
+          // Start camera if not already streaming
+          await startCamera()
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          const hasActiveStream = streamRef.current && streamRef.current.getTracks().some(track => track.readyState === 'live')
+          if (hasActiveStream || isStreaming) {
+            if (pendingVoiceModeRef.current) {
+              pendingVoiceModeRef.current = false
+              setInputMode("voice")
+              inputModeRef.current = "voice"
+              setShowModeSelection(false)
+              startContinuousAnalysis()
+              setTimeout(() => {
+                console.log("[handleRequestPermission] Starting voice recognition after permissions granted...")
+                startListening()
+              }, 100)
+            } else {
+              setShowModeSelection(true)
+            }
+          }
+        }
+      } else {
+        await checkPermission()
+      }
     }
   }
 
@@ -1097,6 +1156,7 @@ export function HomePageClient() {
     if (!hasMicPermission) {
       console.log("[startListening] Microphone permission not granted")
       setError("Microphone permission is required for voice mode")
+      setPermissionType("microphone")
       setShowPermissionPrompt(true)
       // Exit voice mode if permission is denied
       setInputMode("none")
@@ -1113,6 +1173,7 @@ export function HomePageClient() {
         // If error is due to permission, show prompt
         if (err.name === "NotAllowedError" || err.message?.includes("permission")) {
           setError("Microphone permission is required for voice mode")
+          setPermissionType("microphone")
           setShowPermissionPrompt(true)
           setInputMode("none")
           inputModeRef.current = "none"
@@ -1308,12 +1369,77 @@ export function HomePageClient() {
     setIsSpeaking(false)
   }
 
+  const checkCameraPermission = async (): Promise<boolean> => {
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const cameraPermission = await navigator.permissions.query({ name: "camera" as PermissionName })
+        if (cameraPermission.state === "granted") {
+          return true
+        }
+      }
+      
+      const stored = localStorage.getItem("camera-permission-status")
+      if (stored === "granted") {
+        // Verify with getUserMedia
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+          stream.getTracks().forEach(track => track.stop())
+          return true
+        } catch {
+          return false
+        }
+      }
+      return false
+    } catch {
+      return false
+    }
+  }
+
+  const requestCameraPermission = async (): Promise<boolean> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      stream.getTracks().forEach(track => track.stop())
+      localStorage.setItem("camera-permission-status", "granted")
+      return true
+    } catch (error: any) {
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        localStorage.setItem("camera-permission-status", "denied")
+      }
+      return false
+    }
+  }
+
+  const requestMicrophonePermission = async (): Promise<boolean> => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(track => track.stop())
+      localStorage.setItem("microphone-permission-status", "granted")
+      return true
+    } catch (error: any) {
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        localStorage.setItem("microphone-permission-status", "denied")
+      }
+      return false
+    }
+  }
+
   const handleStartAI = async () => {
     console.log("[handleStartAI] Called, isStreaming:", isStreaming, "permissionStatus:", permissionStatus)
     
-    // Check permissions first - if not granted, show permission prompt
-    if (permissionStatus !== "granted") {
-      console.log("[handleStartAI] Permission not granted, showing permission prompt")
+    // Check camera permission first
+    const hasCameraPermission = await checkCameraPermission()
+    if (!hasCameraPermission) {
+      console.log("[handleStartAI] Camera permission not granted, showing camera permission prompt")
+      setPermissionType("camera")
+      setShowPermissionPrompt(true)
+      return
+    }
+
+    // Check microphone permission
+    const hasMicPermission = await checkMicrophonePermission()
+    if (!hasMicPermission) {
+      console.log("[handleStartAI] Microphone permission not granted, showing microphone permission prompt")
+      setPermissionType("microphone")
       setShowPermissionPrompt(true)
       return
     }
@@ -1398,6 +1524,7 @@ export function HomePageClient() {
       console.log("[handleSelectVoiceMode] Microphone permission not granted, showing prompt")
       pendingVoiceModeRef.current = true // Track that user wants to use voice mode
       setError("Microphone permission is required for voice mode")
+      setPermissionType("microphone")
       setShowPermissionPrompt(true)
       return
     }
@@ -1660,6 +1787,7 @@ export function HomePageClient() {
         onOpenChange={setShowPermissionPrompt}
         onRequestPermission={handleRequestPermission}
         permissionStatus={permissionStatus}
+        permissionType={permissionType}
       />
     </div>
   )

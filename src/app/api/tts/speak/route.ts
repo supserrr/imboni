@@ -39,12 +39,40 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate audio using the SDK
-    const audio = await client.textToSpeech.convert(voice, ttsOptions)
+    const audioStream = await client.textToSpeech.convert(voice, ttsOptions)
 
-    // Convert ReadableStream to Response
-    return new NextResponse(audio, {
+    // Convert ReadableStream to Buffer to ensure proper handling
+    // This helps with Safari and other browsers that might have issues with ReadableStream
+    const chunks: Uint8Array[] = []
+    const reader = audioStream.getReader()
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        if (value) {
+          chunks.push(value)
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+    
+    // Combine all chunks into a single buffer
+    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0)
+    const buffer = new Uint8Array(totalLength)
+    let offset = 0
+    for (const chunk of chunks) {
+      buffer.set(chunk, offset)
+      offset += chunk.length
+    }
+
+    // Return as Response with proper headers
+    return new NextResponse(buffer, {
       headers: {
         "Content-Type": "audio/mpeg",
+        "Content-Length": buffer.length.toString(),
+        "Cache-Control": "no-cache",
       },
     })
   } catch (error: any) {

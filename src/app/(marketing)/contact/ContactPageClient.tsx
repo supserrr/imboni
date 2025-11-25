@@ -13,6 +13,7 @@ import { ContactCard } from "@/components/ui/contact-card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { toast } from "sonner"
 
 const navigationItems = [
   { title: "HOME", href: "/" },
@@ -24,9 +25,23 @@ const navigationItems = [
  * Contact page client component
  * Displays contact information and support options
  */
+type FormData = {
+  name: string
+  email: string
+  phone: string
+  message: string
+}
+
 export function ContactPageClient() {
   const [mounted, setMounted] = React.useState(false)
   const [showFooter, setShowFooter] = React.useState(false)
+  const [formData, setFormData] = React.useState<FormData>({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  })
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   React.useEffect(() => {
     setMounted(true)
@@ -45,6 +60,65 @@ export function ContactPageClient() {
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    // Validate required fields
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+      toast.error("Please fill in all required fields (Name, Email, and Message)")
+      return
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Please enter a valid email address")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to send message")
+      }
+
+      toast.success(data.message || "Thank you for contacting us! We'll get back to you soon.")
+      
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        message: "",
+      })
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send message. Please try again later.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value || "",
+    }))
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -145,32 +219,68 @@ export function ContactPageClient() {
                 {
                   icon: Phone,
                   label: 'Phone',
-                  value: '+1 (555) 123-4567',
+                  value: '+250788335935',
                 }
               ]}
             >
-              <form action="" className="w-full space-y-4">
+              <form onSubmit={handleSubmit} className="w-full space-y-4">
                 <div className="flex flex-col gap-2">
-                  <Label>Name</Label>
-                  <Input type="text" placeholder="Your name" />
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    type="text"
+                    placeholder="Your name"
+                    value={formData.name ?? ""}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>Email</Label>
-                  <Input type="email" placeholder="you@example.com" />
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={formData.email ?? ""}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>Phone</Label>
-                  <Input type="tel" placeholder="+250 788 123 456" />
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    type="tel"
+                    placeholder="+250 788 123 456"
+                    value={formData.phone ?? ""}
+                    onChange={handleChange}
+                    disabled={isSubmitting}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label>Message</Label>
-                  <Textarea placeholder="Your message here..." rows={4} />
+                  <Label htmlFor="message">Message</Label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    placeholder="Your message here..."
+                    rows={4}
+                    value={formData.message ?? ""}
+                    onChange={handleChange}
+                    required
+                    disabled={isSubmitting}
+                  />
                 </div>
-                <Button 
-                  className="w-full !bg-black dark:!bg-white !text-white dark:!text-black hover:!bg-black/90 dark:hover:!bg-white/90" 
+                <Button
+                  className="w-full !bg-black dark:!bg-white !text-white dark:!text-black hover:!bg-black/90 dark:hover:!bg-white/90"
                   type="submit"
+                  disabled={isSubmitting}
                 >
-                  Submit
+                  {isSubmitting ? "Sending..." : "Submit"}
                 </Button>
               </form>
             </ContactCard>
