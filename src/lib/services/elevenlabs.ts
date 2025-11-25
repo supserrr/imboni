@@ -23,10 +23,47 @@ export class ElevenLabsService {
   private audioContext: AudioContext | null = null
   private currentAudio: HTMLAudioElement | null = null
   private isPlaying = false
+  private audioContextResumed = false
 
   constructor() {
     if (typeof window !== "undefined") {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    }
+  }
+
+  /**
+   * Detect if running on mobile device
+   */
+  private isMobile(): boolean {
+    if (typeof window === "undefined") return false
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  }
+
+  /**
+   * Resume audio context with user interaction (required for mobile)
+   * This should be called in response to a user interaction
+   */
+  async resumeAudioContext(): Promise<void> {
+    if (!this.audioContext) {
+      if (typeof window !== "undefined") {
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      } else {
+        return
+      }
+    }
+
+    if (this.audioContext.state === "suspended") {
+      try {
+        await this.audioContext.resume()
+        this.audioContextResumed = true
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[ElevenLabs] Audio context resumed successfully")
+        }
+      } catch (err) {
+        console.warn("[ElevenLabs] Failed to resume audio context:", err)
+      }
+    } else {
+      this.audioContextResumed = true
     }
   }
 
@@ -457,6 +494,14 @@ export class ElevenLabsService {
       this.currentAudio = audio
       this.isPlaying = true
 
+      // Set mobile-friendly properties
+      const isMobileDevice = this.isMobile()
+      if (isMobileDevice) {
+        audio.setAttribute('playsinline', 'true')
+        audio.setAttribute('webkit-playsinline', 'true')
+        audio.preload = 'auto'
+      }
+
         try {
         // Check if audio element is still valid before playing
         if (!audio || !this.currentAudio || this.currentAudio !== audio) {
@@ -466,23 +511,57 @@ export class ElevenLabsService {
           return
         }
 
+        // For mobile, ensure audio context is resumed BEFORE playing
+        // Mobile browsers are very strict about this
+        if (isMobileDevice && this.audioContext) {
+          if (this.audioContext.state === "suspended" || !this.audioContextResumed) {
+            try {
+              await this.audioContext.resume()
+              this.audioContextResumed = true
+              if (process.env.NODE_ENV === 'development') {
+                console.log("[ElevenLabs] Audio context resumed for mobile playback")
+              }
+            } catch (err) {
+              console.warn("[ElevenLabs] Failed to resume audio context on mobile:", err)
+              // Still try to play - some mobile browsers allow it
+            }
+          }
+        }
+
         // Check if audio context needs to be resumed (browser autoplay policy)
-        // Do this in parallel with audio loading for faster response
-        const contextResumePromise = this.audioContext && this.audioContext.state === "suspended"
+        // For desktop, we can do this in parallel
+        const contextResumePromise = !isMobileDevice && this.audioContext && this.audioContext.state === "suspended"
           ? this.audioContext.resume().catch(err => {
               console.warn("[ElevenLabs] Failed to resume audio context:", err)
             })
           : Promise.resolve()
         
-        // Start playing immediately - don't wait for context resume
+        // Start playing
         const playPromise = audio.play()
         
-        // Wait for both in parallel
-        await Promise.all([playPromise, contextResumePromise])
+        // Wait for both (on desktop) or just play (on mobile where we already resumed)
+        if (isMobileDevice) {
+          await playPromise
+        } else {
+          await Promise.all([playPromise, contextResumePromise])
+        }
         
         // Verify audio actually started playing
         if (audio.paused) {
-          throw new Error("Audio failed to start playing - may be blocked by browser autoplay policy")
+          // On mobile, try one more time after a short delay
+          if (isMobileDevice) {
+            await new Promise(resolve => setTimeout(resolve, 100))
+            try {
+              await audio.play()
+              if (process.env.NODE_ENV === 'development') {
+                console.log("[ElevenLabs] Audio started on retry for mobile")
+              }
+            } catch (retryError) {
+              throw new Error("Audio failed to start playing on mobile - may be blocked by browser autoplay policy")
+            }
+          } else {
+            throw new Error("Audio failed to start playing - may be blocked by browser autoplay policy")
+          }
         }
       } catch (playError: any) {
         // Handle AbortError and other play() interruptions gracefully
@@ -523,6 +602,13 @@ export class ElevenLabsService {
       
       throw error
     }
+  }
+
+  /**
+   * Resume audio context (call this on user interaction for mobile compatibility)
+   */
+  async resumeContext(): Promise<void> {
+    await this.resumeAudioContext()
   }
 
   /**

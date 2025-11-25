@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { PermissionPrompt } from "@/components/PermissionPrompt"
 import { useCameraPermissions } from "@/hooks/useCameraPermissions"
+import { useSpeechRecognitionPermissions } from "@/hooks/useSpeechRecognitionPermissions"
 import { useElevenLabs } from "@/hooks/useElevenLabs"
+import { getElevenLabsService } from "@/lib/services/elevenlabs"
 import { Square, Mic, Send, Type } from "@/components/ui/animated-icons"
 import { Input } from "@/components/ui/input"
 import { queryMoondream } from "@/lib/services/moondream"
@@ -14,8 +16,13 @@ const MOONDREAM_API_URL = process.env.NEXT_PUBLIC_MOONDREAM_API_URL || "https://
 
 export function HomePageClient() {
   const { permissionStatus, requestPermission, checkPermission } = useCameraPermissions()
+  const { 
+    permissionStatus: speechRecognitionPermissionStatus, 
+    requestPermission: requestSpeechRecognitionPermission, 
+    checkPermission: checkSpeechRecognitionPermission 
+  } = useSpeechRecognitionPermissions()
   const [showPermissionPrompt, setShowPermissionPrompt] = useState(false)
-  const [permissionType, setPermissionType] = useState<"camera" | "microphone">("camera")
+  const [permissionType, setPermissionType] = useState<"camera" | "microphone" | "speech-recognition">("camera")
   const [isStreaming, setIsStreaming] = useState(false)
   const [isUsingFrontCamera, setIsUsingFrontCamera] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -536,6 +543,16 @@ export function HomePageClient() {
         console.log("[handleQuestion] Speaking answer...")
         // Wait longer to ensure recognition is fully stopped and any pending results are cleared
         await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Resume audio context before speaking (critical for mobile browsers)
+        // This ensures audio can play on mobile devices
+        try {
+          const service = getElevenLabsService()
+          await service.resumeContext()
+        } catch (err) {
+          console.warn("[handleQuestion] Failed to resume audio context:", err)
+        }
+        
         await speak(response)
         console.log("[handleQuestion] Answer spoken")
       } else {
@@ -1151,6 +1168,29 @@ export function HomePageClient() {
       }
     } else if (permissionType === "microphone") {
       granted = await requestMicrophonePermission()
+    } else if (permissionType === "speech-recognition") {
+      granted = await requestSpeechRecognitionPermission()
+      if (granted) {
+        setShowPermissionPrompt(false)
+        await checkSpeechRecognitionPermission()
+        // If we were trying to start voice mode, do it now
+        if (pendingVoiceModeRef.current) {
+          pendingVoiceModeRef.current = false
+          setInputMode("voice")
+          inputModeRef.current = "voice"
+          setShowModeSelection(false)
+          startContinuousAnalysis()
+          setTimeout(() => {
+            console.log("[handleRequestPermission] Starting voice recognition after speech recognition permission granted...")
+            startListening()
+          }, 100)
+        }
+      } else {
+        await checkSpeechRecognitionPermission()
+      }
+      return
+    } else if (permissionType === "microphone") {
+      granted = await requestMicrophonePermission()
       if (granted) {
         // Close microphone prompt
         setShowPermissionPrompt(false)
@@ -1514,6 +1554,14 @@ export function HomePageClient() {
   }
 
   const handleSelectTextMode = async () => {
+    // Resume audio context on user interaction (important for mobile)
+    try {
+      const service = getElevenLabsService()
+      await service.resumeContext()
+    } catch (err) {
+      console.warn("[handleSelectTextMode] Failed to resume audio context:", err)
+    }
+    
     playTextModeSound() // Play sound when text mode is selected
     if (!isStreaming) {
       await startCamera()
@@ -1573,6 +1621,14 @@ export function HomePageClient() {
   const handleSelectVoiceMode = async () => {
     console.log("[handleSelectVoiceMode] Called, isStreaming:", isStreaming)
     
+    // Resume audio context on user interaction (critical for mobile)
+    try {
+      const service = getElevenLabsService()
+      await service.resumeContext()
+    } catch (err) {
+      console.warn("[handleSelectVoiceMode] Failed to resume audio context:", err)
+    }
+    
     // Check microphone permission first
     const hasMicPermission = await checkMicrophonePermission()
     if (!hasMicPermission) {
@@ -1584,7 +1640,19 @@ export function HomePageClient() {
       return
     }
     
-    pendingVoiceModeRef.current = false // Reset since permission is granted
+    // Check speech recognition permission (especially important for iOS/Safari)
+    await checkSpeechRecognitionPermission()
+    const hasSpeechRecognitionPermission = speechRecognitionPermissionStatus === "granted"
+    if (!hasSpeechRecognitionPermission) {
+      console.log("[handleSelectVoiceMode] Speech recognition permission not granted, showing prompt")
+      pendingVoiceModeRef.current = true // Track that user wants to use voice mode
+      setError("Speech recognition permission is required for voice mode")
+      setPermissionType("speech-recognition")
+      setShowPermissionPrompt(true)
+      return
+    }
+    
+    pendingVoiceModeRef.current = false // Reset since permissions are granted
     
     playVoiceModeSound() // Play sound when voice mode is selected
     if (!isStreaming) {
@@ -1655,6 +1723,15 @@ export function HomePageClient() {
 
   const handleTextQuerySubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
+    
+    // Resume audio context on user interaction (important for mobile)
+    try {
+      const service = getElevenLabsService()
+      await service.resumeContext()
+    } catch (err) {
+      console.warn("[handleTextQuerySubmit] Failed to resume audio context:", err)
+    }
+    
     if (textQuery.trim() && isStreaming) {
       // Answer the question immediately with current frame
       await handleQuestion(textQuery.trim())

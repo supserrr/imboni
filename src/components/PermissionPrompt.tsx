@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Camera, Mic, AlertCircle } from "@/components/ui/animated-icons"
 import type { CameraPermissionStatus } from "@/hooks/useCameraPermissions"
 
-export type PermissionType = "camera" | "microphone"
+export type PermissionType = "camera" | "microphone" | "speech-recognition"
 
 interface PermissionPromptProps {
   open: boolean
@@ -37,6 +37,7 @@ export function PermissionPrompt({
   const isNotSupported = permissionStatus === "not-supported"
   const isCamera = permissionType === "camera"
   const isMicrophone = permissionType === "microphone"
+  const isSpeechRecognition = permissionType === "speech-recognition"
 
   const handleRequest = async () => {
     await onRequestPermission()
@@ -63,10 +64,10 @@ export function PermissionPrompt({
           </div>
           <DialogTitle className="text-center text-lg leading-tight">
             {isDenied
-              ? `${isCamera ? "Camera" : "Microphone"} Permission Denied`
+              ? `${isCamera ? "Camera" : isMicrophone ? "Microphone" : "Speech Recognition"} Permission Denied`
               : isNotSupported
-              ? `${isCamera ? "Camera" : "Microphone"} Not Available`
-              : `${isCamera ? "Camera" : "Microphone"} Permission Required`}
+              ? `${isCamera ? "Camera" : isMicrophone ? "Microphone" : "Speech Recognition"} Not Available`
+              : `${isCamera ? "Camera" : isMicrophone ? "Microphone" : "Speech Recognition"} Permission Required`}
           </DialogTitle>
           <div className="pt-4">
             {isDenied ? (
@@ -74,33 +75,52 @@ export function PermissionPrompt({
                 <p className="text-sm leading-relaxed">
                   {isCamera 
                     ? "Camera access has been denied. To use Imboni, you need to grant camera permission."
-                    : "Microphone access has been denied. To use Imboni, you need to grant microphone permission."}
+                    : isMicrophone
+                    ? "Microphone access has been denied. To use Imboni, you need to grant microphone permission."
+                    : "Speech recognition access has been denied. To use voice mode, you need to grant speech recognition permission."}
                 </p>
                 <div className="space-y-2">
-                  <p className="font-medium text-sm">To enable {isCamera ? "camera" : "microphone"} access:</p>
-                  <ol className="list-decimal list-outside space-y-2 text-sm leading-relaxed pl-5">
-                    <li className="pl-2">Click the {isCamera ? "camera" : "microphone"} icon in your browser&apos;s address bar</li>
-                    <li className="pl-2">Select &quot;Allow&quot; for {isCamera ? "camera" : "microphone"} access</li>
-                    <li className="pl-2">Refresh this page</li>
-                  </ol>
+                  <p className="font-medium text-sm">To enable {isCamera ? "camera" : isMicrophone ? "microphone" : "speech recognition"} access:</p>
+                  {isSpeechRecognition ? (
+                    <ol className="list-decimal list-outside space-y-2 text-sm leading-relaxed pl-5">
+                      <li className="pl-2">On iOS/Safari, tap &quot;Allow&quot; when prompted for speech recognition</li>
+                      <li className="pl-2">If you don&apos;t see a prompt, go to Settings &gt; Safari &gt; Microphone and ensure it&apos;s enabled</li>
+                      <li className="pl-2">Refresh this page and try again</li>
+                    </ol>
+                  ) : (
+                    <ol className="list-decimal list-outside space-y-2 text-sm leading-relaxed pl-5">
+                      <li className="pl-2">Click the {isCamera ? "camera" : "microphone"} icon in your browser&apos;s address bar</li>
+                      <li className="pl-2">Select &quot;Allow&quot; for {isCamera ? "camera" : "microphone"} access</li>
+                      <li className="pl-2">Refresh this page</li>
+                    </ol>
+                  )}
                 </div>
               </div>
             ) : isNotSupported ? (
               <p className="text-sm leading-relaxed">
-                Your device or browser doesn&apos;t support {isCamera ? "camera" : "microphone"} access. Please use a device with a {isCamera ? "camera" : "microphone"} and a modern browser.
+                Your device or browser doesn&apos;t support {isCamera ? "camera" : isMicrophone ? "microphone" : "speech recognition"} access. Please use a device with {isCamera ? "a camera" : isMicrophone ? "a microphone" : "speech recognition support"} and a modern browser.
               </p>
             ) : (
               <div className="space-y-3">
                 <p className="text-sm leading-relaxed">
                   {isCamera
                     ? "Imboni needs access to your camera to analyze your surroundings and provide real-time descriptions."
-                    : "Imboni needs access to your microphone to enable voice interaction and speech recognition."}
+                    : isMicrophone
+                    ? "Imboni needs access to your microphone to enable voice interaction and speech recognition."
+                    : "Imboni needs access to speech recognition to enable voice commands. On iOS and Safari, this requires a separate permission."}
                 </p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {isCamera
                     ? "Your camera feed is processed locally and never stored. We respect your privacy."
-                    : "Your audio is processed locally and never stored. We respect your privacy."}
+                    : isMicrophone
+                    ? "Your audio is processed locally and never stored. We respect your privacy."
+                    : "Your speech is processed locally and never stored. We respect your privacy."}
                 </p>
+                {isSpeechRecognition && (
+                  <p className="text-sm text-muted-foreground leading-relaxed italic">
+                    Note: On iOS and Safari, you may see a separate permission prompt when you start voice mode.
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -128,10 +148,15 @@ export function PermissionPrompt({
                     <Camera className="mr-2 h-4 w-4" />
                     <span className="whitespace-nowrap">Allow Camera</span>
                   </>
-                ) : (
+                ) : isMicrophone ? (
                   <>
                     <Mic className="mr-2 h-4 w-4" />
                     <span className="whitespace-nowrap">Allow Microphone</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="mr-2 h-4 w-4" />
+                    <span className="whitespace-nowrap">Allow Speech Recognition</span>
                   </>
                 )}
               </Button>
