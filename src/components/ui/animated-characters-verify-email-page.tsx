@@ -192,7 +192,7 @@ function VerifyEmailContent() {
       try {
         const supabase = createClient();
         if (supabase) {
-          supabase.auth.getSession().then(({ data: { session }, error }) => {
+          supabase.auth.getSession().then(({ data: { session }, error }: { data: { session: any }, error: any }) => {
             // Handle refresh token errors gracefully
             if (error) {
               if (
@@ -209,7 +209,7 @@ function VerifyEmailContent() {
             if (session?.user?.email) {
               setEmail(session.user.email);
             }
-          }).catch((error) => {
+          }).catch((error: any) => {
             // Handle any unexpected errors
             if (
               error?.message?.includes("Refresh Token Not Found") ||
