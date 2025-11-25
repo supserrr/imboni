@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { PermissionPrompt } from "@/components/PermissionPrompt"
 import { useCameraPermissions } from "@/hooks/useCameraPermissions"
 import { useElevenLabs } from "@/hooks/useElevenLabs"
-import { Play, Square, Mic, Send, Type } from "lucide-react"
+import { Square, Mic, Send, Type } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { queryMoondream } from "@/lib/services/moondream"
 import { captureFrameFromVideo } from "@/lib/utils/frame-capture"
@@ -1188,7 +1188,7 @@ export function HomePageClient() {
       {/* Query Input and Controls - Floating above bottom navbar */}
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
         {showModeSelection ? (
-          // Show Text/Voice selection buttons after Start AI is clicked
+          // Show Text/Voice selection buttons after Start Imboni is clicked
           <div className="flex flex-col gap-3">
             <div className="flex gap-3">
               <Button
@@ -1264,7 +1264,7 @@ export function HomePageClient() {
             </Button>
           </div>
         ) : (
-          // Initial state: Show Start AI button
+          // Initial state: Show Start Imboni button
           <div className="flex justify-center">
             <Button
               onClick={handleStartAI}
@@ -1272,8 +1272,7 @@ export function HomePageClient() {
               className="px-24 py-11 text-2xl font-semibold rounded-none shadow-2xl"
               disabled={!isStreaming}
             >
-              <Play className="mr-4 h-10 w-10" />
-              Start AI
+              Start Imboni
             </Button>
           </div>
         )}

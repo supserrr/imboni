@@ -256,7 +256,7 @@ export function NarrationSettingsPageClient() {
       // Always use the selected language for testing (or "en" if "all" is selected)
       const testLanguage = selectedLanguage !== "all" ? selectedLanguage : "en"
       
-      await speak("This is a test of the ElevenLabs text to speech voice.", {
+      await speak("Imboni means pupil of the eye in English. This is a test of the Imboni text to speech voice.", {
         voiceId: voiceId,
         stability: 0.5,
         similarityBoost: 0.75,
