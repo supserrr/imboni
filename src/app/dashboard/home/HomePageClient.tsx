@@ -676,7 +676,21 @@ export function HomePageClient() {
   useEffect(() => {
     const startCameraAuto = async () => {
       if (permissionStatus === "granted" && !isStreaming && !streamRef.current) {
-        await startCamera()
+        // Wait for video element to be available (max 2 seconds)
+        let attempts = 0
+        const maxAttempts = 20
+        const delayMs = 100
+        
+        while (!videoRef.current && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, delayMs))
+          attempts++
+        }
+        
+        if (videoRef.current) {
+          await startCamera()
+        } else {
+          console.warn("[startCameraAuto] Video element not available after waiting")
+        }
       }
     }
     
@@ -685,7 +699,27 @@ export function HomePageClient() {
 
   const startCamera = async () => {
     try {
-      console.log("[startCamera] Starting camera...", { permissionStatus, isStreaming: isStreaming, hasStream: !!streamRef.current })
+      console.log("[startCamera] Starting camera...", { permissionStatus, isStreaming: isStreaming, hasStream: !!streamRef.current, hasVideoRef: !!videoRef.current })
+      
+      // Wait for video element if not ready (max 1 second)
+      if (!videoRef.current) {
+        console.log("[startCamera] Video element not ready, waiting...")
+        let attempts = 0
+        const maxAttempts = 10
+        const delayMs = 100
+        
+        while (!videoRef.current && attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, delayMs))
+          attempts++
+        }
+        
+        if (!videoRef.current) {
+          console.error("[startCamera] Video element not available after waiting")
+          setError("Video element not ready")
+          setIsStreaming(false)
+          return
+        }
+      }
       
       // Check if we already have an active stream
       if (streamRef.current) {
