@@ -14,6 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { authService } from "@/lib/services/auth"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -22,6 +23,7 @@ import { toast } from "sonner"
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  rememberMe: z.boolean().default(false),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -39,13 +41,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: false,
     },
   })
 
   const onSubmit = async (values: LoginFormValues) => {
     setIsLoading(true)
     try {
-      await authService.signInWithEmail(values.email, values.password)
+      await authService.signInWithEmail(values.email, values.password, values.rememberMe)
       toast.success("Welcome back! We're glad to see you again.")
       onSuccess?.()
       router.push("/dashboard")
@@ -102,6 +105,26 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="rememberMe"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={isLoading}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel className="text-sm font-normal cursor-pointer">
+                  Remember me for 30 days
+                </FormLabel>
+              </div>
             </FormItem>
           )}
         />

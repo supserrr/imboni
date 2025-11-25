@@ -150,8 +150,21 @@ export function useLiveVideo({
         video.load();
       });
 
-      await video.play();
-      setIsStreaming(true);
+      try {
+        await video.play();
+        setIsStreaming(true);
+      } catch (playError: any) {
+        // Clean up the object URL
+        URL.revokeObjectURL(url);
+        
+        // Handle AbortError gracefully (occurs during navigation/unmount)
+        if (playError.name === 'AbortError') {
+          return; // Silently handle - expected during navigation
+        }
+        
+        console.error('Video error:', playError);
+        throw new Error('Could not load video file. Try recording in a different format or use an existing MP4 video.');
+      }
     } catch (error) {
       console.error('Video error:', error);
       throw new Error('Could not load video file. Try recording in a different format or use an existing MP4 video.');

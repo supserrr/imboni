@@ -53,7 +53,17 @@ export function useCameraCapture(initialFacingMode: "user" | "environment" = "en
       // Set stream on video element
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        await videoRef.current.play()
+        try {
+          await videoRef.current.play()
+        } catch (error: any) {
+          // Handle AbortError gracefully (occurs during navigation/unmount)
+          if (error.name !== 'AbortError') {
+            console.error("[useCameraCapture] Error playing video:", error)
+          }
+          // Clean up stream if play failed
+          stream.getTracks().forEach((track) => track.stop())
+          throw error
+        }
       }
 
       setState({
@@ -110,7 +120,12 @@ export function useCameraCapture(initialFacingMode: "user" | "environment" = "en
     videoRef.current = element
     if (element && streamRef.current) {
       element.srcObject = streamRef.current
-      element.play().catch(console.error)
+      element.play().catch((error: any) => {
+        // Only log non-AbortError errors (AbortError is expected during navigation/unmount)
+        if (error.name !== 'AbortError') {
+          console.error("[useCameraCapture] Error playing video:", error)
+        }
+      })
     }
     setState((prev) => ({
       ...prev,

@@ -695,7 +695,14 @@ export function HomePageClient() {
           setIsStreaming(true)
           if (videoRef.current && !videoRef.current.srcObject) {
             videoRef.current.srcObject = streamRef.current
-            await videoRef.current.play()
+            try {
+              await videoRef.current.play()
+            } catch (error: any) {
+              // Handle AbortError gracefully (occurs during navigation/unmount)
+              if (error.name !== 'AbortError') {
+                console.error("[startCamera] Error playing video:", error)
+              }
+            }
           }
           return
         }
@@ -738,10 +745,23 @@ export function HomePageClient() {
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        await videoRef.current.play()
-        setIsStreaming(true)
-        setError(null)
-        console.log("[startCamera] Camera started successfully, isStreaming set to true")
+        try {
+          await videoRef.current.play()
+          setIsStreaming(true)
+          setError(null)
+          console.log("[startCamera] Camera started successfully, isStreaming set to true")
+        } catch (error: any) {
+          // Handle AbortError gracefully (occurs during navigation/unmount)
+          if (error.name === 'AbortError') {
+            // Video was interrupted, clean up stream
+            stream.getTracks().forEach(track => track.stop())
+            return
+          }
+          console.error("[startCamera] Error playing video:", error)
+          stream.getTracks().forEach(track => track.stop())
+          setError("Failed to start video playback")
+          setIsStreaming(false)
+        }
       } else {
         console.error("[startCamera] videoRef.current is null!")
         stream.getTracks().forEach(track => track.stop())

@@ -117,7 +117,9 @@ export class ElevenLabsService {
       
       // Set up event handlers before assigning to currentAudio
       audio.onended = () => {
-        console.log("[ElevenLabs] Audio playback ended")
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[ElevenLabs] Audio playback ended")
+        }
         this.isPlaying = false
         if (audio.src === audioUrl) {
           URL.revokeObjectURL(audioUrl)
@@ -128,7 +130,11 @@ export class ElevenLabsService {
       }
 
       audio.onerror = (error) => {
-        console.error("[ElevenLabs] Audio playback error:", error)
+        // Only log non-AbortError errors
+        const target = error.target as HTMLAudioElement
+        if (target?.error?.code !== MediaError.MEDIA_ERR_ABORTED) {
+          console.error("[ElevenLabs] Audio playback error:", error)
+        }
         this.isPlaying = false
         if (audio.src === audioUrl) {
           URL.revokeObjectURL(audioUrl)
@@ -140,7 +146,9 @@ export class ElevenLabsService {
       
       // Also listen for pause events (in case audio is paused/stopped externally)
       audio.onpause = () => {
-        console.log("[ElevenLabs] Audio paused")
+        if (process.env.NODE_ENV === 'development') {
+          console.log("[ElevenLabs] Audio paused")
+        }
         if (audio.ended || audio.paused) {
           this.isPlaying = false
           if (this.currentAudio === audio) {
@@ -154,15 +162,33 @@ export class ElevenLabsService {
       this.isPlaying = true
 
       try {
-        await audio.play()
-      } catch (playError: any) {
-        // Handle AbortError and other play() interruptions gracefully
-        if (playError.name === 'AbortError' || playError.name === 'NotAllowedError') {
-          console.log("Audio play() was interrupted or not allowed:", playError.name)
-          // Clean up
+        // Check if audio element is still valid before playing
+        if (!audio || !this.currentAudio || this.currentAudio !== audio) {
+          // Audio was replaced or cleaned up before play() could execute
           this.isPlaying = false
           URL.revokeObjectURL(audioUrl)
-          this.currentAudio = null
+          return
+        }
+
+        const playPromise = audio.play()
+        
+        // Handle the promise with proper error handling
+        await playPromise
+      } catch (playError: any) {
+        // Handle AbortError and other play() interruptions gracefully
+        // AbortError occurs when navigation happens or audio is interrupted
+        if (playError.name === 'AbortError' || playError.name === 'NotAllowedError') {
+          // Silently handle - this is expected behavior during navigation/unmount
+          // Only log in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log("[ElevenLabs] Audio play() was interrupted:", playError.name)
+          }
+          // Clean up
+          this.isPlaying = false
+          if (this.currentAudio === audio) {
+            this.currentAudio = null
+          }
+          URL.revokeObjectURL(audioUrl)
           // Don't throw - this is expected when interrupting playback
           return
         }
@@ -180,32 +206,47 @@ export class ElevenLabsService {
    * Stop current speech immediately
    */
   stop(): void {
-    console.log("[ElevenLabs] Stopping audio playback immediately")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("[ElevenLabs] Stopping audio playback immediately")
+    }
     if (this.currentAudio) {
       try {
-        // Immediately pause and reset
-        this.currentAudio.pause()
-        this.currentAudio.currentTime = 0
-        // Load empty source to completely stop playback
-        this.currentAudio.load()
+        // Store reference before clearing
+        const audioToStop = this.currentAudio
+        const audioUrl = audioToStop.src
+        
+        // Clear reference first to prevent race conditions
+        this.currentAudio = null
+        this.isPlaying = false
+        
+        // Then stop the audio element
+        audioToStop.pause()
+        audioToStop.currentTime = 0
         
         // Remove event listeners to prevent callbacks after stop
-        this.currentAudio.onended = null
-        this.currentAudio.onerror = null
-        this.currentAudio.onpause = null
+        audioToStop.onended = null
+        audioToStop.onerror = null
+        audioToStop.onpause = null
+        
+        // Load empty source to completely stop playback
+        // This will abort any pending play() promises
+        audioToStop.load()
         
         // Clean up the object URL if it exists
-        if (this.currentAudio.src && this.currentAudio.src.startsWith('blob:')) {
-          URL.revokeObjectURL(this.currentAudio.src)
+        if (audioUrl && audioUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(audioUrl)
+        }
+      } catch (error) {
+        // Silently handle errors during cleanup
+        if (process.env.NODE_ENV === 'development') {
+          console.error("[ElevenLabs] Error stopping audio:", error)
         }
         this.currentAudio = null
-      } catch (error) {
-        console.error("[ElevenLabs] Error stopping audio:", error)
-        this.currentAudio = null
+        this.isPlaying = false
       }
+    } else {
+      this.isPlaying = false
     }
-    this.isPlaying = false
-    console.log("[ElevenLabs] Audio stopped immediately, isPlaying set to false")
   }
 
   /**

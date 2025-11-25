@@ -1,6 +1,15 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+/**
+ * Gets the remember me preference from cookies.
+ * Returns true if remember me is enabled (30 days), false otherwise (12 hours).
+ */
+function getRememberMePreference(request: NextRequest): boolean {
+  const rememberMeCookie = request.cookies.get("remember_me")
+  return rememberMeCookie?.value === "true"
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -13,6 +22,9 @@ export async function middleware(request: NextRequest) {
     console.error("Missing Supabase environment variables in middleware")
     return supabaseResponse
   }
+
+  const rememberMe = getRememberMePreference(request)
+  const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 12 * 60 * 60 // 30 days or 12 hours in seconds
 
   const supabase = createServerClient(
     supabaseUrl,
@@ -29,9 +41,22 @@ export async function middleware(request: NextRequest) {
           supabaseResponse = NextResponse.next({
             request,
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => {
+            // Set maxAge for Supabase auth cookies (typically start with 'sb-' and contain 'auth')
+            const isAuthCookie = name.startsWith("sb-") && name.includes("auth")
+            
+            if (isAuthCookie) {
+              supabaseResponse.cookies.set(name, value, {
+                ...options,
+                maxAge,
+                path: options?.path || "/",
+                sameSite: (options?.sameSite as "lax" | "strict" | "none") || "lax",
+              })
+            } else {
+              // For other cookies, use the original options
+              supabaseResponse.cookies.set(name, value, options)
+            }
+          })
         },
       },
     }

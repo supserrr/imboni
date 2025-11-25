@@ -73,7 +73,13 @@ export class AuthService {
     return data
   }
 
-  async signInWithEmail(email: string, password: string) {
+  async signInWithEmail(email: string, password: string, rememberMe: boolean = false) {
+    // Store remember me preference in a cookie so both client and server can access it
+    if (typeof document !== "undefined") {
+      const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 12 * 60 * 60 // 30 days or 12 hours in seconds
+      document.cookie = `remember_me=${rememberMe ? "true" : "false"}; max-age=${maxAge}; path=/; SameSite=Lax`
+    }
+
     const { data, error } = await this.supabase.auth.signInWithPassword({
       email,
       password,

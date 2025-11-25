@@ -472,9 +472,9 @@ export const FlickeringFooter = () => {
               duration: 0.6,
             }}
           >
-            <Link href="/" className="flex items-center gap-2">
-              <Logo variant="full" className="h-8 w-auto" />
-            </Link>
+          <Link href="/" className="flex items-center gap-2">
+            <Logo variant="full" className="h-8 w-auto" />
+          </Link>
           </motion.div>
           <motion.p
             initial={{ opacity: 0, y: 20 }}

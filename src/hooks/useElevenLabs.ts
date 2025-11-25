@@ -40,14 +40,20 @@ export function useElevenLabs() {
       // Only update if state changed to avoid unnecessary re-renders
       setIsSpeaking(prev => {
         if (prev !== isCurrentlyPlaying) {
-          console.log("[useElevenLabs] Speaking state changed:", isCurrentlyPlaying)
+          if (process.env.NODE_ENV === 'development') {
+            console.log("[useElevenLabs] Speaking state changed:", isCurrentlyPlaying)
+          }
           return isCurrentlyPlaying
         }
         return prev
       })
     }, 100)
 
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+      // Stop audio playback when component unmounts
+      service.stop()
+    }
   }, [service])
 
   const speak = useCallback(

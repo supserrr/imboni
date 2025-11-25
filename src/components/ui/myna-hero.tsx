@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from 
 import { motion, useAnimation, useInView } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
+import { cn } from "@/lib/utils";
 
 const navigationItems = [
   { title: "HOME", href: "/" },
@@ -184,7 +185,10 @@ export function MynaHero() {
                     delay: index * 0.15,
                     duration: 0.6,
                   }}
-                  className="inline-block mx-2 md:mx-4"
+                  className={cn(
+                    "inline-block mx-2 md:mx-4",
+                    (text === "AI" || text === "VISION") && "text-primary"
+                  )}
                 >
                   {text}
                 </motion.span>
