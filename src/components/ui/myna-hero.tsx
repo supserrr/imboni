@@ -285,7 +285,7 @@ export function MynaHero() {
                 }}
                 className="flex flex-col items-center text-center p-8 bg-background border"
               >
-                <div className="mb-6 rounded-full bg-primary/10 p-4">
+                <div className="mb-6 rounded-full bg-primary/10 p-4 w-16 h-16 flex items-center justify-center">
                   <feature.icon className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="mb-4 text-xl font-mono font-bold">
