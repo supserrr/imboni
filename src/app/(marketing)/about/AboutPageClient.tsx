@@ -2,8 +2,15 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
-import { ArrowRight, Menu } from "@/components/ui/animated-icons"
+import { motion, useInView } from "framer-motion"
+import { 
+  ArrowRight, 
+  Menu, 
+  Heart, 
+  Sparkles, 
+  Zap, 
+  Globe
+} from "@/components/ui/animated-icons"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/Logo"
@@ -15,20 +22,60 @@ const navigationItems = [
   { title: "CONTACT", href: "/contact" },
 ]
 
+const values = [
+  {
+    icon: Globe,
+    title: "Free for All",
+    description: "Our tools and services are provided to the blind and low-vision community at no cost.",
+  },
+  {
+    icon: Sparkles,
+    title: "Innovation",
+    description: "Leveraging cutting-edge technology to create innovative solutions that make a real difference.",
+  },
+  {
+    icon: Zap,
+    title: "Builders & Owners",
+    description: "We operate efficiently, pay attention to details, and take responsibility for everything we do.",
+  },
+  {
+    icon: Heart,
+    title: "Leading Forward",
+    description: "We push boundaries and lead because the community we serve deserves the best.",
+  },
+  {
+    icon: Sparkles,
+    title: "Embrace Failure",
+    description: "Mistakes are part of learning and growth. No risk means no progress.",
+  },
+  {
+    icon: Globe,
+    title: "Positive Environment",
+    description: "We're serious about being kind, with laughter and fun always part of the mix.",
+  },
+]
+
 /**
  * About page client component
- * Displays information about Imboni and its mission
+ * Displays information about Imboni and its mission with modern, award-winning design patterns
  */
 export function AboutPageClient() {
   const [mounted, setMounted] = React.useState(false)
+  const missionRef = React.useRef(null)
+  const valuesRef = React.useRef(null)
+  const storyRef = React.useRef(null)
+
+  const missionInView = useInView(missionRef, { once: true, amount: 0.2 })
+  const valuesInView = useInView(valuesRef, { once: true, amount: 0.1 })
+  const storyInView = useInView(storyRef, { once: true, amount: 0.2 })
 
   React.useEffect(() => {
     setMounted(true)
   }, [])
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="pt-6 md:pt-9">
+    <div className="flex min-h-screen flex-col bg-background">
+      <header className="pt-6 md:pt-9 border-b border-border">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
@@ -104,64 +151,165 @@ export function AboutPageClient() {
       </header>
       
       <main className="flex-1">
-        <div className="container mx-auto px-4 py-12 md:py-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-4xl mx-auto"
-          >
-            <h1 className="text-4xl md:text-5xl font-mono font-bold mb-8">
-              About Imboni
-            </h1>
+        {/* Mission Section */}
+        <section ref={missionRef} className="container mx-auto px-4 pt-20 md:pt-32 pb-12 md:pb-20">
+          <div className="max-w-6xl mx-auto text-center">
+            <motion.h1
+              initial={{ filter: "blur(10px)", opacity: 0, y: 50 }}
+              animate={missionInView ? { filter: "blur(0px)", opacity: 1, y: 0 } : { filter: "blur(10px)", opacity: 0, y: 50 }}
+              transition={{ duration: 0.6 }}
+              className="text-5xl md:text-6xl lg:text-7xl font-mono font-bold mb-12 md:mb-16 leading-tight"
+            >
+              Empowering people through AI technology
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={missionInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="text-xl md:text-2xl text-muted-foreground font-mono max-w-6xl mx-auto leading-relaxed"
+            >
+              Our mission is to use technology as a tool for inclusion and empowerment in Africa. Through Imboni, we want to contribute to accessibility by creating a platform that gives visually impaired individuals more independence and dignity in their daily lives.
+            </motion.p>
+          </div>
+        </section>
 
-            <div className="space-y-8 font-mono text-sm md:text-base leading-relaxed">
-              <section>
-                <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
-                <p className="mb-4">
-                  Imboni is an AI-powered vision assistance platform designed to empower blind and low vision users by transforming their visual surroundings into clear, helpful descriptions in real-time.
-                </p>
-                <p className="mb-4">
-                  Our mission is to make visual information accessible to everyone, regardless of their ability to see. We believe that technology should break down barriers and create opportunities for independence and empowerment.
-                </p>
-              </section>
+        {/* Values Section */}
+        <section ref={valuesRef} className="container mx-auto px-4 pt-12 md:pt-16 pb-16 md:pb-24">
+          <div className="max-w-6xl mx-auto">
+            <motion.h2
+              initial={{ opacity: 0, y: 20 }}
+              animate={valuesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{
+                delay: 0.2,
+                duration: 0.6,
+                type: "spring",
+                stiffness: 100,
+                damping: 10,
+              }}
+              className="text-center text-4xl font-mono font-bold mb-12"
+            >
+              Our Values
+            </motion.h2>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={valuesInView ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+              className="grid md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto gap-6"
+            >
+              {values.map((value, index) => (
+                <motion.div
+                  key={value.title}
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={valuesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+                  transition={{
+                    delay: 0.4 + index * 0.1,
+                    duration: 0.6,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 10,
+                  }}
+                  className="flex flex-col items-center text-center p-8 bg-background border"
+                >
+                  <div className="mb-6 rounded-full bg-primary/10 p-4 w-16 h-16 flex items-center justify-center">
+                    <value.icon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="mb-4 text-xl font-mono font-bold">
+                    {value.title}
+                  </h3>
+                  <p className="text-muted-foreground font-mono text-sm leading-relaxed">
+                    {value.description}
+                  </p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
 
-              <section>
-                <h2 className="text-2xl font-bold mb-4">What We Do</h2>
-                <p className="mb-4">
-                  Built with cutting-edge artificial intelligence and machine learning technologies, Imboni provides:
-                </p>
-                <ul className="list-disc list-inside mb-4 space-y-2 ml-4">
-                  <li>Live video analysis and real-time object detection</li>
-                  <li>Audio descriptions of visual content</li>
-                  <li>Customizable triggers and alerts for important moments</li>
-                  <li>Text-to-speech narration with multiple voice options</li>
-                  <li>Analysis history and personalized preferences</li>
-                </ul>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-bold mb-4">Technology</h2>
-                <p className="mb-4">
-                  Imboni leverages advanced AI models including Moondream for image and video analysis, and ElevenLabs for natural-sounding text-to-speech. Our platform is built on modern web technologies to ensure fast, reliable, and accessible experiences.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-bold mb-4">Accessibility First</h2>
-                <p className="mb-4">
-                  Every feature in Imboni is designed with accessibility in mind. We support screen readers, keyboard navigation, and customizable settings to ensure the platform works the way you need it to.
-                </p>
-              </section>
-
-              <section>
-                <p className="text-muted-foreground">
-                  This platform was created by Shima Serein for summative assessment purposes.
-                </p>
-              </section>
-            </div>
-          </motion.div>
-        </div>
+        {/* Story Section */}
+        <section ref={storyRef} className="container mx-auto px-4 py-16 md:py-24">
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={storyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+              transition={{
+                duration: 0.6,
+                type: "spring",
+                stiffness: 100,
+                damping: 10,
+              }}
+              className="p-8 bg-background border"
+            >
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                animate={storyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                transition={{
+                  delay: 0.2,
+                  duration: 0.6,
+                  type: "spring",
+                  stiffness: 100,
+                  damping: 10,
+                }}
+                className="text-3xl md:text-4xl font-mono font-bold mb-8 text-center"
+              >
+                The Imboni story
+              </motion.h2>
+              <div className="space-y-6 text-base md:text-lg leading-relaxed font-mono">
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={storyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  transition={{
+                    delay: 0.4,
+                    duration: 0.6,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 10,
+                  }}
+                >
+                  Imboni was created by <strong>Shima Serein</strong> to address a critical challenge facing visually impaired individuals across Africa.
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={storyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  transition={{
+                    delay: 0.5,
+                    duration: 0.6,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 10,
+                  }}
+                >
+                  Across Africa, millions of visually impaired individuals face significant barriers in performing everyday tasks such as reading medication labels, navigating unfamiliar environments, or identifying objects. They struggle with accessibility due to lack of affordable assistive tools and limited availability of trained human assistance. Existing solutions are either too expensive, not localized for African languages and cultures, or unavailable in certain regions.
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={storyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  transition={{
+                    delay: 0.6,
+                    duration: 0.6,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 10,
+                  }}
+                >
+                  Imboni leverages cutting-edge AI technology for image and video analysis and natural-sounding text-to-speech. By providing real-time visual descriptions, Imboni offers a practical, accessible solution that gives visually impaired individuals more independence and dignity in their daily lives – all for free.
+                </motion.p>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={storyInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+                  transition={{
+                    delay: 0.7,
+                    duration: 0.6,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 10,
+                  }}
+                >
+                  Today, Imboni represents a step forward in making visual information accessible through intelligent, intuitive, and inclusive design, specifically tailored for the unique needs of African communities.
+                </motion.p>
+              </div>
+            </motion.div>
+          </div>
+        </section>
       </main>
 
       <FlickeringFooter />
