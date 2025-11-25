@@ -802,48 +802,61 @@ export function HomePageClient() {
       }
 
       try {
-        // Enumerate devices to find ultrawide camera (only for mobile devices)
+        // Enumerate devices to find the correct camera
         const devices = await navigator.mediaDevices.enumerateDevices()
         const videoDevices = devices.filter(device => device.kind === 'videoinput')
         
         if (isMobile) {
-          // For mobile: Look for ultrawide camera (works for both iOS and Android)
-          // iOS: "Ultra Wide Camera", "Wide Angle Camera"
-          // Android: "Ultra Wide", "UltraWide", "Wide Angle", "Back Camera 2", etc.
+          // For mobile: Find main back camera (NOT ultrawide)
+          // iOS: "Wide Camera", "Back Camera", "Main Camera"
+          // Android: "Back Camera", "Main Camera", "Camera 0" (main is usually first)
           // Note: On iOS/Android, labels may be empty until a device is accessed
-          const ultrawideDevice = videoDevices.find(device => {
+          const mainBackCamera = videoDevices.find(device => {
             if (!device.label) return false
             const label = device.label.toLowerCase()
-            return label.includes('ultrawide') || 
-                   label.includes('ultra wide') ||
-                   label.includes('ultra-wide') ||
-                   label.includes('wide angle') ||
-                   label.includes('wide-angle') ||
-                   label.includes('wideangle')
+            // Must be a back camera
+            const isBackCamera = (label.includes('back') || 
+                                 label.includes('rear') ||
+                                 label.includes('main') ||
+                                 label.includes('wide camera')) &&
+                                !label.includes('front')
+            // Must NOT be ultrawide
+            const isNotUltrawide = !label.includes('ultrawide') && 
+                                  !label.includes('ultra wide') &&
+                                  !label.includes('ultra-wide') &&
+                                  !label.includes('wide angle') &&
+                                  !label.includes('wide-angle') &&
+                                  !label.includes('wideangle')
+            return isBackCamera && isNotUltrawide
           })
           
-          if (ultrawideDevice && ultrawideDevice.deviceId && ultrawideDevice.deviceId !== 'default') {
-            console.log("[startCamera] Found ultrawide camera:", ultrawideDevice.label || 'unnamed device')
+          if (mainBackCamera && mainBackCamera.deviceId && mainBackCamera.deviceId !== 'default') {
+            console.log("[startCamera] Found main back camera:", mainBackCamera.label || 'unnamed device')
             videoConstraints = {
-              deviceId: { exact: ultrawideDevice.deviceId },
+              deviceId: { exact: mainBackCamera.deviceId },
               width: { ideal: 1920 },
               height: { ideal: 1080 },
             }
             setIsUsingFrontCamera(false) // Back camera, no mirroring
           } else {
-            // Fallback: Try to find any back/rear camera explicitly (for Android)
-            // This helps when ultrawide isn't labeled clearly
+            // Fallback: Try to find any back/rear camera explicitly (excluding ultrawide)
             const backCamera = videoDevices.find(device => {
               if (!device.label) return false
               const label = device.label.toLowerCase()
-              return (label.includes('back') || 
-                     label.includes('rear') ||
-                     label.includes('main')) &&
-                     !label.includes('front')
+              const isBack = (label.includes('back') || 
+                             label.includes('rear')) &&
+                            !label.includes('front')
+              const isNotUltrawide = !label.includes('ultrawide') && 
+                                    !label.includes('ultra wide') &&
+                                    !label.includes('ultra-wide') &&
+                                    !label.includes('wide angle') &&
+                                    !label.includes('wide-angle') &&
+                                    !label.includes('wideangle')
+              return isBack && isNotUltrawide
             })
             
             if (backCamera && backCamera.deviceId && backCamera.deviceId !== 'default') {
-              console.log("[startCamera] Found back camera:", backCamera.label || 'unnamed device')
+              console.log("[startCamera] Found back camera (excluding ultrawide):", backCamera.label || 'unnamed device')
               videoConstraints = {
                 deviceId: { exact: backCamera.deviceId },
                 width: { ideal: 1920 },
@@ -851,7 +864,8 @@ export function HomePageClient() {
               }
               setIsUsingFrontCamera(false) // Back camera, no mirroring
             } else {
-              console.log("[startCamera] No specific camera found, using back camera with facingMode: environment")
+              // Final fallback: Use facingMode: environment (should select main back camera)
+              console.log("[startCamera] No specific camera found, using main back camera with facingMode: environment")
               setIsUsingFrontCamera(false) // Back camera, no mirroring
             }
           }
