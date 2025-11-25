@@ -4,9 +4,7 @@ import type { RefObject } from 'react';
 import { TopLiveBar } from './top-live-bar';
 import StartOverlay from './start-overlay';
 import PromptControlsOverlay from './prompt-controls-overlay';
-import ResultOverlay from './result-overlay';
 import CustomTriggerDialog from './custom-trigger-dialog';
-import type { ResultHistoryEntry } from './player-types';
 import type { VideoSessionActions, VideoSessionState } from './hooks/useVideoSession';
 import type { TriggerManagerActions, TriggerManagerState } from './hooks/useTriggerManager';
 
@@ -15,7 +13,6 @@ export interface PlayerSurfaceProps {
   videoActions: VideoSessionActions;
   triggers: TriggerManagerState;
   triggerActions: TriggerManagerActions;
-  resultHistory: ResultHistoryEntry[];
   onStopStreaming: () => void;
 }
 
@@ -24,7 +21,6 @@ export default function PlayerSurface({
   videoActions,
   triggers,
   triggerActions,
-  resultHistory,
   onStopStreaming,
 }: PlayerSurfaceProps) {
   const {
@@ -99,14 +95,6 @@ export default function PlayerSurface({
           onStopStreaming={onStopStreaming}
           isStreaming={isStreaming}
         />
-
-        {isStreaming && (
-          <ResultOverlay
-            isFullscreen={isFullscreen}
-            videoDisplayInfo={displayInfo}
-            resultHistory={resultHistory}
-          />
-        )}
 
         {error && (
           <div className="absolute top-4 left-1/2 z-30 w-full px-4 flex justify-center pointer-events-none">

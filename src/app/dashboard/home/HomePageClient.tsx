@@ -25,10 +25,8 @@ export function HomePageClient() {
   const [showModeSelection, setShowModeSelection] = useState(false)
   const [question, setQuestion] = useState<string>("")
   const [answer, setAnswer] = useState<string>("")
-  const [answerHistory, setAnswerHistory] = useState<Array<{ id: string; text: string; timestamp: number }>>([])
   const [textQuery, setTextQuery] = useState<string>("")
   const [customQuery, setCustomQuery] = useState<string>("")
-  const [analysisHistory, setAnalysisHistory] = useState<string[]>([])
   const [latestBackgroundAnalysis, setLatestBackgroundAnalysis] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   // Narration settings from localStorage
@@ -479,14 +477,6 @@ export function HomePageClient() {
       console.log("[handleQuestion] Got response from Moondream:", response?.substring(0, 100))
       setAnswer(response)
       
-      // Add to answer history for bottom overlay display
-      const newAnswer = {
-        id: Date.now().toString(),
-        text: response,
-        timestamp: Date.now()
-      }
-      setAnswerHistory(prev => [newAnswer, ...prev].slice(0, 3)) // Keep last 3 answers
-      
       playAnswerReadySound() // Play sound when answer is ready
       
       // Stop recognition BEFORE speaking to prevent it from hearing the AI's voice
@@ -597,8 +587,6 @@ export function HomePageClient() {
           if (response) {
             // Store latest background analysis (but don't speak it)
             setLatestBackgroundAnalysis(response)
-            // Add to history silently
-            setAnalysisHistory(prev => [response, ...prev].slice(0, 10))
           }
           
           // Wait before next analysis (default 2 seconds), but check flag periodically
@@ -1586,8 +1574,6 @@ export function HomePageClient() {
     setAnswer("")
     setTextQuery("")
     setLatestBackgroundAnalysis("")
-    setAnalysisHistory([])
-    setAnswerHistory([])
     isAnsweringQuestionRef.current = false
     
     // Ensure analyzing state is false
@@ -1648,45 +1634,6 @@ export function HomePageClient() {
           <div className="h-3 w-3 bg-green-400 rounded-full animate-pulse" />
         )}
       </div>
-
-      {/* Answer History Overlay - Bottom (slides up from bottom) */}
-      {answerHistory.length > 0 && (
-        <div
-          className="absolute left-4 right-4 z-30 pointer-events-none"
-          style={{
-            display: 'flex',
-            flexDirection: 'column-reverse',
-            gap: '8px',
-            maxWidth: '800px',
-            margin: '0 auto',
-            bottom: inputMode === "text" ? "220px" : inputMode === "voice" ? "200px" : "200px", // Position above the input controls
-          }}
-        >
-          {answerHistory.map((answerItem, index) => {
-            const opacityLevels = [1, 0.5, 0.25]
-            return (
-              <div
-                key={answerItem.id}
-                className="text-white shadow-lg leading-snug text-sm"
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  background: 'rgba(0, 0, 0, 0.1)',
-                  backdropFilter: 'blur(20px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                  opacity: opacityLevels[index] || 0.25,
-                  animation: index === 0 ? 'slideUp 0.3s ease-out' : 'none',
-                  transition: 'opacity 0.3s ease-out',
-                  borderRadius: '16px',
-                }}
-              >
-                {answerItem.text}
-            </div>
-            )
-          })}
-        </div>
-      )}
-      
 
       {/* Query Input and Controls - Floating above bottom navbar */}
       <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">

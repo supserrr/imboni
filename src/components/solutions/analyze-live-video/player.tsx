@@ -56,7 +56,7 @@ export default function Player({ inferenceUrl, defaultFullscreen = false, onStar
     predefinedTriggers: PRE_DEFINED_TRIGGERS,
   });
 
-  const { resultHistory, reset } = useAnalysisSession({
+  const { reset } = useAnalysisSession({
     inferenceUrl,
     captureFrame: videoActions.captureFrame,
     triggerConfig,
@@ -88,7 +88,6 @@ export default function Player({ inferenceUrl, defaultFullscreen = false, onStar
         videoActions={{ ...videoActions, startWebcam: handleStartWebcam }}
         triggers={triggerState}
         triggerActions={triggerActions}
-        resultHistory={resultHistory}
         onStopStreaming={handleStopStreaming}
       />
     </div>

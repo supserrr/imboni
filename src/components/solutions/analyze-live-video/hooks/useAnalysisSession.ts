@@ -13,7 +13,7 @@ interface UseAnalysisSessionParams {
 }
 
 export function useAnalysisSession({ inferenceUrl, captureFrame, triggerConfig, shouldAnalyze, onError }: UseAnalysisSessionParams) {
-  const { resultHistory, clearHistory } = useFrameAnalysis({
+  const { clearHistory } = useFrameAnalysis({
     inferenceUrl,
     captureFrame,
     config: triggerConfig,
@@ -25,6 +25,6 @@ export function useAnalysisSession({ inferenceUrl, captureFrame, triggerConfig, 
     clearHistory();
   }, [clearHistory]);
 
-  return { resultHistory, reset };
+  return { reset };
 }
 
