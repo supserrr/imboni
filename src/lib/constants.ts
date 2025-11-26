@@ -47,3 +47,10 @@ export const POLLING_INTERVAL = 2000 // 2 seconds
 export const RECONNECTION_ATTEMPTS = 5
 export const RECONNECTION_DELAYS = [1000, 2000, 4000, 8000, 16000] // Exponential backoff
 
+// TTS Optimization Settings
+// Maximum characters for TTS responses to reduce ElevenLabs credit usage
+// Lower values = less credits used but potentially less detailed responses
+export const TTS_MAX_RESPONSE_LENGTH = 250 // Default: 250 characters
+// Maximum characters before skipping TTS entirely (to prevent very long responses from consuming credits)
+export const TTS_MAX_CHARACTER_LIMIT = 100 // Skip TTS if response exceeds this length
+

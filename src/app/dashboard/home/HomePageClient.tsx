@@ -11,6 +11,8 @@ import { Square, Mic, Send, Type } from "@/components/ui/animated-icons"
 import { Input } from "@/components/ui/input"
 import { queryMoondream } from "@/lib/services/moondream"
 import { captureFrameFromVideo } from "@/lib/utils/frame-capture"
+import { optimizeResponseForTTS, enhancePromptForConciseResponse } from "@/lib/utils/response-optimizer"
+import { TTS_MAX_RESPONSE_LENGTH, TTS_MAX_CHARACTER_LIMIT } from "@/lib/constants"
 
 const MOONDREAM_API_URL = process.env.NEXT_PUBLIC_MOONDREAM_API_URL || "https://api.moondream.ai/v1"
 
@@ -489,8 +491,11 @@ export function HomePageClient() {
       }
       console.log("[handleQuestion] Frame captured, querying Moondream API...")
 
-      // Query Moondream API with the user's question
-      const response = await queryMoondream(frameDataUrl, questionText, MOONDREAM_API_URL)
+      // Enhance user question to encourage concise responses (reduces response length at source)
+      const enhancedQuestion = enhancePromptForConciseResponse(questionText, true)
+      
+      // Query Moondream API with the enhanced question
+      const response = await queryMoondream(frameDataUrl, enhancedQuestion, MOONDREAM_API_URL)
       console.log("[handleQuestion] Got response from Moondream:", response?.substring(0, 100))
       
       // Add to result history (original implementation style)
@@ -540,21 +545,34 @@ export function HomePageClient() {
       // Delay to ensure recognition has fully stopped, then speak the answer if auto-narrate is enabled
       // Increased to 500ms to ensure recognition is fully stopped (prevents picking up AI voice)
       if (autoNarrate) {
-        console.log("[handleQuestion] Speaking answer...")
-        // Wait longer to ensure recognition is fully stopped and any pending results are cleared
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Resume audio context before speaking (critical for mobile browsers)
-        // This ensures audio can play on mobile devices
-        try {
-          const service = getElevenLabsService()
-          await service.resumeContext()
-        } catch (err) {
-          console.warn("[handleQuestion] Failed to resume audio context:", err)
+        // Check if response exceeds character limit - skip TTS to save credits
+        if (response.length > TTS_MAX_CHARACTER_LIMIT) {
+          console.log(`[handleQuestion] Response too long (${response.length} chars > ${TTS_MAX_CHARACTER_LIMIT} limit), skipping TTS to save credits`)
+          // Still show the response in the UI, just don't speak it
+        } else {
+          console.log("[handleQuestion] Speaking answer...")
+          // Wait longer to ensure recognition is fully stopped and any pending results are cleared
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+          // Resume audio context before speaking (critical for mobile browsers)
+          // This ensures audio can play on mobile devices
+          try {
+            const service = getElevenLabsService()
+            await service.resumeContext()
+          } catch (err) {
+            console.warn("[handleQuestion] Failed to resume audio context:", err)
+          }
+          
+          // Optimize response for TTS to reduce ElevenLabs credit usage
+          const optimizedResponse = optimizeResponseForTTS(response, { maxLength: TTS_MAX_RESPONSE_LENGTH })
+          if (optimizedResponse.length < response.length) {
+            const savings = Math.round(((response.length - optimizedResponse.length) / response.length) * 100)
+            console.log(`[handleQuestion] Optimized response: ${response.length} → ${optimizedResponse.length} chars (${savings}% reduction)`)
+          }
+          
+          await speak(optimizedResponse)
+          console.log("[handleQuestion] Answer spoken")
         }
-        
-        await speak(response)
-        console.log("[handleQuestion] Answer spoken")
       } else {
         console.log("[handleQuestion] Auto-narrate disabled, skipping speech")
         // If not speaking, restart recognition immediately
@@ -627,7 +645,8 @@ export function HomePageClient() {
         
         try {
           // Background analysis - just describing what it sees (silent)
-          const backgroundQuery = "describe what you see in one short sentence"
+          // Optimized prompt to get concise responses
+          const backgroundQuery = "briefly describe what you see in one concise sentence"
           
           // Check flag again before making API call
           if (!analysisLoopRef.current) {
