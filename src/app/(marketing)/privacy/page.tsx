@@ -1,3 +1,4 @@
+'use cache';
 
 import { PrivacyPageClient } from "./PrivacyPageClient"
 

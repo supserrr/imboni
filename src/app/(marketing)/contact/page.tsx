@@ -1,5 +1,7 @@
+'use cache';
+
 import { ContactPageClient } from "./ContactPageClient"
 
-export default function ContactPage() {
+export default async function ContactPage() {
   return <ContactPageClient />
 }

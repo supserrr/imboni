@@ -495,9 +495,9 @@ export const FlickeringFooter = ({
             delay: animationDuration * 0.8,
             duration: animationDuration,
           }}
-          className="pt-5 md:ml-auto"
+          className="pt-5 flex justify-center md:justify-end md:ml-auto w-full md:w-auto"
         >
-          <ul className="flex flex-row items-center justify-end gap-x-8">
+          <ul className="flex flex-row flex-wrap items-center justify-center md:justify-end gap-x-2 sm:gap-x-3 md:gap-x-6 lg:gap-x-8 gap-y-2 px-2">
             {footerLinks.map((link, index) => (
               <motion.li
                 key={link.id}
@@ -510,11 +510,11 @@ export const FlickeringFooter = ({
                   stiffness: 100,
                   damping: 10,
                 }}
-                className="group inline-flex cursor-pointer items-center justify-start gap-1 text-sm font-mono text-foreground hover:text-primary transition-colors"
+                className="group inline-flex cursor-pointer items-center justify-start gap-1 text-xs sm:text-sm md:text-base font-mono text-foreground hover:text-primary transition-colors whitespace-nowrap"
               >
                 <Link href={link.url}>{link.title}</Link>
-                <div className="flex size-4 items-center justify-center border border-border rounded translate-x-0 transform opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100">
-                  <ChevronRightIcon className="h-4 w-4" />
+                <div className="hidden sm:flex size-3 sm:size-4 md:size-5 items-center justify-center border border-border rounded translate-x-0 transform opacity-0 transition-all duration-300 ease-out group-hover:translate-x-1 group-hover:opacity-100">
+                  <ChevronRightIcon className="h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5" />
                 </div>
               </motion.li>
             ))}

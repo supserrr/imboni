@@ -1,5 +1,7 @@
+'use cache';
+
 import { AboutPageClient } from "./AboutPageClient"
 
-export default function AboutPage() {
+export default async function AboutPage() {
   return <AboutPageClient />
 }

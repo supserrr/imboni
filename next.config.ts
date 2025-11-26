@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
   
+  // Enable cache components for improved performance
+  cacheComponents: true,
+  
   // Optimize images
   images: {
     formats: ['image/avif', 'image/webp'],
